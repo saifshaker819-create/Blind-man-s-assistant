@@ -679,6 +679,16 @@ ar:{
  searchClinic:'ابحث باسم الطبيب أو العيادة أو المنطقة',
  bookedToday:'محجوز اليوم', notBookedToday:'لا يوجد حجز لهذا المراجع اليوم',
  foundInQueue:'ظهر في قائمة اليوم', clinicInfo:'بيانات العيادة',
+ plan:'خطة علاج السن', planProc:'نوع العمل المطلوب', planCount:'عدد الجلسات المطلوبة',
+ planToday:'الجلسات المنفّذة اليوم', planNote:'ملاحظات الخطة', savePlan:'حفظ الخطة',
+ planSaved:'حُفظت خطة السن', pickSessions:'اختر جلسة أو أكثر',
+ sessionN:'الجلسة', ofN:'من', remaining:'المتبقي من الخطة', planDone:'اكتملت الجلسات',
+ toothSessions:'جلسات السن', teethFiles:'ملفات الأسنان', allVisits:'كل الزيارات',
+ toothSummary:'ملخص علاج السن', sealed:'مختوم', ongoing:'قيد العلاج',
+ noPlan:'لم تُوضع خطة لهذا السن بعد', startPlan:'وضع خطة العلاج',
+ editPlan:'تعديل الخطة', doneSessions:'الجلسات المنفّذة', planPrice:'سعر الجلسة',
+ sealTooth:'ختم ملف هذا السن', sealed_msg:'خُتم ملف السن — أي علاج قادم يبدأ ملفاً جديداً',
+ toothArchive:'أرشيف السن', sessionOf:'جلسة',
  call:'استدعاء', seat:'على الكرسي', finish:'إنهاء',
  called:'تم الاستدعاء', live:'الآن', searchQ:'ابحث في قائمة اليوم',
  pickClinic:'اختر العيادة', clinics:'العيادات', enterClinic:'دخول العيادة',
@@ -824,6 +834,16 @@ en:{
  searchClinic:'Search by doctor, clinic or area',
  bookedToday:'Booked today', notBookedToday:'This patient has no booking today',
  foundInQueue:'Shown in today list', clinicInfo:'Clinic details',
+ plan:'Tooth treatment plan', planProc:'Required procedure', planCount:'Sessions required',
+ planToday:'Sessions done today', planNote:'Plan notes', savePlan:'Save plan',
+ planSaved:'Tooth plan saved', pickSessions:'Select one or more sessions',
+ sessionN:'Session', ofN:'of', remaining:'Remaining', planDone:'All sessions completed',
+ toothSessions:'Tooth sessions', teethFiles:'Tooth files', allVisits:'All visits',
+ toothSummary:'Tooth treatment summary', sealed:'Sealed', ongoing:'In treatment',
+ noPlan:'No plan set for this tooth yet', startPlan:'Set treatment plan',
+ editPlan:'Edit plan', doneSessions:'Completed sessions', planPrice:'Session price',
+ sealTooth:'Seal this tooth file', sealed_msg:'Tooth file sealed — future treatment starts a new file',
+ toothArchive:'Tooth archive', sessionOf:'Session',
  call:'Call', seat:'Seat', finish:'Finish',
  called:'Called', live:'Now', searchQ:'Search today\'s list',
  pickClinic:'Choose clinic', clinics:'Clinics', enterClinic:'Enter clinic',
@@ -1869,15 +1889,6 @@ const Ops = {
     return r?.course || 1;
   },
 
-  async endCourse(pid, fdi){
-    const id = pid+'-'+fdi;
-    const r = (await DB.get('tooth', id)) || { id, pid, fdi:Number(fdi), st:'sound' };
-    r.course = (r.course || 1) + 1;
-    r.closedAt = Date.now();
-    await DB.put('tooth', r);
-    return r.course;
-  },
-
   /* حساب سلسلة السن الحالية: الأعمال والمدفوعات المرتبطة بها */
   async courseTotals(pid, fdi){
     const cur = await this.course(pid, fdi);
@@ -1956,6 +1967,85 @@ const Ops = {
       visitCount: visits.length,
       toothCount: out.length,
     };
+  },
+
+  /*────────── خطة علاج السن ──────────
+    كل سن له ملف مستقل: خطة (نوع العمل وعدد الجلسات) وجلسات
+    منفّذة وحساب وأرشيف. عند الختم يبدأ ملف جديد لنفس السن. */
+  async toothRec(pid, fdi){
+    const id = pid + '-' + fdi;
+    return (await DB.get('tooth', id)) ||
+           { id, pid, fdi:Number(fdi), st:'sound', course:1, plans:{}, archive:[] };
+  },
+
+  async plan(pid, fdi){
+    const r = await this.toothRec(pid, fdi);
+    return (r.plans || {})[r.course || 1] || null;
+  },
+
+  async savePlan(pid, fdi, plan){
+    const r = await this.toothRec(pid, fdi);
+    r.plans = r.plans || {};
+    const c = r.course || 1;
+    r.plans[c] = { ...(r.plans[c] || {}), ...plan, at: Date.now() };
+    await DB.put('tooth', r);
+    return r.plans[c];
+  },
+
+  /* الجلسات المنفّذة فعلياً لهذه السلسلة (من سجلّ الأعمال) */
+  async doneSessions(pid, fdi){
+    const r = await this.toothRec(pid, fdi);
+    const c = r.course || 1;
+    const ws = (await DB.by('works','pid',pid))
+      .filter(w => Number(w.fdi) === Number(fdi) && (w.course||1) === c);
+    const nums = new Set();
+    ws.forEach(w => (w.sessionNos || []).forEach(n => nums.add(Number(n))));
+    return { nums:[...nums].sort((a,b)=>a-b), works:ws };
+  },
+
+  /* ختم ملف السن: تُؤرشف الخطة وتبدأ سلسلة جديدة */
+  async endCourse(pid, fdi){
+    const r = await this.toothRec(pid, fdi);
+    const c = r.course || 1;
+    const totals = await this.courseTotals(pid, fdi);
+    r.archive = r.archive || [];
+    r.archive.push({
+      course:c, plan:(r.plans||{})[c] || null,
+      total:totals.total, paid:totals.paid,
+      sessions:totals.works.length, closedAt:Date.now(),
+    });
+    r.course = c + 1;
+    r.closedAt = Date.now();
+    await DB.put('tooth', r);
+    return r.course;
+  },
+
+  /* كل ملفات أسنان المراجع: المفتوحة والمختومة */
+  async toothFiles(pid){
+    const recs = await DB.by('tooth','pid',pid);
+    const works = await DB.by('works','pid',pid);
+    const pays  = await DB.by('payments','pid',pid);
+    const out = [];
+
+    for (const r of recs){
+      const cur = r.course || 1;
+      for (let c = 1; c <= cur; c++){
+        const ws = works.filter(w => Number(w.fdi)===r.fdi && (w.course||1)===c);
+        const ps = pays .filter(x => Number(x.fdi)===r.fdi && (x.course||1)===c);
+        const arch = (r.archive||[]).find(a => a.course === c);
+        const plan = (r.plans||{})[c] || arch?.plan || null;
+        if (!ws.length && !ps.length && !plan) continue;
+        out.push({
+          fdi:r.fdi, course:c, sealed:c < cur, plan, st:r.st,
+          works:ws.sort((a,b)=>(b.at||0)-(a.at||0)),
+          pays:ps,
+          total: ws.reduce((a,x)=>a+Number(x.price||0),0),
+          paid:  ps.reduce((a,x)=>a+Number(x.amt||0),0),
+          last:  Math.max(0, ...ws.map(w=>w.at||0), ...ps.map(x=>x.at||0)),
+        });
+      }
+    }
+    return out.sort((a,b)=> (a.sealed - b.sealed) || (b.last - a.last));
   },
 
   async setTooth(pid, fdi, st, vid){
@@ -2318,6 +2408,7 @@ const Sec = {
     S.patient = p;
 
     const L  = await Ops.ledger(pid);
+    const files = await Ops.toothFiles(pid);
     const vs = (await DB.by('visits','pid',pid)).sort((a,b)=>(b.at||0)-(a.at||0));
     const needAppt  = vs.filter(v => v.needAppt);
     const nextAppts = await Appt.forPatient(pid);
@@ -2411,10 +2502,35 @@ const Sec = {
 
       <div class="card">
         <div class="row" style="justify-content:space-between">
-          <div class="lbl">${T('sessions')}</div><span class="pill n">${vs.length}</span>
+          <div class="lbl">${T('teethFiles')}</div><span class="pill n">${files.length}</span>
         </div>
-        <div class="col mt">${visitRows.join('') || `<div class="emp">${T('noVisits')}</div>`}</div>
+        <div class="col mt">${files.length ? files.map(f=>`
+          <div class="it" onclick="Doc.openToothFile('${pid}',${f.fdi},${f.course})">
+            <div class="av mono" style="${f.plan?`background:${P(f.plan.proc).col}22;
+              color:${P(f.plan.proc).col}`:''}">${Chart.lbl(f.fdi)}</div>
+            <div class="gr">
+              <div class="row" style="gap:6px">
+                <span class="h3">${T('tooth')} ${Chart.lbl(f.fdi)}</span>
+                <span class="pill ${f.sealed?'n':'b'}">${f.sealed?T('sealed'):T('ongoing')}</span>
+              </div>
+              <div class="tiny ell">${f.plan?esc(pName(f.plan.proc)):'—'}
+                · ${f.works.length}${f.plan?`/${f.plan.sessions}`:''} ${T('toothVisits')}</div>
+            </div>
+            <div style="text-align:end">
+              <div class="mono" style="font-weight:700;color:var(--ok)">${N(f.paid)}</div>
+              <div class="tiny">${f.last?fmtD(f.last):''}</div>
+            </div>
+          </div>`).join('') : `<div class="emp">${T('noLedger')}</div>`}</div>
       </div>
+
+      <details class="acc">
+        <summary><span class="accic">📅</span>
+          <span class="gr">${T('allVisits')}</span>
+          <span class="pill n">${vs.length}</span>
+          <span class="ar">${isAr()?'‹':'›'}</span></summary>
+        <div class="bd"><div class="col">
+          ${visitRows.join('') || `<div class="emp">${T('noVisits')}</div>`}</div></div>
+      </details>
 
       <button class="btn w gh mt2" onclick="Nav.back()">${T('close')}</button>`;
   },
@@ -3018,75 +3134,109 @@ const Doc = {
     Rx.write();
   },
 
-  /*──── بطاقة السن ────*/
+  /*──── ملف السن: الخطة والجلسات والحساب ────*/
   async tooth(fdi){
     if (!S.patient) return;
     S.sel = fdi;
     const pid = S.patient.id;
-    const all = (await DB.by('works','pid',pid)).filter(w=>Number(w.fdi)===Number(fdi))
-                 .sort((a,b)=>(b.at||0)-(a.at||0));
-    const map = await Ops.toothMap(pid);
-    const st  = map[fdi] || 'sound';
-    const col = TS(st).col;
-    const wl  = all.find(w => /W\.?L\s?\d+/i.test(w.note||''));
-    /* السلسلة الحالية فقط — المدفوعات تُجمع لها وحدها */
-    const cs  = await Ops.courseTotals(pid, fdi);
 
-    UI.sheet(`
-      <div class="row">
-        <div class="av mono" style="width:56px;height:56px;border-radius:16px;font-size:17px;
-          background:${col?col+'26':'var(--card2)'};color:${col||'var(--ink2)'};
-          border:2.5px solid ${col||'var(--line)'}">${Chart.lbl(fdi)}</div>
+    const rec  = await Ops.toothRec(pid, fdi);
+    const plan = await Ops.plan(pid, fdi);
+    const done = await Ops.doneSessions(pid, fdi);
+    const cs   = await Ops.courseTotals(pid, fdi);
+    const map  = await Ops.toothMap(pid);
+    const st   = map[fdi] || 'sound';
+    const col  = TS(st).col;
+    const wl   = done.works.find(w => /W\.?L\s?\d+/i.test(w.note||''));
+    const arch = (rec.archive||[]).slice().reverse();
+
+    const head = `
+      <div class="shhead">
+        <div class="av mono" style="width:52px;height:52px;border-radius:16px;font-size:16px;
+          background:${col?col+'26':'var(--glass2)'};color:${col||'var(--ink2)'};
+          border:2px solid ${col||'var(--edge)'}">${Chart.lbl(fdi)}</div>
         <div class="gr">
-          <div class="h2">${isAr()?TS(st).ar:TS(st).en}</div>
-          <div class="mono tiny">FDI ${fdi} · Palmer ${(()=>{const q=Math.floor(fdi/10),p=fdi%10,
-            s={1:'⌐',2:'¬',3:'L',4:'J'}[q];return (q===1||q===4)?p+s:s+p;})()} · Univ ${UNIV[fdi]}</div>
+          <div class="h2">${T('tooth')} ${Chart.lbl(fdi)}</div>
+          <div class="mono tiny">FDI ${fdi} · ${T('courseNo')} ${rec.course||1} ·
+            ${esc(isAr()?TS(st).ar:TS(st).en)}</div>
         </div>
-        <button class="ib" onclick="Nav.back()">×</button>
-      </div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>`;
 
-      ${wl?`<div class="al g mt2"><span>📏</span>
+    /* لا خطة بعد → نموذج وضع الخطة */
+    if (!plan && Perm.addWork()){
+      UI.sheet(head + this.planForm(fdi, null));
+      this.wirePlan();
+      return;
+    }
+
+    const total = plan?.sessions || 0;
+    const left  = Math.max(0, total - done.nums.length);
+    const pct   = total ? Math.round(done.nums.length / total * 100) : 0;
+
+    UI.sheet(head + `
+      ${plan ? `
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="lbl">${T('plan')}</div>
+          ${Perm.addWork()?`<button class="btn xs gh" onclick="Doc.editPlan(${fdi})">
+            ✎ ${T('editPlan')}</button>`:''}
+        </div>
+        <div class="row mt" style="gap:10px">
+          <div class="av" style="background:${P(plan.proc).col}22;color:${P(plan.proc).col}">
+            ${done.nums.length}</div>
+          <div class="gr">
+            <div class="h3" style="color:${P(plan.proc).col}">${esc(pName(plan.proc))}</div>
+            <div class="tiny">${done.nums.length} ${T('ofN')} ${total} ${T('toothVisits')}
+              ${left?` · ${T('remaining')} ${left}`:` · ${T('planDone')}`}</div>
+          </div>
+          <span class="pill ${left?'w':'g'}">${pct}%</span>
+        </div>
+        <div style="height:9px;border-radius:99px;background:var(--glass2);
+          overflow:hidden;margin-top:10px">
+          <div style="height:100%;width:${pct}%;background:${P(plan.proc).col};
+            border-radius:99px;transition:width .4s"></div>
+        </div>
+        <div class="row wrapv mt" style="gap:6px">
+          ${Array.from({length:total},(_,i)=>i+1).map(n=>`
+            <span class="pill ${done.nums.includes(n)?'g':'n'}">
+              ${done.nums.includes(n)?'✓ ':''}${T('sessionN')} ${n}</span>`).join('')}
+        </div>
+        ${plan.note?`<div class="tiny mt">${esc(plan.note)}</div>`:''}
+        ${Perm.addWork() && left && S.visit
+          ? `<button class="btn w mt" onclick="Doc.doSession(${fdi})">
+              ＋ ${T('planToday')}</button>` : ''}
+      </div>` : `<div class="al w"><span>!</span><span>${T('noPlan')}</span></div>`}
+
+      ${wl?`<div class="al g mt"><span>📏</span>
         <span>${T('wl')}: <b class="mono">${esc(wl.note)}</b></span></div>`:''}
 
-      <div class="card mt2">
+      <div class="card">
         <div class="row" style="justify-content:space-between">
-          <div class="lbl">${T('course')}</div>
-          <span class="pill b">${T('courseNo')} ${cs.course}</span>
-        </div>
-        <div class="g3 mt">
-          <div class="ctr"><div class="tiny">${T('total')}</div>
-            <div class="mono h3">${N(cs.total)}</div></div>
-          <div class="ctr"><div class="tiny">${T('courseTotal')}</div>
-            <div class="mono h3" style="color:var(--ok)">${N(cs.paid)}</div></div>
+          <div class="lbl">${T('courseTotal')}</div>
+          <span class="mono h3" style="color:var(--ok)">${N(cs.paid)}</span>
         </div>
         ${cs.pays.length?`<div class="col mt">${cs.pays.map(x=>`
           <div class="it" style="cursor:default;padding:9px 11px">
-            <div class="av g" style="width:32px;height:32px;font-size:14px">₪</div>
+            <div class="av g" style="width:30px;height:30px;font-size:13px">₪</div>
             <div class="gr"><div class="mono" style="font-weight:700">${N(x.amt)}</div>
               <div class="tiny">${fmtD(x.at)} · ${T(x.method||'cash')}</div></div>
-          </div>`).join('')}</div>`:''}
-        ${Perm.addWork()&&cs.works.length?`
-          <button class="btn w wn mt" onclick="Doc.endCourse(${fdi})">✔ ${T('endCourse')}</button>`:''}
+          </div>`).join('')}</div>`:`<div class="tiny mt">—</div>`}
       </div>
 
-      ${Perm.addWork()?`<div class="mt2"><div class="lbl">${T('setStatus')}</div>
-        <div class="mt" style="display:flex;flex-wrap:wrap;gap:6px">
-          ${Object.entries(TSTAT).map(([k,v])=>`
-            <button class="btn xs ${st===k?'':'gh'}" onclick="Doc.setSt(${fdi},'${k}')"
-              style="${st===k&&v.col?`background:${v.col};color:#fff`:''}">
-              ${esc(isAr()?v.ar:v.en)}</button>`).join('')}
-        </div></div>`:''}
-
-      <div class="mt2"><div class="lbl">${T('toothLog')}</div>
-        ${all.length?`<div class="mt">${all.map((w,i)=>`
-          <div class="tl" style="padding-bottom:${i===all.length-1?0:15}px">
+      <div class="card">
+        <div class="lbl">${T('doneSessions')}</div>
+        ${done.works.length?`<div class="mt">${done.works.map((w,i)=>`
+          <div class="tl" style="padding-bottom:${i===done.works.length-1?0:14}px">
             <div class="cl"><div class="dot ${i===0?'on':''}"></div>
-              ${i===all.length-1?'':'<div class="bar"></div>'}</div>
+              ${i===done.works.length-1?'':'<div class="bar"></div>'}</div>
             <div class="gr">
-              <div class="mono tiny">${fmtD(w.at)}</div>
-              <div class="h3" style="color:${P(w.proc).col}">${esc(pName(w.proc))}
-                ${w.by==='secretary'?`<span class="pill n" style="font-size:9.5px;padding:2px 6px">
-                  ${T('bySecretary')}</span>`:''}</div>
+              <div class="row" style="gap:6px">
+                <span class="mono tiny">${fmtD(w.at)}</span>
+                ${(w.sessionNos||[]).map(n=>`<span class="pill b"
+                  style="font-size:10px;padding:2px 7px">${T('sessionN')} ${n}</span>`).join('')}
+              </div>
+              <div class="h3" style="color:${P(w.proc).col}">${esc(pName(w.proc))}</div>
               <div class="row" style="justify-content:space-between;margin-top:3px">
                 <span class="mono tiny">${esc(w.note||'—')}</span>
                 <span class="mono" style="font-weight:700">${N(w.price)}</span>
@@ -3095,17 +3245,270 @@ const Doc = {
           </div>`).join('')}</div>`:`<div class="emp mt">${T('noToothWork')}</div>`}
       </div>
 
-      ${S.visit && Perm.addWork()?`<button class="btn w mt2"
-        onclick="Sec.addWork('${S.visit.id}',${fdi})">
-        ＋ ${T('addWork')}</button>`:''}`);
+      ${Perm.addWork()?`<div class="row mt" style="gap:8px">
+        <button class="btn gh gr" onclick="Doc.statusPicker(${fdi})">${T('setStatus')}</button>
+        ${done.works.length?`<button class="btn wn gr" onclick="Doc.endCourse(${fdi})">
+          ✔ ${T('sealTooth')}</button>`:''}
+      </div>`:''}
+
+      ${arch.length?`<div class="card mt2">
+        <div class="lbl">${T('toothArchive')}</div>
+        <div class="col mt">${arch.map(a=>`
+          <div class="it" style="cursor:pointer"
+               onclick="Doc.toothCourse('${pid}',${fdi},${a.course})">
+            <div class="av g">${a.course}</div>
+            <div class="gr">
+              <div class="h3">${esc(a.plan?pName(a.plan.proc):'—')}</div>
+              <div class="tiny">${a.sessions} ${T('toothVisits')} · ${fmtD(a.closedAt)}</div>
+            </div>
+            <span class="mono" style="font-weight:700;color:var(--ok)">${N(a.paid)}</span>
+          </div>`).join('')}</div>
+      </div>`:''}
+
+      <button class="btn w gh mt2" onclick="Nav.back()">${T('back')}</button>`);
   },
 
-  /* إنهاء سلسلة جلسات السن — ما بعدها يبدأ حساب جديد */
+  /* نموذج الخطة */
+  planForm(fdi, plan){
+    const n = plan?.sessions || 3;
+    return `
+      <div class="card">
+        <div class="h3">${plan?T('editPlan'):T('startPlan')}</div>
+        <div class="mt"><label class="lb">${T('planProc')} <span class="req">*</span></label>
+          <select id="pl-proc">${PROCS.map(x=>`<option value="${x.c}"
+            ${plan?.proc===x.c?'selected':''} data-p="${x.p}">${isAr()?x.ar:x.en}</option>`).join('')}
+          </select></div>
+        <div class="g2 mt">
+          <div><label class="lb">${T('planCount')} <span class="req">*</span></label>
+            <input id="pl-n" class="mono" inputmode="numeric" dir="ltr" value="${n}"
+              onchange="Doc.rebuildChips()"></div>
+          <div><label class="lb">${T('planPrice')}</label>
+            <input id="pl-price" class="mono" inputmode="numeric" dir="ltr"
+              value="${plan?.price||''}"></div>
+        </div>
+        <div class="mt"><label class="lb">${T('planToday')}</label>
+          <div class="tiny" style="margin-bottom:7px">${T('pickSessions')}</div>
+          <div class="row wrapv" id="pl-chips" style="gap:6px"></div></div>
+        <div class="mt"><label class="lb">${T('planNote')}</label>
+          <input id="pl-note" value="${esc(plan?.note||'')}"></div>
+        <div class="row mt2" style="gap:9px">
+          <button class="btn gh gr" onclick="Nav.back()">${T('cancel')}</button>
+          <button class="btn gr" style="flex:2" onclick="Doc.savePlan(${fdi})">
+            ${T('savePlan')}</button>
+        </div>
+      </div>`;
+  },
+
+  wirePlan(){
+    SG.attach($('#pl-note'), 'plannote');
+    const sel = $('#pl-proc'), pr = $('#pl-price');
+    if (sel && pr){
+      const sync = () => { if (!pr.value) pr.value = sel.selectedOptions[0]?.dataset.p || ''; };
+      sel.onchange = () => { pr.value = sel.selectedOptions[0]?.dataset.p || ''; this.rebuildChips(); };
+      sync();
+    }
+    this.rebuildChips();
+  },
+
+  /* أرقام الجلسات تُبنى حسب العدد المطلوب، ويمكن اختيار أكثر من واحدة */
+  rebuildChips(){
+    const box = $('#pl-chips'); if (!box) return;
+    const n = Math.max(1, Math.min(20, Number($('#pl-n')?.value) || 1));
+    const picked = new Set([...box.querySelectorAll('.on')].map(b=>Number(b.dataset.n)));
+    box.innerHTML = Array.from({length:n},(_,i)=>i+1).map(k=>`
+      <button type="button" class="btn sm ${picked.has(k)?'':'gh'} ${picked.has(k)?'on':''}"
+        data-n="${k}" onclick="Doc.toggleChip(this)">${T('sessionN')} ${k}</button>`).join('');
+    if (!picked.size){ const first = box.querySelector('button'); if (first) this.toggleChip(first); }
+  },
+
+  toggleChip(b){
+    const on = b.classList.toggle('on');
+    b.classList.toggle('gh', !on);
+  },
+
+  async savePlan(fdi){
+    const proc  = $('#pl-proc').value;
+    const count = Math.max(1, Number($('#pl-n').value) || 1);
+    const price = Number($('#pl-price').value) || 0;
+    const note  = ($('#pl-note').value || '').trim();
+    const picked = [...document.querySelectorAll('#pl-chips .on')].map(b=>Number(b.dataset.n));
+
+    await Ops.savePlan(S.patient.id, fdi, { proc, sessions:count, price, note });
+    await SG.learn('plannote', note);
+
+    /* الجلسات المختارة اليوم تُسجَّل كأعمال فوراً */
+    if (picked.length && S.visit){
+      const c = await Ops.course(S.patient.id, fdi);
+      await DB.put('works', {
+        id:uid(), vid:S.visit.id, pid:S.patient.id, proc, fdi,
+        course:c, sessionNos:picked, by:S.role,
+        price: price * picked.length, note, at:Date.now(),
+      });
+      const st = P(proc).st;
+      if (st) await Ops.setTooth(S.patient.id, fdi, st, S.visit.id);
+    }
+
+    toast(T('planSaved'), 's');
+    Nav.stack.pop();
+    this.tooth(fdi);
+  },
+
+  async editPlan(fdi){
+    const plan = await Ops.plan(S.patient.id, fdi);
+    const rec  = await Ops.toothRec(S.patient.id, fdi);
+    const col  = TS(rec.st||'sound').col;
+    UI.sheet(`
+      <div class="shhead">
+        <div class="av mono" style="width:48px;height:48px;font-size:15px">${Chart.lbl(fdi)}</div>
+        <div class="gr"><div class="h2">${T('editPlan')}</div>
+          <div class="tiny">${T('tooth')} ${Chart.lbl(fdi)}</div></div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>` + this.planForm(fdi, plan));
+    this.wirePlan();
+  },
+
+  /* تنفيذ جلسة إضافية من الخطة اليوم */
+  async doSession(fdi){
+    const plan = await Ops.plan(S.patient.id, fdi);
+    const done = await Ops.doneSessions(S.patient.id, fdi);
+    const left = Array.from({length:plan.sessions},(_,i)=>i+1).filter(n=>!done.nums.includes(n));
+
+    UI.sheet(`
+      <div class="shhead">
+        <div class="av mono" style="width:48px;height:48px;font-size:15px">${Chart.lbl(fdi)}</div>
+        <div class="gr"><div class="h2">${T('planToday')}</div>
+          <div class="tiny">${esc(pName(plan.proc))} · ${T('remaining')} ${left.length}</div></div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>
+      <div class="card">
+        <label class="lb">${T('pickSessions')}</label>
+        <div class="row wrapv mt" id="ds-chips" style="gap:6px">
+          ${left.map((k,i)=>`<button type="button" class="btn sm ${i===0?'on':'gh'}"
+            data-n="${k}" onclick="Doc.toggleChip(this)">${T('sessionN')} ${k}</button>`).join('')}
+        </div>
+        <div class="mt"><label class="lb">${T('planPrice')}</label>
+          <input id="ds-price" class="mono" inputmode="numeric" dir="ltr" value="${plan.price||''}"></div>
+        <div class="mt"><label class="lb">${T('notes')}</label><input id="ds-note"></div>
+        <div class="row mt2" style="gap:9px">
+          <button class="btn gh gr" onclick="Nav.back()">${T('cancel')}</button>
+          <button class="btn gr" style="flex:2" onclick="Doc.saveSession(${fdi})">${T('save')}</button>
+        </div>
+      </div>`);
+    SG.attach($('#ds-note'), 'worknote');
+  },
+
+  async saveSession(fdi){
+    const plan = await Ops.plan(S.patient.id, fdi);
+    const picked = [...document.querySelectorAll('#ds-chips .on')].map(b=>Number(b.dataset.n));
+    if (!picked.length) return toast(T('pickSessions'), 'e');
+    const price = Number($('#ds-price').value) || 0;
+    const note  = ($('#ds-note').value || '').trim();
+    const c = await Ops.course(S.patient.id, fdi);
+
+    await DB.put('works', {
+      id:uid(), vid:S.visit.id, pid:S.patient.id, proc:plan.proc, fdi,
+      course:c, sessionNos:picked, by:S.role,
+      price: price * picked.length, note, at:Date.now(),
+    });
+    await SG.learn('worknote', note);
+    const st = P(plan.proc).st;
+    if (st) await Ops.setTooth(S.patient.id, fdi, st, S.visit.id);
+
+    toast(T('saved'), 's');
+    Nav.stack.pop();
+    this.tooth(fdi);
+  },
+
+  statusPicker(fdi){
+    UI.sheet(`
+      <div class="shhead"><div class="gr"><div class="h2">${T('setStatus')}</div>
+        <div class="tiny">${T('tooth')} ${Chart.lbl(fdi)}</div></div>
+        <button class="ib" onclick="Nav.back()">✕</button></div>
+      <div class="card"><div class="row wrapv" style="gap:6px">
+        ${Object.entries(TSTAT).map(([k,v])=>`
+          <button class="btn sm gh" onclick="Doc.setSt(${fdi},'${k}')"
+            style="${v.col?`border-color:${v.col};color:${v.col}`:''}">
+            ${esc(isAr()?v.ar:v.en)}</button>`).join('')}
+      </div></div>`);
+  },
+
+  /* فتح ملف السن من صفحة المراجع: المفتوح يفتح البطاقة الحية،
+     والمختوم يفتح الملخص المؤرشف. */
+  async openToothFile(pid, fdi, course){
+    S.patient = await DB.get('patients', pid);
+    const rec = await Ops.toothRec(pid, fdi);
+    if (Number(course) === (rec.course || 1)){
+      const vs = (await DB.by('visits','pid',pid)).sort((a,b)=>(b.at||0)-(a.at||0));
+      S.visit = vs.find(v=>v.st==='open') || vs[0] || null;
+      return this.tooth(Number(fdi));
+    }
+    return this.toothCourse(pid, Number(fdi), Number(course));
+  },
+
+  /* ملخص ملف سن مختوم */
+  async toothCourse(pid, fdi, course){
+    const recs = await Ops.toothFiles(pid);
+    const f = recs.find(x => x.fdi===Number(fdi) && x.course===Number(course));
+    if (!f) return toast(T('noResult'), 'e');
+    const p = await DB.get('patients', pid);
+
+    UI.sheet(`
+      <div class="shhead">
+        <div class="av mono" style="width:50px;height:50px;font-size:15px">${Chart.lbl(fdi)}</div>
+        <div class="gr">
+          <div class="h2">${T('toothSummary')}</div>
+          <div class="tiny">${esc(nm(p))} · ${T('tooth')} ${Chart.lbl(fdi)} ·
+            ${T('courseNo')} ${course}</div>
+        </div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <span class="pill ${f.sealed?'n':'b'}">${f.sealed?T('sealed'):T('ongoing')}</span>
+          <div class="gr"></div>
+          <span class="mono h3" style="color:var(--ok)">${N(f.paid)}</span>
+        </div>
+        ${f.plan?`<div class="mt">
+          <div class="h3" style="color:${P(f.plan.proc).col}">${esc(pName(f.plan.proc))}</div>
+          <div class="tiny">${f.works.length} ${T('ofN')} ${f.plan.sessions} ${T('toothVisits')}</div>
+          ${f.plan.note?`<div class="tiny mt">${esc(f.plan.note)}</div>`:''}
+        </div>`:''}
+      </div>
+
+      <div class="card">
+        <div class="lbl">${T('doneSessions')}</div>
+        <div class="col mt">${f.works.map(w=>`
+          <div class="it" style="cursor:default">
+            <div class="av" style="background:${P(w.proc).col}22;color:${P(w.proc).col}">
+              ${(w.sessionNos||['—'])[0]}</div>
+            <div class="gr">
+              <div class="mono" style="font-weight:700">${fmtD(w.at)}</div>
+              <div class="tiny">${esc(pName(w.proc))}${w.note?' · '+esc(w.note):''}</div>
+            </div>
+            <span class="mono" style="font-weight:700">${N(w.price)}</span>
+          </div>`).join('') || `<div class="emp">—</div>`}</div>
+      </div>
+
+      ${f.pays.length?`<div class="card">
+        <div class="lbl">${T('payments')}</div>
+        <div class="col mt">${f.pays.sort((a,b)=>(b.at||0)-(a.at||0)).map(x=>`
+          <div class="it" style="cursor:default;padding:9px 11px">
+            <div class="av g" style="width:30px;height:30px;font-size:13px">₪</div>
+            <div class="gr"><div class="mono" style="font-weight:700">${N(x.amt)}</div>
+              <div class="tiny">${fmtD(x.at)} · ${T(x.method||'cash')}</div></div>
+          </div>`).join('')}</div>
+      </div>`:''}
+
+      <button class="btn w gh mt2" onclick="Nav.back()">${T('back')}</button>`);
+  },
+
+  /* ختم ملف السن من بطاقته */
   async endCourse(fdi){
     if (!ask(T('endCourseQ'))) return;
-    const n = await Ops.endCourse(S.patient.id, fdi);
-    toast(`${T('courseDone')} — ${T('courseNo')} ${n}`, 's');
-    UI.close(); this.draw();
+    await Ops.endCourse(S.patient.id, fdi);
+    toast(T('sealed_msg'), 's');
+    Nav.back();
   },
 
   async setSt(fdi, st){
@@ -3622,8 +4025,10 @@ const Rx = {
     freq:($('#rx-f'+i)?.value||'').trim(), dur:($('#rx-u'+i)?.value||'').trim(),
     instr:($('#rx-i'+i)?.value||'').trim() })); },
 
-  add(){ S.rxDraft=this.read(); S.rxDraft.push({}); this.sheet(); },
-  del(i){ S.rxDraft=this.read(); S.rxDraft.splice(i,1); this.sheet(); },
+  /* إعادة رسم الورقة ليست صفحة جديدة — تُستبدل مكانها */
+  redraw(){ Nav.stack.pop(); this.sheet(); },
+  add(){ S.rxDraft=this.read(); S.rxDraft.push({}); this.redraw(); },
+  del(i){ S.rxDraft=this.read(); S.rxDraft.splice(i,1); this.redraw(); },
 
   async save(alsoPrint){
     const items = this.read().filter(x=>x.drug.length>=2);
@@ -3647,9 +4052,11 @@ const Rx = {
       await SG.learn('freq',i.freq); await SG.learn('dur',i.dur); await SG.learn('instr',i.instr);
     }
     toast(T('saved'),'s');
-    /* الحفظ وحده يعود خطوة، والحفظ مع الطباعة يفتح الورقة */
+    /* العودة إلى جلسة الوصفة نفسها — لا إلى آخر صفحة في السجل،
+       فقد تكون صفحة المرفقات إن فُتحت قبل كتابة العلاج. */
+    Nav.reset(); UI.close();
     if (alsoPrint) Print.rx(rx.id);
-    Nav.back();
+    Nav.session(v.id);
   },
 };
 
