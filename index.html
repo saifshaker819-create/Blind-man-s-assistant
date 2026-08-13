@@ -673,6 +673,12 @@ ar:{
  needHttps:'التثبيت التلقائي يحتاج فتح البرنامج من عنوان ويب آمن (https). عند فتحه كملف من القرص لا يستطيع المتصفح تثبيته.',
  manualSteps:'افتح قائمة المتصفح (⋮)|اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»|أكّد الاسم واضغط تثبيت',
  iosSteps:'اضغط زر المشاركة في سفاري|اختر «إضافة إلى الشاشة الرئيسية»|اضغط «إضافة»',
+ regTitle:'تسجيل العيادة', regSub:'هذه البيانات تُعرّف عيادتك للمراجعين',
+ clinicPhone:'رقم هاتف العيادة', country:'البلد', gov:'المحافظة',
+ area:'المنطقة', landmark:'أقرب نقطة دالة', regSave:'تسجيل العيادة وبدء العمل',
+ searchClinic:'ابحث باسم الطبيب أو العيادة أو المنطقة',
+ bookedToday:'محجوز اليوم', notBookedToday:'لا يوجد حجز لهذا المراجع اليوم',
+ foundInQueue:'ظهر في قائمة اليوم', clinicInfo:'بيانات العيادة',
  call:'استدعاء', seat:'على الكرسي', finish:'إنهاء',
  called:'تم الاستدعاء', live:'الآن', searchQ:'ابحث في قائمة اليوم',
  pickClinic:'اختر العيادة', clinics:'العيادات', enterClinic:'دخول العيادة',
@@ -812,6 +818,12 @@ en:{
  needHttps:'Automatic install needs a secure web address (https). Opening the file from disk prevents the browser from installing it.',
  manualSteps:'Open the browser menu (⋮)|Choose "Install app" or "Add to Home screen"|Confirm the name and tap Install',
  iosSteps:'Tap the Share button in Safari|Choose "Add to Home Screen"|Tap "Add"',
+ regTitle:'Register the clinic', regSub:'These details identify your clinic to patients',
+ clinicPhone:'Clinic phone', country:'Country', gov:'Governorate',
+ area:'Area', landmark:'Nearest landmark', regSave:'Register and start',
+ searchClinic:'Search by doctor, clinic or area',
+ bookedToday:'Booked today', notBookedToday:'This patient has no booking today',
+ foundInQueue:'Shown in today list', clinicInfo:'Clinic details',
  call:'Call', seat:'Seat', finish:'Finish',
  called:'Called', live:'Now', searchQ:'Search today\'s list',
  pickClinic:'Choose clinic', clinics:'Clinics', enterClinic:'Enter clinic',
@@ -1106,7 +1118,10 @@ const CFG = {
          header:'', footer:'شكراً لزيارتكم', logo:'', notation:'palmer', currency:'د.ع',
          /* صلاحية يتحكم بها الطبيب: هل يرى السكرتير مخطط الأسنان؟
             حتى لو مُفعّلة، لا يظهر له أي زر لكتابة العلاج. */
-         secChart:false },
+         secChart:false,
+         /* عنوان العيادة — يعرّفها للمراجعين ويهيّئ الربط المستقبلي
+            بين العيادات حسب البلد والمحافظة. */
+         phone:'', country:'العراق', gov:'', area:'', landmark:'', registered:false },
   async load(){
     const s = await DB.get('settings','cfg');
     if (s) Object.assign(this.data, s.v);
@@ -1124,7 +1139,10 @@ const CFG = {
     const list = rec?.v || [];
     const i = list.findIndex(c => c.id === this.data.cid);
     const me = { id:this.data.cid, name:this.data.clinic,
-                 doctor:this.data.doctor, logo:this.data.logo||'' };
+                 doctor:this.data.doctor, logo:this.data.logo||'',
+                 phone:this.data.phone||'', country:this.data.country||'',
+                 gov:this.data.gov||'', area:this.data.area||'',
+                 landmark:this.data.landmark||'', at:Date.now() };
     if (i >= 0) list[i] = me; else list.push(me);
     await DB.put('settings', { id:'clinics', v:list });
   },
@@ -1355,33 +1373,54 @@ const Login = {
     setTimeout(()=>$( r==='patient' ? '#lg-user' : '#lg-pass').focus(), 100);
   },
   back(){
-    S.clinic = null;
+    S.clinic = null; this.cq = '';
     $('#lg-roles').classList.remove('hide');
     $('#lg-form').classList.add('hide');
     this.draw();
   },
 
-  /* دليل العيادات المتاحة */
+  /* دليل العيادات مع بحث باسم الطبيب أو العيادة أو المنطقة */
+  cq:'',
   async clinicList(){
-    const list = await CFG.clinics();
     $('#lg-roles').innerHTML = `
       <div class="row" style="margin-bottom:12px">
         <button class="ib" onclick="Login.back()">${isAr()?'→':'←'}</button>
         <div class="gr"><div class="h3">${T('pickClinic')}</div>
           <div class="tiny">${T('r_patient_d')}</div></div>
       </div>
-      ${ list.length ? list.map(c=>`
-        <button class="rolebtn" style="margin-bottom:9px" onclick="Login.setClinic('${c.id}')">
-          <div class="ic" style="background:var(--brL);overflow:hidden">
-            ${c.logo?`<img src="${c.logo}" style="width:100%;height:100%;object-fit:cover">`
-                    :`<span style="font-size:20px">🏥</span>`}</div>
-          <div class="gr">
-            <div class="h3">${esc(c.name||'—')}</div>
-            <div class="tiny">${esc(c.doctor||'')}</div>
-          </div>
-          <div style="color:var(--ink3);font-size:18px">${isAr()?'‹':'›'}</div>
-        </button>`).join('')
-       : `<div class="emp">${T('noClinics')}</div>` }`;
+      <div class="sbar" style="margin-bottom:12px">
+        <input id="cl-q" placeholder="${T('searchClinic')}" value="${esc(this.cq)}">
+      </div>
+      <div id="cl-list" class="col"></div>`;
+
+    const inp = $('#cl-q');
+    let tm;
+    inp.addEventListener('input', ()=>{ this.cq = inp.value;
+      clearTimeout(tm); tm = setTimeout(()=>this.clinicRows(), 180); });
+    this.clinicRows();
+  },
+
+  async clinicRows(){
+    const box = $('#cl-list'); if (!box) return;
+    let list = await CFG.clinics();
+    const q = this.cq.trim().toLowerCase();
+    if (q) list = list.filter(c =>
+      [c.name, c.doctor, c.area, c.gov, c.country, c.landmark]
+        .filter(Boolean).some(x => String(x).toLowerCase().includes(q)));
+
+    box.innerHTML = list.length ? list.map(c=>`
+      <button class="rolebtn" style="margin-bottom:9px" onclick="Login.setClinic('${c.id}')">
+        <div class="ic" style="background:var(--brL);overflow:hidden">
+          ${c.logo?`<img src="${c.logo}" style="width:100%;height:100%;object-fit:cover">`
+                  :`<span style="font-size:20px">🏥</span>`}</div>
+        <div class="gr" style="min-width:0">
+          <div class="h3 ell">${esc(c.doctor || c.name || '—')}</div>
+          <div class="tiny ell">${esc(c.name||'')}</div>
+          <div class="tiny ell">${[c.area, c.gov, c.country].filter(Boolean).map(esc).join(' · ')}</div>
+        </div>
+        <div style="color:var(--ink3);font-size:18px">${isAr()?'‹':'›'}</div>
+      </button>`).join('')
+     : `<div class="emp">${T('noClinics')}</div>`;
   },
 
   async setClinic(cid){
@@ -1427,6 +1466,75 @@ const Login = {
     if (!usr){ err.textContent = T('badLogin'); err.classList.remove('hide'); return; }
     S.role = usr.role; S.user = usr;
     App.start();
+  },
+};
+
+/*═══════════════ تسجيل العيادة عند أول تشغيل ═══════════════
+  البيانات هنا هي ما يراه المراجع في دليل العيادات، وهي أساس
+  الربط المستقبلي بين العيادات حسب البلد والمحافظة.
+═══════════════════════════════════════════════════════════*/
+const Reg = {
+  needed(){ return !CFG.data.registered; },
+
+  draw(){
+    $('#lg-roles').classList.add('hide');
+    $('#lg-form').classList.add('hide');
+    const host = $('#lg-form').parentElement;
+    let box = $('#regbox');
+    if (!box){
+      box = el('<div id="regbox"></div>');
+      host.insertBefore(box, $('#lg-form'));
+    }
+    const c = CFG.data;
+    const f = (id,lb,val,req,extra='') =>
+      `<div class="mt"><label class="lb">${lb}${req?' <span class="req">*</span>':''}</label>
+       <input id="${id}" value="${esc(val||'')}" ${extra}></div>`;
+
+    box.innerHTML = `
+      <div class="card">
+        <div class="h2">${T('regTitle')}</div>
+        <div class="sub">${T('regSub')}</div>
+        ${f('r-clinic', T('clinic'), c.clinic==='عيادة الأسنان'?'':c.clinic, true)}
+        ${f('r-doctor', T('doctorName'), c.doctor, true)}
+        ${f('r-phone',  T('clinicPhone'), c.phone, true, 'dir="ltr" class="mono" inputmode="tel"')}
+        <div class="g2 mt">
+          <div><label class="lb">${T('country')} <span class="req">*</span></label>
+            <input id="r-country" value="${esc(c.country||'العراق')}"></div>
+          <div><label class="lb">${T('gov')} <span class="req">*</span></label>
+            <input id="r-gov" value="${esc(c.gov||'')}"></div>
+        </div>
+        ${f('r-area', T('area'), c.area, true)}
+        ${f('r-landmark', T('landmark'), c.landmark, true)}
+        <div id="r-err" class="al r mt hide"></div>
+        <button class="btn w mt2" onclick="Reg.save()">${T('regSave')}</button>
+      </div>`;
+  },
+
+  async save(){
+    const v = id => ($('#'+id)?.value || '').trim();
+    const ids = ['r-clinic','r-doctor','r-phone','r-country','r-gov','r-area','r-landmark'];
+    let bad = false;
+    for (const id of ids){
+      const n = $('#'+id);
+      const ok = n && n.value.trim().length >= 2;
+      n?.classList.toggle('err', !ok);
+      if (!ok) bad = true;
+    }
+    if (bad){
+      const e = $('#r-err'); e.textContent = T('fillAll'); e.classList.remove('hide'); return;
+    }
+
+    Object.assign(CFG.data, {
+      clinic:v('r-clinic'), doctor:v('r-doctor'), phone:v('r-phone'),
+      country:v('r-country'), gov:v('r-gov'), area:v('r-area'),
+      landmark:v('r-landmark'), registered:true,
+    });
+    await CFG.save();
+    await CFG.register();
+    $('#regbox')?.remove();
+    toast(T('saved'), 's');
+    Login.draw();
+    $('#lg-roles').classList.remove('hide');
   },
 };
 
@@ -4068,13 +4176,28 @@ const Scan = {
     }
     this.stop(true);
     UI.close();
+
+    /* الصيدلي: الوصفة مباشرة */
     if (S.role === 'pharmacy'){
       const rs = await DB.by('rx','vid',v.id);
       if (!rs.length) return toast(T('noRx'), 'e');
       return Ph.open(rs[rs.length-1].id);
     }
-    if (S.role === 'doctor'){ S.visit = v; return Doc.open(v.pid); }
-    return Sec.file(v.pid);
+
+    /* الطبيب والسكرتير: المسح = بحث عن اسمه في قائمة اليوم،
+       فيظهر ضمن الدور بدل فتح ملفه أو جلسته مباشرة. */
+    const p = await DB.get('patients', v.pid);
+    if (!p) return toast(T('noResult'), 'e');
+
+    Nav.reset();
+    Sec.qq = p.mrn || nm(p);
+    S.patient = null;
+    S.tab = 'today';
+    App.draw();
+
+    const isToday = v.date === today();
+    toast(isToday ? `${nm(p)} — ${T('bookedToday')}` : T('notBookedToday'),
+          isToday ? 's' : 'e');
   },
 };
 /*═══════════════ المواعيد القادمة ═══════════════*/
@@ -4540,6 +4663,18 @@ const Cfg = {
         <div><label class="lb">${T('doctorName')}</label><input id="s-doc" value="${esc(c.doctor)}"></div>
         <div><label class="lb">${T('doctorTitle')}</label><input id="s-title" value="${esc(c.title)}"></div>
       </div>
+      <div class="mt"><label class="lb">${T('clinicPhone')}</label>
+        <input id="s-phone" class="mono" dir="ltr" value="${esc(c.phone||'')}"></div>
+
+      <div class="lbl mt2">${T('clinicInfo')}</div>
+      <div class="g2 mt">
+        <div><label class="lb">${T('country')}</label><input id="s-country" value="${esc(c.country||'')}"></div>
+        <div><label class="lb">${T('gov')}</label><input id="s-gov" value="${esc(c.gov||'')}"></div>
+      </div>
+      <div class="g2 mt">
+        <div><label class="lb">${T('area')}</label><input id="s-area" value="${esc(c.area||'')}"></div>
+        <div><label class="lb">${T('landmark')}</label><input id="s-landmark" value="${esc(c.landmark||'')}"></div>
+      </div>
       <button class="btn w mt2" onclick="Cfg.save()">${T('save')}</button>`;
 
     const print = `
@@ -4685,11 +4820,15 @@ const Cfg = {
 
   async save(){
     const v = id => ($('#'+id)?.value ?? null);
-    const map = { clinic:'s-clinic', doctor:'s-doc', title:'s-title', header:'s-head', footer:'s-foot' };
+    const map = { clinic:'s-clinic', doctor:'s-doc', title:'s-title',
+                  header:'s-head', footer:'s-foot', phone:'s-phone',
+                  country:'s-country', gov:'s-gov', area:'s-area', landmark:'s-landmark' };
     for (const [k,id] of Object.entries(map)){
       const x = v(id); if (x !== null) CFG.data[k] = x.trim();
     }
-    await CFG.save(); toast(T('saved'),'s'); App.draw();
+    await CFG.save();
+    await CFG.register();   /* الدليل يعكس التعديل فوراً */
+    toast(T('saved'),'s'); App.draw();
   },
 
   async export(){
@@ -5038,6 +5177,8 @@ window.addEventListener('unhandledrejection', e =>
   try {
     await Setup.ensure();
     Login.draw();
+    /* أول تشغيل: تُطلب بيانات العيادة قبل أي شيء */
+    if (Reg.needed()) Reg.draw();
     if (DB.fallback) Storage.warn();
   } catch (err) {
     const box = $('#lg-err');
