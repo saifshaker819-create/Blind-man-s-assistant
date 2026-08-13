@@ -1223,7 +1223,7 @@ const SG = {
 
 /*═══════════════ الحالة والواجهة ═══════════════*/
 const S = { role:null, user:null, tab:null, patient:null, visit:null, sel:null,
-            rxDraft:[], clinic:null };
+            rxDraft:[], clinic:null, chartOpen:false };
 
 const UI = {
   theme(){
@@ -2351,7 +2351,7 @@ const Sec = {
   async decide(id, ok){
     const b = await DB.get('bookings', id); if (!b) return;
     if (!ok){ b.st='declined'; await DB.put('bookings',b); toast(T('declined'));
-      UI.close(); return App.draw(); }
+      return Nav.home(); }
 
     /* القبول ينشئ ملف المراجع كاملاً ببياناته التي أدخلها بنفسه */
     const all = await DB.all('patients');
@@ -2363,7 +2363,7 @@ const Sec = {
     b.st='accepted'; b.pid=p.id; await DB.put('bookings', b);
     await Ops.openVisit(p.id, b.complaint);
     toast(T('accepted'),'s');
-    UI.close(); App.draw();
+    Nav.home();
   },
 
   /*──── الملفات والبحث ────*/
@@ -2420,6 +2420,8 @@ const Sec = {
     const target = id || Form._prevId || null;
     const p = await Ops.savePatient(Form.read(), target);
     UI.close(); toast(T('saved'),'s');
+    /* الملف يحلّ محلّ نموذج التسجيل — الرجوع منه لا يعيد فتح النموذج */
+    Nav.stack.pop();
     this.file(p.id);
   },
 
@@ -2834,10 +2836,14 @@ const Doc = {
   async open(pid){
     UI.close();
     const p = await DB.get('patients', pid); if (!p) return;
-    S.patient = p; S.sel = null;
     const vs = (await DB.by('visits','pid',pid)).sort((a,b)=>(b.at||0)-(a.at||0));
-    S.visit = vs.find(v=>v.st==='open') || vs[0] || null;
+
+    /* الترتيب مقصود: setTab يمسح المراجع والسجل أولاً، ثم نضبط الحالة،
+       ثم نرسم. عكسه كان يمسح S.patient قبل الرسم فتظهر قائمة البحث. */
     App.setTab('files');
+    S.patient = p; S.sel = null;
+    S.visit = vs.find(v=>v.st==='open') || vs[0] || null;
+    S.chartOpen = true;
     this.draw();
   },
 
@@ -3662,7 +3668,8 @@ const Doc = {
 
   async setSt(fdi, st){
     await Ops.setTooth(S.patient.id, fdi, st, S.visit?.id);
-    UI.close(); toast(T('saved'),'s'); this.draw();
+    toast(T('saved'),'s');
+    Nav.back();
   },
 
   /*──── المرفقات: أشعة، تحاليل، صور الفك ────*/
@@ -3702,7 +3709,8 @@ const Doc = {
     });
     await DB.put('files', { id:uid(), pid:S.patient.id, vid:S.visit?.id||null,
                             kind, data, at:Date.now() });
-    UI.close(); toast(T('saved'),'s'); this.draw();
+    toast(T('saved'),'s');
+    Nav.back();
   },
 
   async viewFile(id){
@@ -3713,7 +3721,7 @@ const Doc = {
       <img src="${f.data}" style="width:100%;border-radius:14px;margin-top:14px">
       <button class="btn w dg mt2" onclick="Doc.delFile('${id}')">${T('del')}</button>`);
   },
-  async delFile(id){ if(!ask())return; await DB.del('files',id); UI.close(); toast(T('deleted')); this.draw(); },
+  async delFile(id){ if(!ask())return; await DB.del('files',id); toast(T('deleted')); Nav.back(); },
 
   /*──── الحسابات ────*/
   async report(){ return Money.draw(); },
@@ -4064,10 +4072,25 @@ const Nav = {
       if (!obj || typeof obj[f] !== 'function') continue;
       this.raw[path] = obj[f].bind(obj);
       obj[f] = (...a) => {
-        if (!this.busy) this.stack.push({ path, a });
+        if (!this.busy) this.push(path, a);
         return this.raw[path](...a);
       };
     }
+  },
+
+  /* مفتاح الصفحة = اسمها + مُعرّفاتها، فصفحتان لسنّين مختلفين ليستا واحدة */
+  key(path, a){
+    return path + '|' + a.map(x =>
+      (x && typeof x === 'object') ? (x.id || '#') : String(x)).join(',');
+  },
+
+  /* إعادة فتح صفحة موجودة في السجل = رجوع إليها، لا تكديس نسخة ثانية منها.
+     هذا يمنع الحاجة للضغط على «رجوع» مرتين بعد كل حفظ. */
+  push(path, a){
+    const k = this.key(path, a);
+    const i = this.stack.findIndex(x => x.k === k);
+    if (i >= 0) this.stack.length = i;
+    this.stack.push({ path, a, k });
   },
 
   back(){
@@ -4079,7 +4102,7 @@ const Nav = {
     finally { this.busy = false; }
   },
 
-  home(){ this.reset(); UI.close(); App.draw(); },
+  home(){ this.reset(); S.chartOpen = false; UI.close(); App.draw(); },
   reset(){ this.stack = []; },
 };
 
@@ -4627,7 +4650,7 @@ const Scan = {
     i.onkeydown = e => { if (e.key === 'Enter') Scan.go(); };
   },
 
-  close(){ this.stop(); UI.close(); App.draw(); },
+  close(){ this.stop(); Nav.back(); },
 
   /*──── الكاميرا ────*/
   async camera(){
@@ -5048,7 +5071,8 @@ const Pt = {
       $('.sh').scrollTo({top:0,behavior:'smooth'}); return;
     }
     await Ops.savePatient(Form.read(), S.patient.id);
-    UI.close(); toast(T('saved'),'s'); this.mine();
+    toast(T('saved'),'s');
+    Nav.back();
   },
 
   /*──── زياراتي: قوائم منسدلة مرتّبة + حساب كل سن ────*/
@@ -5520,6 +5544,7 @@ const App = {
   setTab(t){
     S.tab = t;
     S.patient = null;
+    S.chartOpen = false;
     Nav.reset();
     UI.drawer(false);
     UI.close();
@@ -5551,7 +5576,7 @@ const App = {
     switch (S.tab){
       case 'today': return Sec.today();
       case 'book':  return Sec.books();
-      case 'files': return S.patient && (S.role==='doctor'||S.role==='owner')
+      case 'files': return (S.patient && S.chartOpen && Perm.chart())
                              ? Doc.draw() : Sec.files();
       case 'appts': return Appt.board();
       case 'rx':    return S.role==='pharmacy' ? Ph.queue() : Rx.list();
@@ -5768,7 +5793,9 @@ const PAGES = [
   'Sec.file','Sec.visit','Sec.newPt','Sec.showMH','Sec.bookInfo','Sec.barcode','Sec.pay','Sec.addWork',
   'Doc.session','Doc.sessionRx','Doc.sessionArc','Doc.sessionInfo','Doc.tooth',
   'Doc.pickFile','Doc.viewFile','Doc.editPlan','Doc.doSession','Doc.statusPicker',
-  'Doc.toothCourse','Doc.openToothFile','Doc.sessionCard',
+  'Doc.toothCourse','Doc.sessionCard',
+  /* Doc.openToothFile موزّع لا صفحة: يقرّر أيّ صفحة تُفتح ثم يسلّمها السجل.
+     لو سُجّل كصفحة لأعاد رسم صفحة السن عند «رجوع» فلا تُغلق أبداً. */
   'Rx.view','Rx.sheet','Ph.open','Scan.open',
   'Appt.ask','Appt.pick','Appt.picker',
   'Money.ptVisits','Money.visitPays','Pt.edit','Pt.visit',
