@@ -688,7 +688,12 @@ ar:{
  noPlan:'لم تُوضع خطة لهذا السن بعد', startPlan:'وضع خطة العلاج',
  editPlan:'تعديل الخطة', doneSessions:'الجلسات المنفّذة', planPrice:'سعر الجلسة',
  sealTooth:'ختم ملف هذا السن', sealed_msg:'خُتم ملف السن — أي علاج قادم يبدأ ملفاً جديداً',
- toothArchive:'أرشيف السن', sessionOf:'جلسة',
+ toothArchive:'أرشيف السن', sessionOf:'جلسة', sealNow:'انتهاء الجلسات لهذا السن', completed:'مكتمل',
+ inProgress:'قيد العلاج', mergedS:'جلسة مدموجة', sessionDetails:'تفاصيل الجلسة',
+ procTypes:'أنواع الأعمال', procName:'اسم العمل', procPrice:'السعر الافتراضي',
+ addProc:'إضافة نوع عمل', resetProcs:'استرجاع الافتراضي', otherProc:'أخرى — كتابة يدوية',
+ typeProc:'اكتب نوع العمل', procColor:'اللون', afterStatus:'حالة السن بعده',
+ noStatusChange:'بلا تغيير', sealedAll:'خُتمت ملفات الأسنان',
  call:'استدعاء', seat:'على الكرسي', finish:'إنهاء',
  called:'تم الاستدعاء', live:'الآن', searchQ:'ابحث في قائمة اليوم',
  pickClinic:'اختر العيادة', clinics:'العيادات', enterClinic:'دخول العيادة',
@@ -843,7 +848,12 @@ en:{
  noPlan:'No plan set for this tooth yet', startPlan:'Set treatment plan',
  editPlan:'Edit plan', doneSessions:'Completed sessions', planPrice:'Session price',
  sealTooth:'Seal this tooth file', sealed_msg:'Tooth file sealed — future treatment starts a new file',
- toothArchive:'Tooth archive', sessionOf:'Session',
+ toothArchive:'Tooth archive', sessionOf:'Session', sealNow:'End sessions for this tooth', completed:'Completed',
+ inProgress:'In treatment', mergedS:'Merged session', sessionDetails:'Session details',
+ procTypes:'Procedure types', procName:'Procedure name', procPrice:'Default price',
+ addProc:'Add procedure', resetProcs:'Restore defaults', otherProc:'Other — type manually',
+ typeProc:'Type the procedure', procColor:'Colour', afterStatus:'Tooth status after',
+ noStatusChange:'No change', sealedAll:'Tooth files sealed',
  call:'Call', seat:'Seat', finish:'Finish',
  called:'Called', live:'Now', searchQ:'Search today\'s list',
  pickClinic:'Choose clinic', clinics:'Clinics', enterClinic:'Enter clinic',
@@ -938,8 +948,8 @@ const MHG = { gen:{ar:'عام',en:'General'}, car:{ar:'القلب والدورة
               alg:{ar:'الحساسية والنزف',en:'Allergy & bleeding'}, med:{ar:'الأدوية',en:'Medications'},
               fem:{ar:'للنساء فقط',en:'Women only'} };
 
-/*───────────── أنواع الأعمال (من سجل الطبيب) ─────────────*/
-const PROCS = [
+/*───────────── أنواع الأعمال (قابلة للتعديل من الإعدادات) ─────────────*/
+const PROCS_DEF = [
  {c:'endo1',    ar:'معالجة لبية — فتح وجلسة أولى', en:'endo 1st & open',  cat:'endo',  col:'#F0A500', st:'root_canal', p:50},
  {c:'endo23',   ar:'معالجة لبية — جلسة ٢ و ٣',     en:'endo 2nd & 3rd',   cat:'endo',  col:'#F0A500', st:'root_canal', p:50},
  {c:'endoRe',   ar:'إعادة معالجة لبية',            en:'endo retreatment', cat:'endo',  col:'#D18700', st:'root_canal', p:100},
@@ -959,6 +969,8 @@ const PROCS = [
  {c:'whiten',   ar:'تبييض',                        en:'whitening',        cat:'cosm',  col:'#C9A800', st:'',           p:150},
  {c:'consult',  ar:'استشارة / فحص',                en:'consultation',     cat:'gen',   col:'#5F7C85', st:'',           p:10},
 ];
+/* النسخة الفعلية — تُحمَّل من الإعدادات إن عدّلها الطبيب */
+let PROCS = JSON.parse(JSON.stringify(PROCS_DEF));
 
 /*───────────── حالات الأسنان (قابلة للتعديل من الإعدادات) ─────────────*/
 const TSTAT_DEF = {
@@ -1115,7 +1127,13 @@ const splitName = full => {
 };
 const nameWords = full => String(full||'').trim().split(/\s+/).filter(Boolean).length;
 const el  = h => { const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstElementChild; };
-const P   = c => PROCS.find(x=>x.c===c) || {ar:c,en:c,col:'#5F7C85'};
+/* الأعمال المكتوبة يدوياً تُخزَّن بالشكل x:النص، فتبقى مقروءة
+   حتى لو لم تُضَف إلى القائمة الرسمية. */
+const P = c => {
+  const s = String(c||'');
+  if (s.startsWith('x:')) return { c:s, ar:s.slice(2), en:s.slice(2), col:'#5F7C85', p:0, st:'' };
+  return PROCS.find(x=>x.c===s) || { c:s, ar:s, en:s, col:'#5F7C85', p:0, st:'' };
+};
 const pName = c => { const p=P(c); return isAr()?p.ar:p.en; };
 
 function toast(m, kind){
@@ -1147,6 +1165,7 @@ const CFG = {
     if (s) Object.assign(this.data, s.v);
     if (!this.data.cid){ this.data.cid = uid(); await this.save(); }
     if (this.data.tstat) TSTAT = this.data.tstat;
+    if (this.data.procs) PROCS = this.data.procs;
     await this.register();
   },
   async save(){ await DB.put('settings',{id:'cfg', v:this.data}); },
@@ -2035,8 +2054,11 @@ const Ops = {
         const arch = (r.archive||[]).find(a => a.course === c);
         const plan = (r.plans||{})[c] || arch?.plan || null;
         if (!ws.length && !ps.length && !plan) continue;
+        const nums = new Set();
+        ws.forEach(w => (w.sessionNos||[]).forEach(n => nums.add(Number(n))));
         out.push({
           fdi:r.fdi, course:c, sealed:c < cur, plan, st:r.st,
+          doneNums:[...nums].sort((a,b)=>a-b),
           works:ws.sort((a,b)=>(b.at||0)-(a.at||0)),
           pays:ps,
           total: ws.reduce((a,x)=>a+Number(x.price||0),0),
@@ -2504,23 +2526,35 @@ const Sec = {
         <div class="row" style="justify-content:space-between">
           <div class="lbl">${T('teethFiles')}</div><span class="pill n">${files.length}</span>
         </div>
-        <div class="col mt">${files.length ? files.map(f=>`
-          <div class="it" onclick="Doc.openToothFile('${pid}',${f.fdi},${f.course})">
-            <div class="av mono" style="${f.plan?`background:${P(f.plan.proc).col}22;
+        <div class="col mt">${files.length ? files.map(f=>{
+          const total = f.plan?.sessions || 0;
+          const done  = f.doneNums.length;
+          const full  = f.sealed || (total && done >= total);
+          /* غير المكتمل يومض: جلساته لم تكتمل حسب الخطة */
+          return `
+          <div class="it ${full?'':'live'}"
+               onclick="Doc.openToothFile('${pid}',${f.fdi},${f.course})">
+            <div class="av mono ${full?'g':'w'}" style="${f.plan?`background:${P(f.plan.proc).col}22;
               color:${P(f.plan.proc).col}`:''}">${Chart.lbl(f.fdi)}</div>
             <div class="gr">
               <div class="row" style="gap:6px">
                 <span class="h3">${T('tooth')} ${Chart.lbl(f.fdi)}</span>
-                <span class="pill ${f.sealed?'n':'b'}">${f.sealed?T('sealed'):T('ongoing')}</span>
+                <span class="pill ${full?'g':'w'}">
+                  ${full?`✓ ${f.sealed?T('sealed'):T('completed')}`:T('inProgress')}</span>
               </div>
               <div class="tiny ell">${f.plan?esc(pName(f.plan.proc)):'—'}
-                · ${f.works.length}${f.plan?`/${f.plan.sessions}`:''} ${T('toothVisits')}</div>
+                ${total?` · ${done}/${total} ${T('toothVisits')}`:''}</div>
+              ${total?`<div style="height:6px;border-radius:99px;background:var(--glass2);
+                overflow:hidden;margin-top:5px">
+                <div style="height:100%;width:${Math.min(100,Math.round(done/total*100))}%;
+                  background:${full?'var(--ok)':P(f.plan.proc).col};border-radius:99px"></div>
+              </div>`:''}
             </div>
             <div style="text-align:end">
               <div class="mono" style="font-weight:700;color:var(--ok)">${N(f.paid)}</div>
               <div class="tiny">${f.last?fmtD(f.last):''}</div>
             </div>
-          </div>`).join('') : `<div class="emp">${T('noLedger')}</div>`}</div>
+          </div>`;}).join('') : `<div class="emp">${T('noLedger')}</div>`}</div>
       </div>
 
       <details class="acc">
@@ -3226,23 +3260,15 @@ const Doc = {
 
       <div class="card">
         <div class="lbl">${T('doneSessions')}</div>
-        ${done.works.length?`<div class="mt">${done.works.map((w,i)=>`
-          <div class="tl" style="padding-bottom:${i===done.works.length-1?0:14}px">
-            <div class="cl"><div class="dot ${i===0?'on':''}"></div>
-              ${i===done.works.length-1?'':'<div class="bar"></div>'}</div>
-            <div class="gr">
-              <div class="row" style="gap:6px">
-                <span class="mono tiny">${fmtD(w.at)}</span>
-                ${(w.sessionNos||[]).map(n=>`<span class="pill b"
-                  style="font-size:10px;padding:2px 7px">${T('sessionN')} ${n}</span>`).join('')}
-              </div>
-              <div class="h3" style="color:${P(w.proc).col}">${esc(pName(w.proc))}</div>
-              <div class="row" style="justify-content:space-between;margin-top:3px">
-                <span class="mono tiny">${esc(w.note||'—')}</span>
-                <span class="mono" style="font-weight:700">${N(w.price)}</span>
-              </div>
-            </div>
-          </div>`).join('')}</div>`:`<div class="emp mt">${T('noToothWork')}</div>`}
+        ${done.works.length?`<div class="col mt">${done.works.map(w=>`
+          <button class="btn gh w" style="justify-content:space-between;padding:12px 14px"
+            onclick="Doc.sessionCard('${pid}',${fdi},'${w.id}')">
+            <span class="row" style="gap:8px">
+              <span class="pill b">${this.sessLabel(w)}</span>
+              <span class="mono tiny">${fmtD(w.at)}</span>
+            </span>
+            <span class="mono" style="font-weight:700">${N(w.price)}</span>
+          </button>`).join('')}</div>`:`<div class="emp mt">${T('noToothWork')}</div>`}
       </div>
 
       ${Perm.addWork()?`<div class="row mt" style="gap:8px">
@@ -3268,6 +3294,104 @@ const Doc = {
       <button class="btn w gh mt2" onclick="Nav.back()">${T('back')}</button>`);
   },
 
+  /* تسمية الجلسة: مفردة أو مدموجة */
+  sessLabel(w){
+    const ns = (w.sessionNos||[]).map(Number).sort((a,b)=>a-b);
+    if (!ns.length) return T('sessionOf');
+    if (ns.length === 1) return `${T('sessionN')} ${ns[0]}`;
+    return `${T('mergedS')} ${ns.join(' + ')}`;
+  },
+
+  /* تفاصيل جلسة سن واحدة: المخطط والمبلغ والحالة والأرشيف */
+  async sessionCard(pid, fdi, wid){
+    const w = (await DB.by('works','pid',pid)).find(x=>x.id===wid);
+    if (!w) return toast(T('noResult'),'e');
+    const p    = await DB.get('patients', pid);
+    const plan = await Ops.plan(pid, fdi);
+    const done = await Ops.doneSessions(pid, fdi);
+    const map  = await Ops.toothMap(pid);
+
+    const pays = (await DB.by('payments','pid',pid))
+      .filter(x => x.vid === w.vid && Number(x.fdi) === Number(fdi));
+    const paid = pays.reduce((a,x)=>a+Number(x.amt||0),0);
+
+    const files = (await DB.by('files','pid',pid)).filter(f => f.vid === w.vid);
+    const visit = w.vid ? await DB.get('visits', w.vid) : null;
+    const total = plan?.sessions || 0;
+    const full  = total ? done.nums.length >= total : false;
+
+    UI.sheet(`
+      <div class="shhead">
+        <div class="av mono" style="width:50px;height:50px;font-size:15px">${Chart.lbl(fdi)}</div>
+        <div class="gr">
+          <div class="h2">${this.sessLabel(w)}</div>
+          <div class="tiny">${esc(nm(p))} · ${T('tooth')} ${Chart.lbl(fdi)} · ${fmtD(w.at)}</div>
+        </div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <span class="pill ${full?'g':'w'}">${full?`✓ ${T('completed')}`:T('inProgress')}</span>
+          <div class="gr"></div>
+          ${plan?`<span class="tiny">${done.nums.length} ${T('ofN')} ${plan.sessions}</span>`:''}
+        </div>
+        <div class="mt">
+          <div class="h3" style="color:${P(w.proc).col}">${esc(pName(w.proc))}</div>
+          ${w.note?`<div class="tiny mt">${esc(w.note)}</div>`:''}
+          ${w.by==='secretary'?`<span class="pill n" style="margin-top:6px">
+            ${T('enteredBy')}: ${T('bySecretary')}</span>`:''}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="lbl">${T('toothChart')}</div>
+        ${Chart.svg(map, Number(fdi))}
+        ${Chart.legend()}
+      </div>
+
+      <div class="g2">
+        <div class="card ctr" style="padding:14px 8px">
+          <div class="tiny">${T('sessionAmt')}</div>
+          <div class="mono h2 mt">${N(w.price)}</div></div>
+        <div class="card ctr" style="padding:14px 8px">
+          <div class="tiny">${T('paid')}</div>
+          <div class="mono h2 mt" style="color:var(--ok)">${N(paid)}</div></div>
+      </div>
+
+      ${pays.length?`<div class="card">
+        <div class="lbl">${T('payments')}</div>
+        <div class="col mt">${pays.sort((a,b)=>(b.at||0)-(a.at||0)).map(x=>`
+          <div class="it" style="cursor:default;padding:9px 11px">
+            <div class="av g" style="width:30px;height:30px;font-size:13px">₪</div>
+            <div class="gr"><div class="mono" style="font-weight:700">${N(x.amt)}</div>
+              <div class="tiny">${fmtD(x.at)} · ${T(x.method||'cash')}</div></div>
+          </div>`).join('')}</div>
+      </div>`:''}
+
+      <div class="card">
+        <div class="lbl">${T('toothArchive')}</div>
+        ${files.length?`<div class="g4 mt">${files.map(f=>`
+          <div style="cursor:pointer" onclick="Doc.viewFile('${f.id}')">
+            <img src="${f.data}" style="width:100%;aspect-ratio:1;object-fit:cover;
+              border-radius:12px;border:1px solid var(--edge)">
+            <div class="tiny ctr" style="margin-top:4px">${T(f.kind)}</div>
+          </div>`).join('')}</div>`:`<div class="emp mt">${T('noSessionArc')}</div>`}
+      </div>
+
+      ${visit?`<div class="card">
+        <div class="lbl">${T('sessionDetails')}</div>
+        <div class="row mt" style="justify-content:space-between">
+          <span class="tiny">${T('visit')} ${visit.no}</span>
+          <span class="mono tiny">${fmtD(visit.date)}</span>
+        </div>
+        ${visit.done?`<div class="mt" style="font-weight:600">${esc(visit.done)}</div>`:''}
+        <button class="btn w gh mt" onclick="Nav.session('${visit.id}')">${T('openSession')}</button>
+      </div>`:''}
+
+      <button class="btn w gh mt2" onclick="Nav.back()">${T('back')}</button>`);
+  },
+
   /* نموذج الخطة */
   planForm(fdi, plan){
     const n = plan?.sessions || 3;
@@ -3275,9 +3399,17 @@ const Doc = {
       <div class="card">
         <div class="h3">${plan?T('editPlan'):T('startPlan')}</div>
         <div class="mt"><label class="lb">${T('planProc')} <span class="req">*</span></label>
-          <select id="pl-proc">${PROCS.map(x=>`<option value="${x.c}"
-            ${plan?.proc===x.c?'selected':''} data-p="${x.p}">${isAr()?x.ar:x.en}</option>`).join('')}
-          </select></div>
+          <select id="pl-proc" onchange="Doc.procChanged()">
+            ${PROCS.map(x=>`<option value="${x.c}"
+              ${plan?.proc===x.c?'selected':''} data-p="${x.p}">${isAr()?x.ar:x.en}</option>`).join('')}
+            <option value="__x" ${String(plan?.proc||'').startsWith('x:')?'selected':''}>
+              ${T('otherProc')}</option>
+          </select>
+          <div id="pl-custom" class="mt ${String(plan?.proc||'').startsWith('x:')?'':'hide'}">
+            <input id="pl-text" placeholder="${T('typeProc')}"
+              value="${esc(String(plan?.proc||'').startsWith('x:')?plan.proc.slice(2):'')}">
+          </div>
+        </div>
         <div class="g2 mt">
           <div><label class="lb">${T('planCount')} <span class="req">*</span></label>
             <input id="pl-n" class="mono" inputmode="numeric" dir="ltr" value="${n}"
@@ -3301,13 +3433,24 @@ const Doc = {
 
   wirePlan(){
     SG.attach($('#pl-note'), 'plannote');
-    const sel = $('#pl-proc'), pr = $('#pl-price');
-    if (sel && pr){
-      const sync = () => { if (!pr.value) pr.value = sel.selectedOptions[0]?.dataset.p || ''; };
-      sel.onchange = () => { pr.value = sel.selectedOptions[0]?.dataset.p || ''; this.rebuildChips(); };
-      sync();
+    /* الكتابة اليدوية تتعلّم وتُقترح لاحقاً */
+    SG.attach($('#pl-text'), 'proctext');
+    const pr = $('#pl-price');
+    if (pr && !pr.value){
+      const o = $('#pl-proc')?.selectedOptions[0];
+      pr.value = o?.dataset.p || '';
     }
     this.rebuildChips();
+  },
+
+  /* إظهار حقل الكتابة اليدوية عند اختيار «أخرى» */
+  procChanged(){
+    const sel = $('#pl-proc'); if (!sel) return;
+    const custom = sel.value === '__x';
+    $('#pl-custom')?.classList.toggle('hide', !custom);
+    const pr = $('#pl-price');
+    if (pr) pr.value = custom ? '' : (sel.selectedOptions[0]?.dataset.p || '');
+    if (custom) setTimeout(()=>$('#pl-text')?.focus(), 80);
   },
 
   /* أرقام الجلسات تُبنى حسب العدد المطلوب، ويمكن اختيار أكثر من واحدة */
@@ -3327,7 +3470,13 @@ const Doc = {
   },
 
   async savePlan(fdi){
-    const proc  = $('#pl-proc').value;
+    let proc = $('#pl-proc').value;
+    if (proc === '__x'){
+      const t = ($('#pl-text')?.value || '').trim();
+      if (t.length < 2){ $('#pl-text')?.classList.add('err'); return toast(T('typeProc'),'e'); }
+      proc = 'x:' + t;
+      await SG.learn('proctext', t);
+    }
     const count = Math.max(1, Number($('#pl-n').value) || 1);
     const price = Number($('#pl-price').value) || 0;
     const note  = ($('#pl-note').value || '').trim();
@@ -4636,14 +4785,28 @@ const Appt = {
       </div>`:''}
 
       <div class="ctr" style="padding:10px 4px">
-      <div style="font-size:46px">📅</div>
-      <div class="h2 mt">${T('askNext')}</div>
-    </div>
-    <button class="btn w mt2" onclick="Appt.pick('${pid}','${vid}')">${T('yes')}</button>
-    ${S.role!=='secretary'
-      ? `<button class="btn w sf mt" onclick="Appt.defer('${pid}','${vid}')">🗂 ${T('bySec')}</button>`
-      : ''}
-    <button class="btn w gh mt" onclick="Nav.home()">${T('no')}</button>`);
+        <div style="font-size:46px">📅</div>
+        <div class="h2 mt">${T('askNext')}</div>
+      </div>
+
+      <button class="btn w mt2" onclick="Appt.pick('${pid}','${vid}')">${T('yes')}</button>
+      ${S.role!=='secretary'
+        ? `<button class="btn w sf mt" onclick="Appt.defer('${pid}','${vid}')">🗂 ${T('bySec')}</button>`
+        : ''}
+      ${teeth.length
+        ? `<button class="btn w wn mt" onclick="Appt.sealAll('${pid}','${vid}')">
+             ✔ ${T('sealNow')}</button>`
+        : `<button class="btn w gh mt" onclick="Nav.home()">${T('no')}</button>`}`);
+  },
+
+  /* لا موعد قادم: تُختم ملفات كل أسنان هذه الجلسة وتظهر مكتملة */
+  async sealAll(pid, vid){
+    if (!ask(T('endCourseQ'))) return;
+    const works = vid ? await DB.by('works','vid',vid) : [];
+    const teeth = [...new Set(works.map(w=>Number(w.fdi)).filter(Boolean))];
+    for (const f of teeth) await Ops.endCourse(pid, f);
+    toast(T('sealedAll'), 's');
+    Nav.home();
   },
 
   /* إنهاء سلسلة سن من شاشة الإنهاء */
@@ -5153,6 +5316,39 @@ const Cfg = {
         <button class="btn gh gr" onclick="Cfg.stReset()">${T('resetStatuses')}</button>
       </div>`;
 
+    /* أنواع الأعمال: تسمية، سعر، لون، حالة السن بعده، إضافة وحذف */
+    const procs = `
+      <div class="col">${PROCS.map((x,i)=>`
+        <div class="card flat" style="padding:11px">
+          <div class="row" style="gap:9px">
+            <input type="color" value="${x.col||'#5F7C85'}"
+              onchange="Cfg.pcColor(${i},this.value)"
+              style="width:46px;height:42px;padding:3px;border-radius:11px;flex-shrink:0;cursor:pointer">
+            <div class="gr">
+              <input value="${esc(x.ar)}" onchange="Cfg.pcName(${i},'ar',this.value)"
+                placeholder="${T('procName')} — عربي">
+              <input class="mt" value="${esc(x.en||'')}" dir="ltr"
+                onchange="Cfg.pcName(${i},'en',this.value)" placeholder="${T('procName')} — EN">
+            </div>
+            <button class="ib" onclick="Cfg.pcDel(${i})" style="color:var(--bd)">✕</button>
+          </div>
+          <div class="g2 mt">
+            <div><label class="lb">${T('procPrice')}</label>
+              <input class="mono" dir="ltr" inputmode="numeric" value="${x.p||0}"
+                onchange="Cfg.pcPrice(${i},this.value)"></div>
+            <div><label class="lb">${T('afterStatus')}</label>
+              <select onchange="Cfg.pcStatus(${i},this.value)">
+                <option value="">${T('noStatusChange')}</option>
+                ${Object.entries(TSTAT).map(([k,v])=>`<option value="${k}"
+                  ${x.st===k?'selected':''}>${esc(isAr()?v.ar:v.en)}</option>`).join('')}
+              </select></div>
+          </div>
+        </div>`).join('')}</div>
+      <div class="row mt2" style="gap:8px">
+        <button class="btn gr" onclick="Cfg.pcAdd()">＋ ${T('addProc')}</button>
+        <button class="btn gh gr" onclick="Cfg.pcReset()">${T('resetProcs')}</button>
+      </div>`;
+
     const data = `
       <div class="row" style="gap:8px">
         <button class="btn gh gr" onclick="Cfg.export()">${T('exportData')}</button>
@@ -5168,6 +5364,7 @@ const Cfg = {
       + this.acc('l','🎨', T('secLook'),    look)
       + (S.role==='doctor' ? this.acc('r','🔐', T('secPerm'), perm) : '')
       + (S.role==='doctor' ? this.acc('t','🦷', T('toothStatuses'), statuses) : '')
+      + (S.role==='doctor' ? this.acc('pc','🧰', T('procTypes'), procs) : '')
       + this.acc('d','💾', T('secData'),    data);
 
     const pick = (id, key) => {
@@ -5180,6 +5377,38 @@ const Cfg = {
       };
     };
     pick('s-logo','logo'); pick('s-sign','sign');
+  },
+
+  /*──── تحرير أنواع الأعمال ────*/
+  async pcSave(){ CFG.data.procs = PROCS; await CFG.save(); },
+
+  async pcName(i, lang, v){
+    const t = String(v||'').trim(); if (!t) return;
+    PROCS[i][lang] = t; await this.pcSave(); toast(T('saved'),'s');
+  },
+  async pcColor(i, col){ PROCS[i].col = col; await this.pcSave(); this.draw(); },
+  async pcPrice(i, v){ PROCS[i].p = Number(v)||0; await this.pcSave(); toast(T('saved'),'s'); },
+  async pcStatus(i, v){ PROCS[i].st = v || ''; await this.pcSave(); toast(T('saved'),'s'); },
+
+  async pcAdd(){
+    const name = prompt(T('procName')); if (!name) return;
+    /* رمز ثابت لا يتغيّر مع إعادة التسمية، فلا تفقد السجلات معناها */
+    PROCS.push({ c:'p_'+uid().slice(-6), ar:name.trim(), en:name.trim(),
+                 cat:'gen', col:'#0E9BB5', st:'', p:0 });
+    await this.pcSave(); this.draw();
+  },
+
+  async pcDel(i){
+    const code = PROCS[i].c;
+    const used = (await DB.all('works')).some(w => w.proc === code);
+    if (!ask(used ? `${T('inUse')} — ${T('areYouSure')}` : T('areYouSure'))) return;
+    PROCS.splice(i,1); await this.pcSave(); this.draw();
+  },
+
+  async pcReset(){
+    if (!ask()) return;
+    PROCS = JSON.parse(JSON.stringify(PROCS_DEF));
+    delete CFG.data.procs; await CFG.save(); this.draw();
   },
 
   /*──── تحرير حالات الأسنان ────*/
@@ -5537,7 +5766,9 @@ window.installApp = () => Install.go();
 const REG = { Sec, Doc, Rx, Ph, Appt, Money, Pt, Scan, Cfg };
 const PAGES = [
   'Sec.file','Sec.visit','Sec.newPt','Sec.showMH','Sec.bookInfo','Sec.barcode','Sec.pay','Sec.addWork',
-  'Doc.session','Doc.sessionRx','Doc.sessionArc','Doc.sessionInfo','Doc.tooth','Doc.pickFile','Doc.viewFile',
+  'Doc.session','Doc.sessionRx','Doc.sessionArc','Doc.sessionInfo','Doc.tooth',
+  'Doc.pickFile','Doc.viewFile','Doc.editPlan','Doc.doSession','Doc.statusPicker',
+  'Doc.toothCourse','Doc.openToothFile','Doc.sessionCard',
   'Rx.view','Rx.sheet','Ph.open','Scan.open',
   'Appt.ask','Appt.pick','Appt.picker',
   'Money.ptVisits','Money.visitPays','Pt.edit','Pt.visit',
