@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#00695C">
+<!-- سياسة أمن المحتوى: البرنامج لا يتصل بالإنترنت إطلاقاً.
+     connect-src 'none' تمنع أي شيفرة مدسوسة من تسريب بيانات
+     المراجعين، وimg-src المحصورة تمنع التسريب عبر صورة خارجية.
+     المسموح فقط: الخطوط، والصور المخزّنة داخل الجهاز. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <title>أسناني — My teeth</title>
 <meta name="application-name" content="أسناني">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -245,6 +251,7 @@ button{font:inherit;font-weight:700;cursor:pointer;border:none;background:none;c
   border-radius:99px;background:var(--brL);color:var(--br);font-size:14px;
   animation:nudge 1.6s ease-in-out infinite}
 @keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+.lgd-more .arw.up{background:var(--glass2);color:var(--ink3);animation:none}
 .lgd-grp{font-size:11px;font-weight:800;color:var(--ink3);
   margin:11px 0 5px;letter-spacing:.02em}
 .dotc{width:9px;height:9px;border-radius:3px;display:inline-block;margin-inline-end:6px}
@@ -783,6 +790,18 @@ ar:{
  stopCam:'إيقاف الكاميرا', switchCam:'تبديل الكاميرا', scanning:'جاري البحث…',
  codeFound:'تم قراءة الباركود', fixSteps:'انقل الملف إلى مجلد التنزيلات ثم افتحه من داخل المتصفح، أو ارفعه على استضافة ويب وافتحه عبر الرابط.',
 
+/*──── الأمان ────*/
+ secSafety:'الأمان وكلمة المرور', changePass:'تغيير كلمة المرور', curPass:'كلمة المرور الحالية',
+ newPass:'كلمة المرور الجديدة', newPass2:'إعادة كتابة الجديدة', passShort:'كلمة المرور أقصر من ٦ خانات',
+ passSame:'الكلمتان غير متطابقتين', passWrong:'كلمة المرور الحالية غير صحيحة', passDone:'تغيّرت كلمة المرور',
+ defaultPass:'حساب ما زال يستعمل كلمة المرور الافتراضية ١٢٣٤ — غيّرها الآن',
+ defaultPassOne:'كلمة مرورك ما زالت الافتراضية ١٢٣٤', passOf:'كلمة مرور',
+ tooMany:'محاولات كثيرة — انتظر', autoLock:'القفل التلقائي عند عدم الاستعمال',
+ lockOff:'مطفأ', lockMin:'دقيقة', autoLocked:'أُقفل البرنامج تلقائياً',
+ lockNow:'إقفال الآن', doctorOnlyData:'النسخ الاحتياطي والحذف للطبيب وحده',
+ noCrypto:'هذا المتصفح لا يدعم تعمية كلمة المرور — تُحفظ كما هي',
+ confirmDoc:'أدخل كلمة مرور الطبيب للمتابعة', wrongDoc:'كلمة مرور الطبيب غير صحيحة',
+
 /*──── اختيار نوع العمل وحالات السن ────*/
  procPick:'اكتب أو اختر نوع العمل', allGroups:'كل المجموعات', pickGroup:'اختر مجموعة',
  customProc:'سيُحفظ كما كتبته', noProcMatch:'لا يوجد نوع مطابق — اكتبه كما تريد وسيُحفظ',
@@ -968,6 +987,18 @@ en:{
  camNeedHttps:'Camera scanning needs a secure web address (https) or a desktop browser',
  stopCam:'Stop camera', switchCam:'Switch camera', scanning:'Scanning…',
  codeFound:'Barcode read', fixSteps:'Move the file to your Downloads folder and open it from inside the browser, or host it on the web and open the link.',
+
+/*──── security ────*/
+ secSafety:'Security & password', changePass:'Change password', curPass:'Current password',
+ newPass:'New password', newPass2:'Repeat new password', passShort:'Password is shorter than 6 characters',
+ passSame:'The two passwords do not match', passWrong:'Current password is wrong', passDone:'Password changed',
+ defaultPass:'An account still uses the default password 1234 — change it now',
+ defaultPassOne:'Your password is still the default 1234', passOf:'Password of',
+ tooMany:'Too many attempts — wait', autoLock:'Auto-lock when idle',
+ lockOff:'Off', lockMin:'min', autoLocked:'The app was locked automatically',
+ lockNow:'Lock now', doctorOnlyData:'Backup and deletion are for the doctor only',
+ noCrypto:'This browser cannot hash passwords — they are stored as typed',
+ confirmDoc:'Enter the doctor password to continue', wrongDoc:'Wrong doctor password',
 
 /*──── procedure picker & tooth conditions ────*/
  procPick:'Type or choose a procedure', allGroups:'All groups', pickGroup:'Choose a group',
@@ -1674,14 +1705,15 @@ const Chart = {
     }).join('');
     return `<div class="lgdbox">
       <div class="lgd">${items}</div>
-      ${left>0
-        ? `<button class="btn w gh mt lgd-more" onclick="Chart.moreLeg()">
+      ${(left>0 || this.legShow>10) ? `<div class="row mt" style="gap:8px">
+        ${left>0?`<button class="btn gh gr lgd-more" onclick="Chart.moreLeg()">
              <span>${T('moreStatus')}</span>
              <span class="pill n">${left}</span>
-             <span class="arw">↓</span></button>`
-        : all.length>10
-        ? `<button class="btn w gh mt lgd-more" onclick="Chart.lessLeg()">
-             <span>${T('lessStatus')}</span><span class="arw">↑</span></button>` : ''}
+             <span class="arw">↓</span></button>`:''}
+        ${this.legShow>10?`<button class="btn gh lgd-more" onclick="Chart.lessLeg()"
+             style="${left>0?'flex:0 0 auto;min-width:118px':'flex:1'}">
+             <span>${T('lessStatus')}</span><span class="arw up">↑</span></button>`:''}
+      </div>`:''}
     </div>`;
   },
   moreLeg(){ this.legShow += 10; this.redrawLeg(); },
@@ -1749,7 +1781,11 @@ const Login = {
     $('#lb-user').textContent = T('user');
     $('#lb-pass').textContent = T('pass');
     $('#lg-go').textContent   = T('login');
-    $('#lg-hint').textContent = T('hint');
+    /* التلميح الافتراضي يظهر فقط ما دام حساب يستعمل ١٢٣٤ */
+    const hint = $('#lg-hint'); hint.textContent = '';
+    Promise.resolve().then(()=>Guard.anyDefault())
+      .then(d => { if (d) hint.textContent = T('hint'); })
+      .catch(()=>{});
   },
   async go(r){
     this.pick = r;
@@ -1859,9 +1895,22 @@ const Login = {
       return App.start();
     }
 
+    /* تعطيل التخمين قبل أي تحقّق */
+    const left = Guard.lockLeft();
+    if (left){
+      err.textContent = `${T('tooMany')} ${Math.ceil(left/1000)}s`;
+      err.classList.remove('hide'); return;
+    }
+
     const users = await DB.all('users');
-    const usr = users.find(x => x.id===u && x.pass===p);
-    if (!usr){ err.textContent = T('badLogin'); err.classList.remove('hide'); return; }
+    const usr = users.find(x => x.id === u);
+    if (!usr || !(await Guard.verify(usr, p))){
+      Guard.fail();
+      err.textContent = T('badLogin'); err.classList.remove('hide'); return;
+    }
+    Guard.ok();
+    /* ترقية صامتة: أول دخول ناجح يحوّل النص الصريح إلى صيغة معمّاة */
+    if (!usr.hash && Guard.can()) await Guard.setPass(usr, p);
     S.role = usr.role; S.user = usr;
     App.start();
   },
@@ -1942,11 +1991,15 @@ const Setup = {
     const u = await DB.all('users');
     if (!u.length){
       for (const r of ['doctor','secretary','pharmacy'])
-        await DB.put('users', { id:r, pass:'1234', role:r, name:T('r_'+r) });
+        await DB.put('users', { id:r, pass:'1234', role:r, name:T('r_'+r), def:true });
     }
     await CFG.load();
   },
+  /* المحو الكامل كان متاحاً من شاشة الدخول بلا أي حاجز —
+     الآن يمرّ بكلمة مرور الطبيب ثم بتأكيد. */
   async reset(){
+    const users = await DB.all('users');
+    if (users.length && !(await Guard.confirmDoctor())) return;
     if (!ask('حذف كل البيانات نهائياً؟ / Delete ALL data permanently?')) return;
     await DB.clearAll(); localStorage.clear(); location.reload();
   },
@@ -3609,8 +3662,11 @@ const Doc = {
         <button class="ib" onclick="Nav.back()">✕</button>
       </div>`;
 
-    /* لا خطة بعد → نموذج وضع الخطة */
-    if (!plan && Perm.addWork()){
+    /* نموذج الخطة يظهر فقط لسن لا تاريخ له إطلاقاً.
+       أي سن عُملت له جلسة — مفتوحة كانت أم مختومة — يفتح ملفه
+       مباشرة بسجلّه وأرشيفه، ووضع الخطة يبقى زراً داخله. */
+    const hasHistory = done.works.length > 0 || (rec.archive||[]).length > 0 || cs.pays.length > 0;
+    if (!plan && !hasHistory && Perm.addWork()){
       UI.sheet(head + this.planForm(fdi, null));
       this.wirePlan();
       return;
@@ -3652,7 +3708,11 @@ const Doc = {
         ${Perm.addWork() && left && S.visit
           ? `<button class="btn w mt" onclick="Doc.doSession(${fdi})">
               ＋ ${T('planToday')}</button>` : ''}
-      </div>` : `<div class="al w"><span>!</span><span>${T('noPlan')}</span></div>`}
+      </div>` : `<div class="card">
+        <div class="al w"><span>!</span><span>${T('noPlan')}</span></div>
+        ${Perm.addWork()?`<button class="btn w mt" onclick="Doc.editPlan(${fdi})">
+          ＋ ${T('startPlan')}</button>`:''}
+      </div>`}
 
       ${wl?`<div class="al g mt"><span>📏</span>
         <span>${T('wl')}: <b class="mono">${esc(wl.note)}</b></span></div>`:''}
@@ -4040,6 +4100,7 @@ const Doc = {
 
   stFilter(fdi){ this.stQ = $('#st-q')?.value || ''; this.stShow = 10; this.stList(fdi); },
   stMore(fdi){ this.stShow += 10; this.stList(fdi); },
+  stLess(fdi){ this.stShow = 10;  this.stList(fdi); },
 
   stList(fdi){
     const box = $('#st-list'); if (!box) return;
@@ -4065,9 +4126,14 @@ const Doc = {
       <div class="row wrapv" style="gap:6px">
         ${items || `<div class="emp">${T('noResult')}</div>`}
       </div>
-      ${left>0?`<button class="btn w gh mt2 lgd-more" onclick="Doc.stMore(${fdi})">
-        <span>${T('moreStatus')}</span><span class="pill n">${left}</span>
-        <span class="arw">↓</span></button>`:''}`;
+      ${(left>0 || this.stShow>10) ? `<div class="row mt2" style="gap:8px">
+        ${left>0?`<button class="btn gh gr lgd-more" onclick="Doc.stMore(${fdi})">
+          <span>${T('moreStatus')}</span><span class="pill n">${left}</span>
+          <span class="arw">↓</span></button>`:''}
+        ${this.stShow>10?`<button class="btn gh lgd-more" onclick="Doc.stLess(${fdi})"
+          style="${left>0?'flex:0 0 auto;min-width:118px':'flex:1'}">
+          <span>${T('lessStatus')}</span><span class="arw up">↑</span></button>`:''}
+      </div>`:''}`;
   },
 
   /* فتح ملف السن من صفحة المراجع: المفتوح يفتح البطاقة الحية،
@@ -6095,6 +6161,7 @@ const Cfg = {
   async draw(){
     const c = CFG.data;
     const dark = document.documentElement.getAttribute('data-theme')==='dark';
+    const defWarn = await Guard.anyDefault();
 
     const general = `
       <label class="lb">${T('clinic')}</label>
@@ -6219,19 +6286,49 @@ const Cfg = {
         <button class="btn gh gr" onclick="Cfg.pcReset()">${T('resetProcs')}</button>
       </div>`;
 
+    /* ملف النسخ الاحتياطي يحوي كل ملفات المراجعين — لا يُصدَّر
+       ولا يُمحى إلا بيد الطبيب. */
+    const isDoc = S.role === 'doctor';
     const data = `
-      <div class="row" style="gap:8px">
+      ${isDoc?`<div class="row" style="gap:8px">
         <button class="btn gh gr" onclick="Cfg.export()">${T('exportData')}</button>
         <button class="btn gh gr" onclick="$('#imp').click()">${T('importData')}</button>
       </div>
-      <input type="file" id="imp" accept=".json" class="hide" onchange="Cfg.import(this)">
+      <input type="file" id="imp" accept=".json" class="hide" onchange="Cfg.import(this)">`
+      :`<div class="al w"><span>!</span><span>${T('doctorOnlyData')}</span></div>`}
       <button class="btn w gh mt" onclick="installApp()">${T('install')}</button>
-      <button class="btn w dg mt2" onclick="Setup.reset()">⚠ ${T('del')}</button>`;
+      ${isDoc?`<button class="btn w dg mt2" onclick="Setup.reset()">⚠ ${T('del')}</button>`:''}`;
+
+    /* الأمان: كلمة المرور والقفل التلقائي */
+    const users = await DB.all('users');
+    const mins  = [0,1,5,10,30];
+    const cur   = Guard.idleMin();
+    const safety = `
+      ${defWarn?`<div class="al r"><span>⚠</span><span>${T('defaultPass')}</span></div>`:''}
+      <div class="col ${defWarn?'mt2':''}">
+        ${users.filter(u => S.role==='doctor' || u.id===S.user?.id).map(u=>`
+          <div class="it" onclick="Guard.passSheet('${u.id}')">
+            <div class="av ${Guard.isDefault(u)?'r':'g'}">🔑</div>
+            <div class="gr">
+              <div class="h3">${esc(T('r_'+u.role))}</div>
+              <div class="tiny mono">${esc(u.id)}${Guard.isDefault(u)
+                ? ` · <span style="color:var(--bd)">1234</span>` : ''}</div>
+            </div>
+            <span style="color:var(--ink3)">${isAr()?'‹':'›'}</span>
+          </div>`).join('')}
+      </div>
+      <div class="mt2"><label class="lb">${T('autoLock')}</label>
+        <select onchange="Cfg.setIdle(this.value)">
+          ${mins.map(m=>`<option value="${m}" ${cur===m?'selected':''}>
+            ${m?`${m} ${T('lockMin')}`:T('lockOff')}</option>`).join('')}
+        </select></div>
+      <button class="btn w gh mt2" onclick="Guard.lock(false)">${T('lockNow')}</button>`;
 
     $('#view').innerHTML =
         this.acc('g','🏥', T('secGeneral'), general, true)
       + this.acc('p','🖨', T('secPrint'),   print)
       + this.acc('l','🎨', T('secLook'),    look)
+      + this.acc('s','🛡', T('secSafety'), safety, defWarn)
       + (S.role==='doctor' ? this.acc('r','🔐', T('secPerm'), perm) : '')
       + (S.role==='doctor' ? this.acc('t','🦷', T('toothStatuses'), statuses) : '')
       + (S.role==='doctor' ? this.acc('pc','🧰', T('procTypes'), procs) : '')
@@ -6316,6 +6413,12 @@ const Cfg = {
   },
 
   async rmSign(){ if (!ask()) return; delete CFG.data.sign; await CFG.save(); this.draw(); },
+
+  async setIdle(v){
+    CFG.data.idleMin = Number(v) || 0;
+    await CFG.save(); Guard.touch();
+    toast(T('saved'),'s');
+  },
 
   async toggleSecChart(){
     CFG.data.secChart = !CFG.data.secChart;
@@ -6451,7 +6554,146 @@ const App = {
   },
 };
 
+/*═══════════════ الحماية ═══════════════
+  ثلاث طبقات واقعية: كلمة مرور معمّاة لا تُخزَّن كنص، تعطيل
+  المحاولات المتكررة، وقفل تلقائي عند ترك الجهاز. البيانات نفسها
+  لا تغادر الجهاز — سياسة أمن المحتوى في الأعلى تمنع ذلك.
+═════════════════════════════════════*/
+const Guard = {
+  IDLE_DEF:10, t:null, hidAt:0,
+
+  hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); },
+  salt(){ return this.hex(crypto.getRandomValues(new Uint8Array(16))); },
+  can(){ return !!(globalThis.crypto && crypto.subtle && crypto.subtle.deriveBits); },
+
+  /* PBKDF2 بـ ١٥٠ ألف دورة — كلمة المرور لا تُحفظ أبداً كنص */
+  async hash(pass, salt){
+    if (!this.can()) return null;
+    const key = await crypto.subtle.importKey('raw',
+      new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({
+      name:'PBKDF2', iterations:150000, hash:'SHA-256',
+      salt: Uint8Array.from(salt.match(/../g).map(h=>parseInt(h,16))),
+    }, key, 256);
+    return this.hex(bits);
+  },
+
+  /* يقبل الصيغة القديمة (نص صريح) حتى لا يُقفل أحد خارج برنامجه */
+  async verify(usr, pass){
+    if (usr.hash && usr.salt) return (await this.hash(pass, usr.salt)) === usr.hash;
+    return usr.pass === pass;
+  },
+
+  async setPass(usr, pass){
+    const salt = this.salt();
+    const h = await this.hash(pass, salt);
+    if (h){ usr.salt = salt; usr.hash = h; delete usr.pass; }
+    else   { usr.pass = pass; delete usr.salt; delete usr.hash; }
+    usr.def = (pass === '1234');
+    usr.passAt = Date.now();
+    await DB.put('users', usr);
+    return !!h;
+  },
+
+  isDefault(usr){ return usr.def === true || (!usr.hash && usr.pass === '1234'); },
+  async anyDefault(){ return (await DB.all('users')).some(u => this.isDefault(u)); },
+
+  /*──── تعطيل التخمين ────*/
+  tries(){ try { return JSON.parse(localStorage.getItem('d_try')) || {n:0,until:0}; }
+           catch(_){ return {n:0,until:0}; } },
+  lockLeft(){ return Math.max(0, this.tries().until - Date.now()); },
+  fail(){
+    const t = this.tries(); t.n++;
+    /* بعد خمس محاولات: ٣٠ ثانية تتضاعف حتى ربع ساعة */
+    if (t.n >= 5) t.until = Date.now() + Math.min(900000, 30000 * Math.pow(2, t.n - 5));
+    try { localStorage.setItem('d_try', JSON.stringify(t)); } catch(_){}
+  },
+  ok(){ try { localStorage.removeItem('d_try'); } catch(_){} },
+
+  /*──── القفل التلقائي ────*/
+  idleMin(){ const v = CFG.data.idleMin; return v === undefined ? this.IDLE_DEF : Number(v)||0; },
+  touch(){
+    clearTimeout(this.t);
+    const m = this.idleMin();
+    if (!m || !S.role) return;
+    this.t = setTimeout(()=>this.lock(true), m * 60000);
+  },
+  lock(auto){
+    if (!S.role) return;
+    clearTimeout(this.t);
+    if (auto) toast(T('autoLocked'), 'w');
+    Auth.out();
+  },
+  init(){
+    ['pointerdown','keydown','wheel','touchstart'].forEach(ev =>
+      document.addEventListener(ev, () => this.touch(), true));
+    /* الجهاز المتروك مقفولاً أو التبويب المخفي يُحتسبان خمولاً */
+    document.addEventListener('visibilitychange', () => {
+      const m = this.idleMin();
+      if (document.hidden){ this.hidAt = Date.now(); return; }
+      if (m && S.role && this.hidAt && Date.now() - this.hidAt > m * 60000) return this.lock(true);
+      this.touch();
+    });
+  },
+
+  /*──── تأكيد بكلمة مرور الطبيب قبل الإجراءات الخطرة ────*/
+  async confirmDoctor(){
+    const p = prompt(T('confirmDoc'));
+    if (p === null) return false;
+    const doc = (await DB.all('users')).find(u => u.role === 'doctor');
+    if (doc && await this.verify(doc, p)) return true;
+    toast(T('wrongDoc'), 'e'); return false;
+  },
+
+  /*──── نافذة تغيير كلمة المرور ────*/
+  async passSheet(uid){
+    const usr = (await DB.all('users')).find(u => u.id === uid);
+    if (!usr) return;
+    /* الطبيب يغيّر كلمات الآخرين بلا كلمتهم الحالية */
+    const mine = S.user?.id === uid;
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">🔐</div>
+        <div class="gr"><div class="h2">${T('changePass')}</div>
+          <div class="tiny">${T('passOf')} ${esc(T('r_'+usr.role))}</div></div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>
+      ${this.can()?'':`<div class="al w mt2"><span>!</span><span>${T('noCrypto')}</span></div>`}
+      <div class="card">
+        ${mine?`<div><label class="lb">${T('curPass')}</label>
+          <input id="pw-c" type="password" dir="ltr" autocomplete="current-password"></div>`:''}
+        <div class="mt"><label class="lb">${T('newPass')}</label>
+          <input id="pw-a" type="password" dir="ltr" autocomplete="new-password"></div>
+        <div class="mt"><label class="lb">${T('newPass2')}</label>
+          <input id="pw-b" type="password" dir="ltr" autocomplete="new-password"></div>
+        <div id="pw-err" class="al r mt hide"></div>
+        <div class="row mt2" style="gap:9px">
+          <button class="btn gh gr" onclick="Nav.back()">${T('cancel')}</button>
+          <button class="btn gr" style="flex:2" onclick="Guard.savePass('${uid}',${mine})">
+            ${T('save')}</button>
+        </div>
+      </div>`);
+    setTimeout(()=>$(mine?'#pw-c':'#pw-a')?.focus(), 120);
+  },
+
+  async savePass(uid, mine){
+    const err = $('#pw-err');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    const usr = (await DB.all('users')).find(u => u.id === uid);
+    if (!usr) return;
+    const a = $('#pw-a').value, b = $('#pw-b').value;
+    if (mine && !(await this.verify(usr, $('#pw-c').value))) return show(T('passWrong'));
+    if (a.length < 6) return show(T('passShort'));
+    if (a !== b)      return show(T('passSame'));
+    await this.setPass(usr, a);
+    if (S.user?.id === uid) S.user = usr;
+    toast(T('passDone'), 's');
+    Nav.back();
+  },
+};
+
 const Auth = { out(){ S.role=null; S.user=null; S.patient=null; S.visit=null;
+  S.chartOpen=false; Nav.reset(); UI.close();
   $('#app').classList.add('hide'); $('#login').classList.remove('hide'); Login.back(); Login.draw(); } };
 
 /*═══════════════ الهوية والتثبيت كتطبيق ═══════════════
@@ -6670,6 +6912,7 @@ window.addEventListener('unhandledrejection', e =>
   Nav.wrap();
   Hold.init();
   PickProc.initOutside();
+  Guard.init();
 
   /* الشعار نفسه يظهر عند فتح البرنامج وعلى أيقونة التثبيت */
   const lg = $('#applogo');
