@@ -199,6 +199,16 @@ button{font:inherit;font-weight:700;cursor:pointer;border:none;background:none;c
     transition:transform .14s,border-color .16s,box-shadow .16s}
 .it:hover{border-color:var(--br);box-shadow:var(--shL)}
 .it:active{transform:scale(.99)}
+/* الضغط المطوّل: العنصر ينكمش ويتلوّن بلون التحذير قبل فتح الخيارات */
+.it.holding{transform:scale(.965);border-color:var(--bd);box-shadow:0 0 0 3px var(--bdL)}
+/* مسار الأشرطة في الإحصائيات */
+.track{height:10px;border-radius:99px;background:var(--glass2);
+       border:1px solid var(--edge);overflow:hidden}
+.track>i{display:block;height:100%;border-radius:99px;transition:width .45s cubic-bezier(.3,.9,.3,1)}
+.rk{width:28px;height:28px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
+    font-family:'Zain',sans-serif;font-size:13px;font-weight:800;
+    background:var(--glass2);color:var(--ink2);border:1px solid var(--edge)}
+.rk.top{background:var(--wrL);color:var(--wr);border-color:transparent}
 .av{width:42px;height:42px;border-radius:14px;flex-shrink:0;background:var(--brL);
     color:var(--br);display:grid;place-items:center;font-family:'Zain',sans-serif;
     font-size:18px;font-weight:800}
@@ -733,6 +743,26 @@ ar:{
  camNeedHttps:'قراءة الكاميرا تحتاج فتح البرنامج من عنوان ويب آمن (https) أو من الحاسبة',
  stopCam:'إيقاف الكاميرا', switchCam:'تبديل الكاميرا', scanning:'جاري البحث…',
  codeFound:'تم قراءة الباركود', fixSteps:'انقل الملف إلى مجلد التنزيلات ثم افتحه من داخل المتصفح، أو ارفعه على استضافة ويب وافتحه عبر الرابط.',
+
+/*──── الحذف والضغط المطوّل ────*/
+ delPt:'حذف المراجع نهائياً', delPtQ:'حذف هذا المراجع مع كل جلساته وحساباته وأرشيفه؟',
+ delPtQ2:'تأكيد أخير — سيُمحى الملف بالكامل ولا يمكن التراجع.', ptDeleted:'حُذف المراجع',
+ removeToday:'إزالة من قائمة اليوم فقط', removeTodayQ:'إزالة هذه الجلسة من قائمة اليوم؟ يبقى ملف المراجع كما هو.',
+ removed:'تمت الإزالة', holdHint:'اضغط مطوّلاً على الاسم لخيارات الحذف',
+ ptOptions:'خيارات المراجع', docOnly:'هذا الإجراء متاح للطبيب وحده',
+ sealedEarly:'أُنهيت قبل اكتمال الجلسات', notDone:'لم تُنفَّذ',
+ planSummary:'ملخص خطة السن', whatDoctorWrote:'ما كتبه الطبيب لهذه الجلسة',
+ noDoctorNote:'لم يُكتب شيء لهذه الجلسة', workNote:'ملاحظة العمل',
+ accMoney:'الحسابات', accStats:'الإحصائيات',
+ allTime:'كل الفترات', fToday:'اليوم', fYest:'أمس', fWeek:'٧ أيام',
+ fMonth:'هذا الشهر', fCustom:'مخصص', dateRange:'الفترة',
+ collected:'المقبوض', worksTotal:'إجمالي الأعمال', dueNow:'المتبقي',
+ payCount:'عدد الدفعات', doneWorks:'الأعمال المنفّذة', gotPays:'الدفعات المستلمة',
+ byDayIncome:'الوارد حسب اليوم', topProcs:'أكثر أنواع الأعمال', topTeeth:'أكثر الأسنان عملاً',
+ allTeeth:'كل الأسنان', allProcs:'كل الأعمال', filterTooth:'رقم السن', filterProc:'نوع العمل',
+ statPatients:'عدد المراجعين', statTeeth:'عدد الأسنان', avgWork:'معدل العمل الواحد',
+ noData:'لا توجد بيانات ضمن هذه الفترة', printDay:'طباعة تقرير اليوم',
+ times:'مرة', resetF:'إعادة ضبط الفلاتر',
 },
 en:{
  tag:'Dental clinic management system', user:'Username', pass:'Password',
@@ -893,6 +923,26 @@ en:{
  camNeedHttps:'Camera scanning needs a secure web address (https) or a desktop browser',
  stopCam:'Stop camera', switchCam:'Switch camera', scanning:'Scanning…',
  codeFound:'Barcode read', fixSteps:'Move the file to your Downloads folder and open it from inside the browser, or host it on the web and open the link.',
+
+/*──── deletion & long press ────*/
+ delPt:'Delete patient permanently', delPtQ:'Delete this patient with all sessions, accounts and archive?',
+ delPtQ2:'Final confirmation — the file will be erased and cannot be restored.', ptDeleted:'Patient deleted',
+ removeToday:"Remove from today's list only", removeTodayQ:"Remove this session from today's list? The patient file stays.",
+ removed:'Removed', holdHint:'Press and hold a name for delete options',
+ ptOptions:'Patient options', docOnly:'This action is for the doctor only',
+ sealedEarly:'Closed before all sessions were done', notDone:'Not done',
+ planSummary:'Tooth plan summary', whatDoctorWrote:'What the doctor wrote for this session',
+ noDoctorNote:'Nothing was written for this session', workNote:'Work note',
+ accMoney:'Accounts', accStats:'Statistics',
+ allTime:'All time', fToday:'Today', fYest:'Yesterday', fWeek:'7 days',
+ fMonth:'This month', fCustom:'Custom', dateRange:'Period',
+ collected:'Collected', worksTotal:'Works total', dueNow:'Outstanding',
+ payCount:'Payments', doneWorks:'Works done', gotPays:'Payments received',
+ byDayIncome:'Income by day', topProcs:'Most performed procedures', topTeeth:'Most treated teeth',
+ allTeeth:'All teeth', allProcs:'All procedures', filterTooth:'Tooth', filterProc:'Procedure',
+ statPatients:'Patients', statTeeth:'Teeth', avgWork:'Average per work',
+ noData:'No data inside this period', printDay:'Print day report',
+ times:'x', resetF:'Reset filters',
 }};
 
 let LG = localStorage.getItem('d_lang') || 'ar';
@@ -1113,7 +1163,11 @@ const $$ = s => [...document.querySelectorAll(s)];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,9);
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const N   = n => Number(n||0).toLocaleString('en-US');
-const today = () => new Date().toISOString().slice(0,10);
+/* مفتاح اليوم بالتوقيت المحلي لا بتوقيت غرينتش — وإلا حُسب عمل
+   الساعة ١٢ ليلاً في العراق (+3) على اليوم السابق فتختلّ الفلاتر. */
+const dkey  = ts => { const d = new Date(ts);
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
+const today = () => dkey(Date.now());
 const fmtD = d => { if(!d) return '—'; const x=new Date(d);
   return x.toLocaleDateString(isAr()?'ar-IQ':'en-GB',{year:'numeric',month:'2-digit',day:'2-digit'}); };
 const fmtT = d => new Date(d).toLocaleTimeString(isAr()?'ar-IQ':'en-GB',{hour:'2-digit',minute:'2-digit'});
@@ -1264,6 +1318,58 @@ const UI = {
     } else if (!open && sc){ sc.remove(); }
   },
   spin(){ return '<div class="spin"></div>'; },
+};
+
+/*═══════════════ الضغط المطوّل ═══════════════
+  خيارات إضافية بلا أزرار تزحم القوائم: أي عنصر يحمل data-hold
+  يُنفِّذ ما فيه بعد نصف ثانية من الضغط، والضغطة العادية تبقى كما هي.
+═══════════════════════════════════════════*/
+const Hold = {
+  t:null, fired:false, x:0, y:0, el:null, MS:550, SLIP:12,
+
+  init(){
+    const clear = () => {
+      clearTimeout(this.t); this.t = null;
+      if (this.el){ this.el.classList.remove('holding'); this.el = null; }
+    };
+
+    document.addEventListener('pointerdown', e => {
+      const el = e.target.closest && e.target.closest('[data-hold]');
+      if (!el) return;
+      /* الضغط على زر داخل العنصر يبقى ضغطة زر */
+      if (e.target.closest('button') && e.target.closest('button') !== el) return;
+      clear();
+      this.fired = false; this.x = e.clientX; this.y = e.clientY;
+      this.el = el; el.classList.add('holding');
+      this.t = setTimeout(() => {
+        const run = el.dataset.hold;
+        this.fired = true; clear();
+        if (navigator.vibrate) try { navigator.vibrate(30); } catch(_){}
+        try { new Function(run)(); }
+        catch(err){ toast(String((err && err.message) || err), 'e'); }
+      }, this.MS);
+    }, true);
+
+    document.addEventListener('pointermove', e => {
+      if (!this.t) return;
+      if (Math.abs(e.clientX - this.x) > this.SLIP ||
+          Math.abs(e.clientY - this.y) > this.SLIP) clear();
+    }, true);
+
+    ['pointerup','pointercancel','pointerleave','scroll']
+      .forEach(ev => document.addEventListener(ev, clear, true));
+
+    /* الضغطة التي صارت ضغطاً مطوّلاً لا تفتح الصفحة خلفها */
+    document.addEventListener('click', e => {
+      if (!this.fired) return;
+      this.fired = false;
+      e.stopPropagation(); e.preventDefault();
+    }, true);
+
+    document.addEventListener('contextmenu', e => {
+      if (e.target.closest && e.target.closest('[data-hold]')) e.preventDefault();
+    });
+  },
 };
 
 /*═══════════════ مخطط الأسنان ═══════════════*/
@@ -2028,10 +2134,16 @@ const Ops = {
     const c = r.course || 1;
     const totals = await this.courseTotals(pid, fdi);
     r.archive = r.archive || [];
+    const ds = await this.doneSessions(pid, fdi);
     r.archive.push({
       course:c, plan:(r.plans||{})[c] || null,
       total:totals.total, paid:totals.paid,
-      sessions:totals.works.length, closedAt:Date.now(),
+      sessions:totals.works.length,
+      /* يُحفظ ما نُفّذ فعلاً وما كان مخطَّطاً، فيبقى الفرق مقروءاً
+         بعد الختم حتى لو أُنهي السن قبل اكتمال جلساته. */
+      doneNums: ds.nums,
+      planned: ((r.plans||{})[c] || {}).sessions || 0,
+      closedAt:Date.now(),
     });
     r.course = c + 1;
     r.closedAt = Date.now();
@@ -2056,8 +2168,13 @@ const Ops = {
         if (!ws.length && !ps.length && !plan) continue;
         const nums = new Set();
         ws.forEach(w => (w.sessionNos||[]).forEach(n => nums.add(Number(n))));
+        const sealed  = c < cur;
+        const planned = plan?.sessions || 0;
+        /* السن المختوم مكتمل دائماً — قرار الطبيب بالإنهاء يعلو
+           على عدّاد الجلسات المخطَّطة. */
+        const complete = sealed || (planned > 0 && nums.size >= planned);
         out.push({
-          fdi:r.fdi, course:c, sealed:c < cur, plan, st:r.st,
+          fdi:r.fdi, course:c, sealed, plan, st:r.st, planned, complete,
           doneNums:[...nums].sort((a,b)=>a-b),
           works:ws.sort((a,b)=>(b.at||0)-(a.at||0)),
           pays:ps,
@@ -2070,8 +2187,34 @@ const Ops = {
     return out.sort((a,b)=> (a.sealed - b.sealed) || (b.last - a.last));
   },
 
+  /* تحديث حالة السن فقط — بدمج على السجل القائم.
+     الاستبدال الكامل كان يمحو الخطة والأرشيف ورقم السلسلة
+     في كل مرة يُحفظ فيها عمل، فتضيع خطة السن بلا سبب ظاهر. */
   async setTooth(pid, fdi, st, vid){
-    await DB.put('tooth', { id:pid+'-'+fdi, pid, fdi:Number(fdi), st, vid:vid||null, at:Date.now() });
+    const r = await this.toothRec(pid, fdi);
+    r.st = st; r.vid = vid || null; r.at = Date.now();
+    await DB.put('tooth', r);
+  },
+
+  /* حذف مراجع نهائياً: يمسح كل ما يتعلّق به في كل المخازن،
+     فلا تبقى جلسة يتيمة ولا دفعة بلا صاحب. */
+  async deletePatient(pid){
+    for (const st of ['visits','works','payments','files','rx','tooth','appts']){
+      for (const row of await DB.by(st, 'pid', pid)) await DB.del(st, row.id);
+    }
+    for (const b of (await DB.all('bookings')).filter(x=>x.pid===pid))
+      await DB.del('bookings', b.id);
+    await DB.del('patients', pid);
+  },
+
+  /* إزالة جلسة واحدة: تختفي من قائمة اليوم ويبقى ملف المراجع */
+  async deleteVisit(vid){
+    for (const w of await DB.by('works','vid',vid))   await DB.del('works', w.id);
+    for (const r of await DB.by('rx','vid',vid))      await DB.del('rx', r.id);
+    for (const f of await DB.by('files','vid',vid))   await DB.del('files', f.id);
+    for (const x of (await DB.all('payments')).filter(p=>p.vid===vid))
+      await DB.del('payments', x.id);
+    await DB.del('visits', vid);
   },
 
   async findByCode(code){
@@ -2155,6 +2298,8 @@ const Sec = {
           <input id="q-today" placeholder="${T('searchQ')}" value="${esc(this.qq)}">
           <span class="pill b" id="q-count">0</span>
         </div>
+        ${S.role==='doctor'?`<div class="tiny ctr" style="margin-top:7px;color:var(--ink3)">
+          ${T('holdHint')}</div>`:''}
         <div id="q-list" class="col mt2"></div>`;
       const inp = $('#q-today');
       let tm;
@@ -2196,7 +2341,8 @@ const Sec = {
     box.innerHTML = rows.length ? rows.map(({vi,p,tt})=>{
       const live = vi.qstate==='called' || vi.qstate==='chair';
       return `
-      <div class="it ${live?'live':''}" onclick="Nav.session('${vi.id}')">
+      <div class="it ${live?'live':''}" onclick="Nav.session('${vi.id}')"
+        ${S.role==='doctor'?`data-hold="Del.todayRow('${vi.id}','${p.id}')"`:''}>
         <div class="av ${vi.qstate==='done'?'g':vi.qstate==='chair'?'':'w'}">${vi._no}</div>
         <div class="gr">
           <div class="row" style="gap:6px">
@@ -2372,6 +2518,8 @@ const Sec = {
     if (!$('#sc-q')){
       v.innerHTML = `
         <div class="sbar"><input id="sc-q" placeholder="${T('search')}" value="${esc(q||'')}"></div>
+        ${S.role==='doctor'?`<div class="tiny ctr" style="margin-top:7px;color:var(--ink3)">
+          ${T('holdHint')}</div>`:''}
         <div id="sc-list" class="col mt2"></div>`;
       const i = $('#sc-q'); let tm;
       i.oninput = ()=>{ clearTimeout(tm); tm=setTimeout(()=>Sec.list(i.value),220); };
@@ -2385,7 +2533,8 @@ const Sec = {
     const rows = [];
     for (const p of ps.slice(0,60)){
       const t = await Ops.patientTotals(p.id);
-      rows.push(`<div class="it" onclick="Sec.file('${p.id}')">
+      rows.push(`<div class="it" onclick="Sec.file('${p.id}')"
+        ${S.role==='doctor'?`data-hold="Del.patient('${p.id}')"`:''}>
         <div class="av">${esc(nm(p).charAt(0))}</div>
         <div class="gr">
           <div class="h3 ell">${esc(nm(p))}</div>
@@ -2531,7 +2680,9 @@ const Sec = {
         <div class="col mt">${files.length ? files.map(f=>{
           const total = f.plan?.sessions || 0;
           const done  = f.doneNums.length;
-          const full  = f.sealed || (total && done >= total);
+          /* المختوم مكتمل مهما كان عدد جلساته المنفّذة */
+          const full  = f.complete;
+          const early = f.sealed && total && done < total;
           /* غير المكتمل يومض: جلساته لم تكتمل حسب الخطة */
           return `
           <div class="it ${full?'':'live'}"
@@ -2542,14 +2693,14 @@ const Sec = {
               <div class="row" style="gap:6px">
                 <span class="h3">${T('tooth')} ${Chart.lbl(f.fdi)}</span>
                 <span class="pill ${full?'g':'w'}">
-                  ${full?`✓ ${f.sealed?T('sealed'):T('completed')}`:T('inProgress')}</span>
+                  ${full?`✓ ${T('completed')}`:T('inProgress')}</span>
               </div>
               <div class="tiny ell">${f.plan?esc(pName(f.plan.proc)):'—'}
                 ${total?` · ${done}/${total} ${T('toothVisits')}`:''}</div>
-              ${total?`<div style="height:6px;border-radius:99px;background:var(--glass2);
-                overflow:hidden;margin-top:5px">
-                <div style="height:100%;width:${Math.min(100,Math.round(done/total*100))}%;
-                  background:${full?'var(--ok)':P(f.plan.proc).col};border-radius:99px"></div>
+              ${early?`<div class="tiny" style="color:var(--wr)">${T('sealedEarly')}</div>`:''}
+              ${total?`<div class="track" style="height:6px;margin-top:5px">
+                <i style="width:${full?100:Math.min(100,Math.round(done/total*100))}%;
+                  background:${full?'var(--ok)':P(f.plan.proc).col}"></i>
               </div>`:''}
             </div>
             <div style="text-align:end">
@@ -2568,6 +2719,8 @@ const Sec = {
           ${visitRows.join('') || `<div class="emp">${T('noVisits')}</div>`}</div></div>
       </details>
 
+      ${S.role==='doctor'?`<button class="btn w dg mt2"
+        onclick="Del.patient('${pid}')">${T('delPt')}</button>`:''}
       <button class="btn w gh mt2" onclick="Nav.back()">${T('close')}</button>`;
   },
 
@@ -3308,27 +3461,59 @@ const Doc = {
     return `${T('mergedS')} ${ns.join(' + ')}`;
   },
 
-  /* تفاصيل جلسة سن واحدة: المخطط والمبلغ والحالة والأرشيف */
+  /*──── تفاصيل جلسة سن واحدة ────
+    الترتيب مقصود: ملخّص السن ومخطّطه أولاً، ثم العلاج المعطى،
+    ثم أرشيف الجلسة، ثم تفاصيلها، ثم مبلغها، وأخيراً ما كتبه الطبيب.
+    تعمل للسلاسل المفتوحة والمختومة معاً لأنها تقرأ سلسلة العمل نفسه. */
   async sessionCard(pid, fdi, wid){
-    const w = (await DB.by('works','pid',pid)).find(x=>x.id===wid);
+    const works = await DB.by('works','pid',pid);
+    const w = works.find(x => x.id === wid);
     if (!w) return toast(T('noResult'),'e');
-    const p    = await DB.get('patients', pid);
-    const plan = await Ops.plan(pid, fdi);
-    const done = await Ops.doneSessions(pid, fdi);
-    const map  = await Ops.toothMap(pid);
 
-    const pays = (await DB.by('payments','pid',pid))
-      .filter(x => x.vid === w.vid && Number(x.fdi) === Number(fdi));
-    const paid = pays.reduce((a,x)=>a+Number(x.amt||0),0);
+    const p   = await DB.get('patients', pid);
+    const rec = await Ops.toothRec(pid, fdi);
+    const c   = w.course || 1;
+    const cur = rec.course || 1;
+    const arc = (rec.archive || []).find(a => a.course === c) || null;
+    /* الخطة تُقرأ من سلسلة هذا العمل، لا من السلسلة الحالية */
+    const plan   = (rec.plans || {})[c] || arc?.plan || null;
+    const sealed = c < cur;
 
+    const cWorks = works.filter(x => Number(x.fdi) === Number(fdi) && (x.course||1) === c)
+                        .sort((a,b)=>(a.at||0)-(b.at||0));
+    const nums = new Set();
+    cWorks.forEach(x => (x.sessionNos||[]).forEach(n => nums.add(Number(n))));
+    const total = plan?.sessions || 0;
+    const done  = nums.size;
+    const full  = sealed || (total && done >= total);
+    const early = sealed && total && done < total;
+    const pct   = total ? Math.min(100, Math.round(done/total*100)) : 0;
+
+    const map   = await Ops.toothMap(pid);
+    const pays  = (await DB.by('payments','pid',pid))
+      .filter(x => x.vid === w.vid && Number(x.fdi) === Number(fdi))
+      .sort((a,b)=>(b.at||0)-(a.at||0));
+    const paid  = pays.reduce((a,x)=>a+Number(x.amt||0),0);
     const files = (await DB.by('files','pid',pid)).filter(f => f.vid === w.vid);
     const visit = w.vid ? await DB.get('visits', w.vid) : null;
-    const total = plan?.sessions || 0;
-    const full  = total ? done.nums.length >= total : false;
+    const col   = P(w.proc).col;
+
+    const sec = (icon, title, body, extra) => `
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="row" style="gap:8px">
+            <span class="accic" style="width:28px;height:28px;font-size:14px">${icon}</span>
+            <span class="lbl">${title}</span>
+          </div>
+          ${extra || ''}
+        </div>
+        ${body}
+      </div>`;
 
     UI.sheet(`
       <div class="shhead">
-        <div class="av mono" style="width:50px;height:50px;font-size:15px">${Chart.lbl(fdi)}</div>
+        <div class="av mono" style="width:50px;height:50px;font-size:15px;
+          background:${col}22;color:${col};border:2px solid ${col}">${Chart.lbl(fdi)}</div>
         <div class="gr">
           <div class="h2">${this.sessLabel(w)}</div>
           <div class="tiny">${esc(nm(p))} · ${T('tooth')} ${Chart.lbl(fdi)} · ${fmtD(w.at)}</div>
@@ -3336,66 +3521,95 @@ const Doc = {
         <button class="ib" onclick="Nav.back()">✕</button>
       </div>
 
-      <div class="card">
-        <div class="row">
+      ${sec('🦷', T('planSummary'), `
+        <div class="row mt" style="gap:9px">
           <span class="pill ${full?'g':'w'}">${full?`✓ ${T('completed')}`:T('inProgress')}</span>
-          <div class="gr"></div>
-          ${plan?`<span class="tiny">${done.nums.length} ${T('ofN')} ${plan.sessions}</span>`:''}
+          <span class="pill n">${T('courseNo')} ${c}</span>
+          ${plan?`<span class="pill n" style="color:${P(plan.proc).col}">
+            ${esc(pName(plan.proc))}</span>`:''}
         </div>
+        ${early?`<div class="tiny mt" style="color:var(--wr)">${T('sealedEarly')}</div>`:''}
+        ${total?`
+          <div class="row mt" style="justify-content:space-between">
+            <span class="tiny">${done} ${T('ofN')} ${total} ${T('toothVisits')}</span>
+            <span class="tiny mono">${full?100:pct}%</span>
+          </div>
+          <div class="track mt"><i style="width:${full?100:pct}%;
+            background:${full?'var(--ok)':col}"></i></div>
+          <div class="row wrapv mt" style="gap:6px">
+            ${Array.from({length:total},(_,i)=>i+1).map(n=>{
+              const on  = nums.has(n);
+              const now = (w.sessionNos||[]).map(Number).includes(n);
+              return `<span class="pill ${now?'b':on?'g':'n'}">
+                ${on?'✓ ':''}${T('sessionN')} ${n}${now?' •':''}</span>`;}).join('')}
+          </div>
+          ${!full && total>done?`<div class="tiny mt" style="color:var(--ink3)">
+            ${total-done} ${T('notDone')}</div>`:''}`:''}
+        <div class="mt2">${Chart.svg(map, Number(fdi))}</div>
+        ${Chart.legend()}`)}
+
+      ${sec('🪥', T('sessionRx'), `
         <div class="mt">
-          <div class="h3" style="color:${P(w.proc).col}">${esc(pName(w.proc))}</div>
-          ${w.note?`<div class="tiny mt">${esc(w.note)}</div>`:''}
-          ${w.by==='secretary'?`<span class="pill n" style="margin-top:6px">
+          <div class="h3" style="color:${col}">${esc(pName(w.proc))}</div>
+          <div class="tiny mt">${fmtD(w.at)} ${fmtT(w.at)}</div>
+          ${w.note?`<div class="card flat mt" style="padding:11px">
+            <div class="tiny" style="color:var(--ink3)">${T('workNote')}</div>
+            <div style="font-weight:600;margin-top:3px">${esc(w.note)}</div>
+          </div>`:''}
+          ${w.by==='secretary'?`<span class="pill n" style="margin-top:7px">
             ${T('enteredBy')}: ${T('bySecretary')}</span>`:''}
-        </div>
-      </div>
+        </div>`)}
 
-      <div class="card">
-        <div class="lbl">${T('toothChart')}</div>
-        ${Chart.svg(map, Number(fdi))}
-        ${Chart.legend()}
-      </div>
-
-      <div class="g2">
-        <div class="card ctr" style="padding:14px 8px">
-          <div class="tiny">${T('sessionAmt')}</div>
-          <div class="mono h2 mt">${N(w.price)}</div></div>
-        <div class="card ctr" style="padding:14px 8px">
-          <div class="tiny">${T('paid')}</div>
-          <div class="mono h2 mt" style="color:var(--ok)">${N(paid)}</div></div>
-      </div>
-
-      ${pays.length?`<div class="card">
-        <div class="lbl">${T('payments')}</div>
-        <div class="col mt">${pays.sort((a,b)=>(b.at||0)-(a.at||0)).map(x=>`
-          <div class="it" style="cursor:default;padding:9px 11px">
-            <div class="av g" style="width:30px;height:30px;font-size:13px">₪</div>
-            <div class="gr"><div class="mono" style="font-weight:700">${N(x.amt)}</div>
-              <div class="tiny">${fmtD(x.at)} · ${T(x.method||'cash')}</div></div>
-          </div>`).join('')}</div>
-      </div>`:''}
-
-      <div class="card">
-        <div class="lbl">${T('toothArchive')}</div>
-        ${files.length?`<div class="g4 mt">${files.map(f=>`
+      ${sec('🗂', T('sessionArc'),
+        files.length?`<div class="g4 mt">${files.map(f=>`
           <div style="cursor:pointer" onclick="Doc.viewFile('${f.id}')">
             <img src="${f.data}" style="width:100%;aspect-ratio:1;object-fit:cover;
               border-radius:12px;border:1px solid var(--edge)">
             <div class="tiny ctr" style="margin-top:4px">${T(f.kind)}</div>
-          </div>`).join('')}</div>`:`<div class="emp mt">${T('noSessionArc')}</div>`}
-      </div>
+          </div>`).join('')}</div>`
+        :`<div class="emp mt">${T('noSessionArc')}</div>`,
+        files.length?`<span class="pill n">${files.length}</span>`:'')}
 
-      ${visit?`<div class="card">
-        <div class="lbl">${T('sessionDetails')}</div>
-        <div class="row mt" style="justify-content:space-between">
-          <span class="tiny">${T('visit')} ${visit.no}</span>
-          <span class="mono tiny">${fmtD(visit.date)}</span>
+      ${sec('📋', T('sessionInfo'), `
+        <div class="col mt">
+          <div class="it" style="cursor:default;padding:10px 12px">
+            <div class="gr"><div class="tiny">${T('name')}</div>
+              <div style="font-weight:700">${esc(nm(p))}</div></div>
+            <div style="text-align:end"><div class="tiny">${T('file')}</div>
+              <div class="mono" style="font-weight:700">${esc(p.mrn||'—')}</div></div>
+          </div>
+          ${visit?`<div class="it" style="cursor:default;padding:10px 12px">
+            <div class="gr"><div class="tiny">${T('visit')}</div>
+              <div style="font-weight:700">${visit.no} · ${fmtD(visit.date)}</div></div>
+            <div style="text-align:end"><div class="tiny">${T('barcode')}</div>
+              <div class="mono tiny">${esc(visit.code||'—')}</div></div>
+          </div>`:''}
+        </div>`)}
+
+      ${sec('₪', T('sessionAmt'), `
+        <div class="g2 mt">
+          <div class="card flat ctr" style="padding:13px 8px">
+            <div class="tiny">${T('sessionAmt')}</div>
+            <div class="mono h2 mt">${N(w.price)}</div></div>
+          <div class="card flat ctr" style="padding:13px 8px">
+            <div class="tiny">${T('paid')}</div>
+            <div class="mono h2 mt" style="color:var(--ok)">${N(paid)}</div></div>
         </div>
-        ${visit.done?`<div class="mt" style="font-weight:600">${esc(visit.done)}</div>`:''}
-        <button class="btn w gh mt" onclick="Nav.session('${visit.id}')">${T('openSession')}</button>
-      </div>`:''}
+        ${pays.length?`<div class="col mt">${pays.map(x=>`
+          <div class="it" style="cursor:default;padding:9px 11px">
+            <div class="av g" style="width:30px;height:30px;font-size:13px">₪</div>
+            <div class="gr"><div class="mono" style="font-weight:700">${N(x.amt)}</div>
+              <div class="tiny">${fmtD(x.at)} · ${T(x.method||'cash')}</div></div>
+          </div>`).join('')}</div>`:''}`)}
 
-      <button class="btn w gh mt2" onclick="Nav.back()">${T('back')}</button>`);
+      ${sec('✍️', T('whatDoctorWrote'),
+        visit?.done?`<div class="card flat mt" style="padding:12px;font-weight:600;
+          line-height:1.7">${esc(visit.done)}</div>`
+        :`<div class="emp mt">${T('noDoctorNote')}</div>`)}
+
+      ${visit?`<button class="btn w gh mt2"
+        onclick="Nav.session('${visit.id}')">${T('openSession')}</button>`:''}
+      <button class="btn w gh mt" onclick="Nav.back()">${T('back')}</button>`);
   },
 
   /* نموذج الخطة */
@@ -3600,12 +3814,17 @@ const Doc = {
     return this.toothCourse(pid, Number(fdi), Number(course));
   },
 
-  /* ملخص ملف سن مختوم */
+  /* ملخص ملف سن مختوم — جلساته تُفتح كاملة التفاصيل مثل المفتوح */
   async toothCourse(pid, fdi, course){
     const recs = await Ops.toothFiles(pid);
     const f = recs.find(x => x.fdi===Number(fdi) && x.course===Number(course));
     if (!f) return toast(T('noResult'), 'e');
     const p = await DB.get('patients', pid);
+
+    const total = f.plan?.sessions || 0;
+    const done  = f.doneNums.length;
+    const early = f.sealed && total && done < total;
+    const col   = f.plan ? P(f.plan.proc).col : 'var(--br)';
 
     UI.sheet(`
       <div class="shhead">
@@ -3620,28 +3839,39 @@ const Doc = {
 
       <div class="card">
         <div class="row">
-          <span class="pill ${f.sealed?'n':'b'}">${f.sealed?T('sealed'):T('ongoing')}</span>
+          <span class="pill ${f.complete?'g':'w'}">
+            ${f.complete?`✓ ${T('completed')}`:T('inProgress')}</span>
           <div class="gr"></div>
           <span class="mono h3" style="color:var(--ok)">${N(f.paid)}</span>
         </div>
         ${f.plan?`<div class="mt">
-          <div class="h3" style="color:${P(f.plan.proc).col}">${esc(pName(f.plan.proc))}</div>
-          <div class="tiny">${f.works.length} ${T('ofN')} ${f.plan.sessions} ${T('toothVisits')}</div>
+          <div class="h3" style="color:${col}">${esc(pName(f.plan.proc))}</div>
+          <div class="tiny">${done} ${T('ofN')} ${total} ${T('toothVisits')}</div>
+          ${early?`<div class="tiny" style="color:var(--wr)">${T('sealedEarly')}</div>`:''}
+          ${total?`<div class="track mt"><i style="width:${f.complete?100:
+            Math.min(100,Math.round(done/total*100))}%;
+            background:${f.complete?'var(--ok)':col}"></i></div>`:''}
           ${f.plan.note?`<div class="tiny mt">${esc(f.plan.note)}</div>`:''}
         </div>`:''}
       </div>
 
       <div class="card">
-        <div class="lbl">${T('doneSessions')}</div>
+        <div class="row" style="justify-content:space-between">
+          <div class="lbl">${T('doneSessions')}</div>
+          <span class="pill n">${f.works.length}</span>
+        </div>
         <div class="col mt">${f.works.map(w=>`
-          <div class="it" style="cursor:default">
+          <div class="it" onclick="Doc.sessionCard('${pid}',${fdi},'${w.id}')">
             <div class="av" style="background:${P(w.proc).col}22;color:${P(w.proc).col}">
               ${(w.sessionNos||['—'])[0]}</div>
             <div class="gr">
               <div class="mono" style="font-weight:700">${fmtD(w.at)}</div>
-              <div class="tiny">${esc(pName(w.proc))}${w.note?' · '+esc(w.note):''}</div>
+              <div class="tiny ell">${esc(pName(w.proc))}${w.note?' · '+esc(w.note):''}</div>
             </div>
-            <span class="mono" style="font-weight:700">${N(w.price)}</span>
+            <div style="text-align:end">
+              <div class="mono" style="font-weight:700">${N(w.price)}</div>
+              <div class="tiny" style="color:var(--ink3)">${isAr()?'‹':'›'}</div>
+            </div>
           </div>`).join('') || `<div class="emp">—</div>`}</div>
       </div>
 
@@ -3727,10 +3957,111 @@ const Doc = {
   async report(){ return Money.draw(); },
 };
 
-/*═══════════════ الحسابات ═══════════════*/
+/*═══════════════ الحسابات والإحصائيات ═══════════════
+  ثلاث شاشات فوق فلتر تاريخ واحد: الحسابات (المبالغ)، الإحصائيات
+  (الأعمال)، المراجعون. كل رقم يظهر هو حصيلة الفلتر الظاهر فوقه —
+  لا مجاميع خفية ولا فترة مضمرة.
+═══════════════════════════════════════════════════*/
 const Money = {
-  view:'today',
-  set(v){ this.view=v; this.draw(); },
+  view:'acc',
+  /* الفلتر المشترك — التاريخ لكل الشاشات، والسن والعمل للإحصائيات */
+  f:{ range:'today', from:today(), to:today(), fdi:'', proc:'' },
+
+  set(v){ this.view = v; this.draw(); },
+
+  /*──────── مدى التاريخ ────────*/
+  span(){
+    const now = new Date();
+    const ago = n => { const x = new Date(now); x.setDate(x.getDate()-n); return dkey(x); };
+    switch (this.f.range){
+      case 'today': return { from:dkey(now), to:dkey(now) };
+      case 'yest':  return { from:ago(1),    to:ago(1) };
+      case 'week':  return { from:ago(6),    to:dkey(now) };
+      case 'month': return { from:dkey(now).slice(0,8)+'01', to:dkey(now) };
+      case 'all':   return { from:'', to:'' };
+      default:      return { from:this.f.from||'', to:this.f.to||'' };
+    }
+  },
+
+  spanLabel(){
+    const s = this.span();
+    if (!s.from && !s.to) return T('allTime');
+    if (s.from && s.to && s.from === s.to) return fmtD(s.from);
+    return `${s.from?fmtD(s.from):'…'} — ${s.to?fmtD(s.to):'…'}`;
+  },
+
+  inSpan(ts){
+    const s = this.span(), k = dkey(ts);
+    if (s.from && k < s.from) return false;
+    if (s.to   && k > s.to)   return false;
+    return true;
+  },
+
+  /*──────── شريط الفلتر ────────*/
+  filterBar(){
+    const s = this.span();
+    const chip = (k,l) => `<button class="btn sm rchip ${this.f.range===k?'':'gh'}"
+      data-k="${k}" onclick="Money.range('${k}')">${T(l)}</button>`;
+    return `<details class="acc" ${this.f.range==='custom'?'open':''}>
+      <summary>
+        <span class="accic">📅</span>
+        <span class="gr">${T('dateRange')}</span>
+        <span class="pill b" id="f-span">${this.spanLabel()}</span>
+        <span class="ar">${isAr()?'‹':'›'}</span>
+      </summary>
+      <div class="bd">
+        <div class="row wrapv" style="gap:6px">
+          ${chip('today','fToday')}${chip('yest','fYest')}${chip('week','fWeek')}
+          ${chip('month','fMonth')}${chip('all','allTime')}${chip('custom','fCustom')}
+        </div>
+        <div class="g2 mt2">
+          <div><label class="lb">${T('from')}</label>
+            <input type="date" id="f-from" value="${esc(s.from)}" onchange="Money.custom()"></div>
+          <div><label class="lb">${T('to')}</label>
+            <input type="date" id="f-to" value="${esc(s.to)}" onchange="Money.custom()"></div>
+        </div>
+      </div></details>`;
+  },
+
+  /* الشرائح والحقول تُحدَّث في مكانها — لا يُعاد بناء الشريط
+     حتى لا تنغلق القائمة ولا يقفز مؤشّر حقل التاريخ. */
+  syncBar(){
+    const s = this.span();
+    const ff = $('#f-from'); if (ff) ff.value = s.from;
+    const ft = $('#f-to');   if (ft) ft.value = s.to;
+    const sp = $('#f-span'); if (sp) sp.textContent = this.spanLabel();
+    $$('#acc-filter .rchip').forEach(b =>
+      b.classList.toggle('gh', b.dataset.k !== this.f.range));
+  },
+
+  range(k){ this.f.range = k; const s = this.span();
+    this.f.from = s.from; this.f.to = s.to; this.syncBar(); this.body(); },
+
+  custom(){ this.f.range = 'custom';
+    this.f.from = $('#f-from')?.value || '';
+    this.f.to   = $('#f-to')?.value   || '';
+    this.syncBar(); this.body(); },
+
+  resetF(){ this.f.fdi = ''; this.f.proc = ''; this.stats(); },
+
+  /*──────── العرض ────────*/
+  async draw(){
+    $('#view').innerHTML = `
+      <div class="segs">
+        ${[['acc','accMoney'],['stat','accStats'],['pts','accPatients']].map(([k,l])=>
+          `<button class="${this.view===k?'on':''}"
+             onclick="Money.set('${k}')">${T(l)}</button>`).join('')}
+      </div>
+      ${this.view!=='pts'?`<div id="acc-filter" class="mt2">${this.filterBar()}</div>`:''}
+      <div id="acc-body" class="mt2">${UI.spin()}</div>`;
+    return this.body();
+  },
+
+  body(){
+    if (this.view === 'acc')  return this.accounts();
+    if (this.view === 'stat') return this.stats();
+    return this.patients();
+  },
 
   card(label, val, color, sub){
     return `<div class="card ctr" style="padding:15px 8px">
@@ -3739,133 +4070,210 @@ const Money = {
       ${sub?`<div class="tiny" style="margin-top:2px">${sub}</div>`:''}</div>`;
   },
 
-  async draw(){
-    $('#view').innerHTML = `
-      <div class="segs">
-        ${[['today','accToday'],['month','accMonth'],['pts','accPatients']].map(([k,l])=>
-          `<button class="${this.view===k?'on':''}" onclick="Money.set('${k}')">${T(l)}</button>`).join('')}
-      </div>
-      <div id="acc-body" class="mt2">${UI.spin()}</div>`;
-    if (this.view==='today') return this.today();
-    if (this.view==='month') return this.month();
-    return this.patients();
+  /*──────── البيانات ضمن الفلتر ────────*/
+  async data(){
+    const works = (await DB.all('works')).filter(w => this.inSpan(w.at));
+    const pays  = (await DB.all('payments')).filter(x => this.inSpan(x.at));
+    return { works, pays,
+      total: works.reduce((a,x)=>a+Number(x.price||0),0),
+      paid:  pays .reduce((a,x)=>a+Number(x.amt ||0),0) };
   },
 
-  /* تجميع حسب نوع العمل — يوضّح مصدر الدخل الحقيقي */
-  group(works){
-    const g = {};
-    for (const w of works){
-      (g[w.proc] ||= { n:0, sum:0, col:P(w.proc).col });
-      g[w.proc].n++; g[w.proc].sum += Number(w.price||0);
-    }
-    return Object.entries(g).sort((a,b)=> b[1].sum - a[1].sum);
+  /* خريطة الأسماء تُقرأ مرة واحدة بدل استعلام لكل صف */
+  async ptMap(){
+    const m = {}; (await DB.all('patients')).forEach(p => m[p.id] = p); return m;
   },
 
-  bars(groups, max){
-    return groups.map(([k,g])=>`
-      <div style="margin-top:12px">
-        <div class="row" style="justify-content:space-between;margin-bottom:5px">
-          <span style="font-weight:700;font-size:13.5px;color:${g.col}">${esc(pName(k))}</span>
-          <span class="mono" style="font-weight:700">${N(g.sum)}
-            <span class="tiny" style="color:var(--ink3)">×${g.n}</span></span>
-        </div>
-        <div style="height:10px;border-radius:99px;background:var(--card2);overflow:hidden">
-          <div style="height:100%;width:${max?Math.max(4,g.sum/max*100):0}%;
-            background:${g.col};border-radius:99px"></div>
+  /*──────── أشرطة مرتّبة من الأعلى للأدنى ────────*/
+  rank(items){
+    if (!items.length) return `<div class="emp mt">${T('noData')}</div>`;
+    const max = Math.max(1, ...items.map(x => x.n));
+    return items.map((x,i)=>`
+      <div class="row mt" style="gap:10px;align-items:flex-start">
+        <div class="rk ${i===0?'top':''}">${i+1}</div>
+        <div class="gr" style="min-width:0">
+          <div class="row" style="justify-content:space-between;gap:8px;margin-bottom:5px">
+            <span class="ell" style="font-weight:700;font-size:13.5px;color:${x.col}">
+              ${esc(x.label)}</span>
+            <span class="mono" style="font-weight:800;white-space:nowrap">${x.n}
+              <span class="tiny" style="color:var(--ink3)">${T('times')} · ${N(x.sum)}</span></span>
+          </div>
+          <div class="track"><i style="width:${Math.max(5, x.n/max*100)}%;
+            background:${x.col}"></i></div>
         </div>
       </div>`).join('');
   },
 
-  async today(){
-    const d = today();
-    const works = (await DB.all('works')).filter(w=>new Date(w.at).toISOString().slice(0,10)===d);
-    const pays  = (await DB.all('payments')).filter(x=>new Date(x.at).toISOString().slice(0,10)===d);
-    const tot = works.reduce((a,x)=>a+Number(x.price||0),0);
-    const col = pays.reduce((a,x)=>a+Number(x.amt||0),0);
-    const g = this.group(works), max = g[0]?.[1].sum || 0;
+  /*═══════ ١) الحسابات ═══════*/
+  async accounts(){
+    const box = $('#acc-body'); if (!box) return;
+    box.innerHTML = UI.spin();
 
-    const rows = [];
-    for (const w of works){
-      const p = await DB.get('patients', w.pid);
-      rows.push(`<tr onclick="Sec.file('${w.pid}')">
-        <td class="ell" style="max-width:100px">${esc(p?nm(p):'—')}</td>
-        <td class="mono" style="color:${P(w.proc).col};font-weight:700">${w.fdi?Chart.lbl(w.fdi):'—'}</td>
-        <td class="tiny">${esc(pName(w.proc))}</td>
-        <td class="mono">${N(w.price)}</td>
-        <td class="tiny">${esc(w.note||'—')}</td></tr>`);
-    }
-
-    const payRows = [];
-    for (const x of pays){
-      const p = await DB.get('patients', x.pid);
-      payRows.push(`<div class="it" style="cursor:default">
-        <div class="av g">₪</div>
-        <div class="gr"><div class="h3 ell">${esc(p?nm(p):'—')}</div>
-          <div class="tiny">${T(x.method||'cash')} · ${fmtT(x.at)}</div></div>
-        <span class="mono" style="font-weight:700;color:var(--ok)">${N(x.amt)}</span>
-      </div>`);
-    }
-
-    $('#acc-body').innerHTML = `
-      <div class="lbl">${T('dayReport')} · ${fmtD(d)}</div>
-      <div class="g3 mt">
-        ${this.card(T('total'), N(tot))}
-        ${this.card(T('income'), N(col), 'var(--ok)')}
-        ${this.card(T('workCount'), works.length)}
-      </div>
-      ${g.length?`<div class="card mt2"><div class="lbl">${T('byProc')}</div>${this.bars(g,max)}</div>`:''}
-      <div class="card mt2" style="padding:10px">
-        <div class="lbl" style="padding:6px 6px 0">${T('whatDone')}</div>
-        <table class="tbl mt">
-          <thead><tr><th>${T('name')}</th><th>${T('workSite')}</th><th>${T('workType')}</th>
-            <th>${T('amountPaid')}</th><th>${T('notes')}</th></tr></thead>
-          <tbody>${rows.join('')||`<tr><td colspan="5" class="ctr"
-            style="padding:26px;color:var(--ink3)">—</td></tr>`}</tbody></table>
-      </div>
-      ${payRows.length?`<div class="card mt2">
-        <div class="lbl">${T('payments')} (${payRows.length})</div>
-        <div class="col mt">${payRows.join('')}</div></div>`:''}
-      <button class="btn w gh mt2" onclick="Print.day()">${T('print')}</button>`;
-  },
-
-  async month(){
-    const ym = new Date().toISOString().slice(0,7);
-    const works = (await DB.all('works')).filter(w=>new Date(w.at).toISOString().slice(0,7)===ym);
-    const pays  = (await DB.all('payments')).filter(x=>new Date(x.at).toISOString().slice(0,7)===ym);
-    const tot = works.reduce((a,x)=>a+Number(x.price||0),0);
-    const col = pays.reduce((a,x)=>a+Number(x.amt||0),0);
-    const g = this.group(works), max = g[0]?.[1].sum || 0;
+    const d   = await this.data();
+    const due = Math.max(0, d.total - d.paid);
+    const pm  = await this.ptMap();
 
     const byDay = {};
-    works.forEach(w=>{ const k=new Date(w.at).toISOString().slice(0,10);
-      byDay[k]=(byDay[k]||0)+Number(w.price||0); });
+    d.pays.forEach(x => { const k = dkey(x.at); byDay[k] = (byDay[k]||0) + Number(x.amt||0); });
     const days = Object.entries(byDay).sort((a,b)=>a[0].localeCompare(b[0]));
     const dmax = Math.max(1, ...days.map(x=>x[1]));
 
-    $('#acc-body').innerHTML = `
-      <div class="lbl">${T('thisMonth')} · ${ym}</div>
-      <div class="g3 mt">
-        ${this.card(T('total'), N(tot))}
-        ${this.card(T('income'), N(col), 'var(--ok)')}
-        ${this.card(T('avg'), N(Math.round(tot/(days.length||1))), null, T('count')+' '+works.length)}
+    const payRows = d.pays.sort((a,b)=>(b.at||0)-(a.at||0)).map(x=>`
+      <div class="it" style="cursor:default">
+        <div class="av g">₪</div>
+        <div class="gr">
+          <div class="h3 ell">${esc(pm[x.pid]?nm(pm[x.pid]):'—')}</div>
+          <div class="tiny">${T(x.method||'cash')} · ${fmtD(x.at)} ${fmtT(x.at)}
+            ${x.fdi?` · ${T('tooth')} ${Chart.lbl(x.fdi)}`:''}</div>
+        </div>
+        <span class="mono" style="font-weight:800;color:var(--ok)">${N(x.amt)}</span>
+      </div>`).join('');
+
+    const workRows = d.works.sort((a,b)=>(b.at||0)-(a.at||0)).map(w=>`
+      <tr onclick="Sec.file('${w.pid}')">
+        <td class="ell" style="max-width:110px">${esc(pm[w.pid]?nm(pm[w.pid]):'—')}</td>
+        <td class="mono" style="color:${P(w.proc).col};font-weight:700">
+          ${w.fdi?Chart.lbl(w.fdi):'—'}</td>
+        <td class="tiny">${esc(pName(w.proc))}</td>
+        <td class="mono">${N(w.price)}</td>
+        <td class="tiny">${fmtD(w.at)}</td>
+      </tr>`).join('');
+
+    const accBox = (icon, title, count, body, open) => `
+      <details class="acc mt2" ${open?'open':''}>
+        <summary><span class="accic">${icon}</span>
+          <span class="gr">${title}</span>
+          <span class="pill n">${count}</span>
+          <span class="ar">${isAr()?'‹':'›'}</span></summary>
+        <div class="bd">${body}</div></details>`;
+
+    box.innerHTML = `
+      <div class="card ctr">
+        <div class="tiny" style="font-weight:700">${T('collected')} · ${this.spanLabel()}</div>
+        <div class="mono h1" style="color:var(--ok);margin-top:4px">${N(d.paid)}</div>
       </div>
-      ${days.length?`<div class="card mt2">
-        <div class="lbl">${T('accMonth')}</div>
-        <div style="display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:14px">
-          ${days.map(([d,val])=>`
-            <div class="gr" style="display:flex;flex-direction:column;justify-content:flex-end;height:100%"
-                 title="${d} — ${N(val)}">
-              <div style="height:${Math.max(4,val/dmax*100)}%;background:var(--br);
-                border-radius:5px 5px 0 0;min-height:4px"></div>
-              <div class="mono" style="font-size:8.5px;text-align:center;color:var(--ink3);margin-top:4px">
-                ${d.slice(8)}</div>
+
+      <div class="g3 mt2">
+        ${this.card(T('worksTotal'), N(d.total))}
+        ${this.card(T('dueNow'), N(due), due>0?'var(--bd)':'var(--ink3)')}
+        ${this.card(T('workCount'), d.works.length, null, `${d.pays.length} ${T('payCount')}`)}
+      </div>
+
+      ${days.length>1?accBox('📈', T('byDayIncome'), days.length, `
+        <div style="display:flex;align-items:flex-end;gap:3px;height:130px">
+          ${days.map(([k,val])=>`
+            <div class="gr" style="display:flex;flex-direction:column;justify-content:flex-end;
+                 height:100%" title="${k} — ${N(val)}">
+              <div class="mono" style="font-size:8.5px;text-align:center;
+                color:var(--ink3);margin-bottom:3px">${N(val)}</div>
+              <div style="height:${Math.max(4, val/dmax*100)}%;background:var(--br);
+                border-radius:6px 6px 0 0;min-height:4px"></div>
+              <div class="mono" style="font-size:8.5px;text-align:center;
+                color:var(--ink3);margin-top:4px">${k.slice(8)}/${k.slice(5,7)}</div>
             </div>`).join('')}
-        </div></div>`:''}
-      ${g.length?`<div class="card mt2"><div class="lbl">${T('byProc')}</div>${this.bars(g,max)}</div>`
-       :`<div class="emp mt2">—</div>`}`;
+        </div>`, true):''}
+
+      ${accBox('💵', T('gotPays'), d.pays.length,
+        payRows?`<div class="col">${payRows}</div>`:`<div class="emp">${T('noData')}</div>`)}
+
+      ${accBox('🦷', T('doneWorks'), d.works.length,
+        workRows?`<table class="tbl">
+          <thead><tr><th>${T('name')}</th><th>${T('workSite')}</th><th>${T('workType')}</th>
+            <th>${T('amountPaid')}</th><th>${T('filterDate')}</th></tr></thead>
+          <tbody>${workRows}</tbody></table>`:`<div class="emp">${T('noData')}</div>`)}
+
+      <button class="btn w gh mt2" onclick="Print.day()">${T('printDay')}</button>`;
   },
 
-  /*──── المراجعون: بحث ثم زيارات كل مراجع ودفعاتها ────*/
+  /*═══════ ٢) الإحصائيات ═══════*/
+  async stats(){
+    const box = $('#acc-body'); if (!box) return;
+    box.innerHTML = UI.spin();
+
+    const all = (await DB.all('works')).filter(w => this.inSpan(w.at));
+
+    /* قوائم الفلتر تُبنى مما هو موجود فعلاً في الفترة */
+    const teethAll = [...new Set(all.map(w=>Number(w.fdi)).filter(Boolean))]
+      .sort((a,b)=>a-b);
+    const procsAll = [...new Set(all.map(w=>w.proc).filter(Boolean))];
+
+    let ws = all;
+    if (this.f.fdi)  ws = ws.filter(w => Number(w.fdi) === Number(this.f.fdi));
+    if (this.f.proc) ws = ws.filter(w => w.proc === this.f.proc);
+
+    const sum   = ws.reduce((a,x)=>a+Number(x.price||0),0);
+    const pts   = new Set(ws.map(w=>w.pid)).size;
+    const teeth = new Set(ws.map(w=>Number(w.fdi)).filter(Boolean)).size;
+
+    /* ترتيب أنواع الأعمال بعدد المرات من الأعلى للأدنى */
+    const gp = {};
+    ws.forEach(w => { (gp[w.proc] ||= { n:0, sum:0 }); gp[w.proc].n++;
+                      gp[w.proc].sum += Number(w.price||0); });
+    const topProcs = Object.entries(gp)
+      .map(([k,v])=>({ label:pName(k), col:P(k).col, n:v.n, sum:v.sum }))
+      .sort((a,b)=> b.n - a.n || b.sum - a.sum);
+
+    const gt = {};
+    ws.forEach(w => { if (!w.fdi) return;
+      (gt[w.fdi] ||= { n:0, sum:0 }); gt[w.fdi].n++; gt[w.fdi].sum += Number(w.price||0); });
+    const topTeeth = Object.entries(gt)
+      .map(([k,v])=>({ label:`${T('tooth')} ${Chart.lbl(Number(k))}`,
+                       col:'var(--br)', n:v.n, sum:v.sum }))
+      .sort((a,b)=> b.n - a.n || b.sum - a.sum);
+
+    const has = this.f.fdi || this.f.proc;
+
+    box.innerHTML = `
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="lbl">${T('clearFilters')}</div>
+          ${has?`<button class="btn xs gh" onclick="Money.resetF()">${T('resetF')}</button>`:''}
+        </div>
+        <div class="g2 mt">
+          <div><label class="lb">${T('filterTooth')}</label>
+            <select onchange="Money.f.fdi=this.value;Money.stats()">
+              <option value="">${T('allTeeth')}</option>
+              ${teethAll.map(f=>`<option value="${f}"
+                ${String(this.f.fdi)===String(f)?'selected':''}>
+                ${T('tooth')} ${Chart.lbl(f)} (FDI ${f})</option>`).join('')}
+            </select></div>
+          <div><label class="lb">${T('filterProc')}</label>
+            <select onchange="Money.f.proc=this.value;Money.stats()">
+              <option value="">${T('allProcs')}</option>
+              ${procsAll.map(c=>`<option value="${esc(c)}"
+                ${this.f.proc===c?'selected':''}>${esc(pName(c))}</option>`).join('')}
+            </select></div>
+        </div>
+      </div>
+
+      <div class="g3 mt2">
+        ${this.card(T('workCount'), ws.length)}
+        ${this.card(T('total'), N(sum), 'var(--ok)')}
+        ${this.card(T('avgWork'), N(ws.length?Math.round(sum/ws.length):0))}
+      </div>
+      <div class="g2 mt">
+        ${this.card(T('statPatients'), pts)}
+        ${this.card(T('statTeeth'), teeth)}
+      </div>
+
+      <div class="card mt2">
+        <div class="row" style="justify-content:space-between">
+          <div class="lbl">🏆 ${T('topProcs')}</div>
+          <span class="pill n">${topProcs.length}</span>
+        </div>
+        ${this.rank(topProcs)}
+      </div>
+
+      <div class="card mt2">
+        <div class="row" style="justify-content:space-between">
+          <div class="lbl">🦷 ${T('topTeeth')}</div>
+          <span class="pill n">${topTeeth.length}</span>
+        </div>
+        ${this.rank(topTeeth)}
+      </div>`;
+  },
+
+  /*═══════ ٣) المراجعون ═══════*/
   pq:'',
 
   async patients(){
@@ -4104,6 +4512,53 @@ const Nav = {
 
   home(){ this.reset(); S.chartOpen = false; UI.close(); App.draw(); },
   reset(){ this.stack = []; },
+};
+
+/*═══════════════ الحذف ═══════════════
+  الطبيب وحده يحذف. كل حذف يمرّ بتأكيدين لأنه لا يُسترجع.
+═══════════════════════════════════════*/
+const Del = {
+  allowed(){
+    if (S.role === 'doctor') return true;
+    toast(T('docOnly'), 'e'); return false;
+  },
+
+  /* قائمة خيارات عند الضغط المطوّل في قسم اليوم */
+  async todayRow(vid, pid){
+    if (!this.allowed()) return;
+    const p = await DB.get('patients', pid); if (!p) return;
+    UI.sheet(`
+      <div class="shhead">
+        <div class="av">${esc(nm(p).charAt(0))}</div>
+        <div class="gr">
+          <div class="h2">${esc(nm(p))}</div>
+          <div class="tiny mono">${T('file')} ${esc(p.mrn||'')}</div>
+        </div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>
+      <div class="al w mt2"><span>!</span><span>${T('ptOptions')}</span></div>
+      <button class="btn w wn mt2" onclick="Del.visit('${vid}')">${T('removeToday')}</button>
+      <button class="btn w dg mt" onclick="Del.patient('${pid}')">${T('delPt')}</button>
+      <button class="btn w gh mt2" onclick="Nav.back()">${T('cancel')}</button>`);
+  },
+
+  async visit(vid){
+    if (!this.allowed()) return;
+    if (!ask(T('removeTodayQ'))) return;
+    await Ops.deleteVisit(vid);
+    toast(T('removed'), 's');
+    Nav.home();
+  },
+
+  async patient(pid){
+    if (!this.allowed()) return;
+    const p = await DB.get('patients', pid); if (!p) return;
+    if (!ask(nm(p) + '\n\n' + T('delPtQ'))) return;
+    if (!ask(T('delPtQ2'))) return;
+    await Ops.deletePatient(pid);
+    toast(T('ptDeleted'), 's');
+    Nav.home();
+  },
 };
 
 /*═══════════════ الوصفات ═══════════════*/
@@ -4360,7 +4815,7 @@ const Print = {
   },
 
   async day(){
-    const works = (await DB.all('works')).filter(w=>new Date(w.at).toISOString().slice(0,10)===today());
+    const works = (await DB.all('works')).filter(w=>dkey(w.at)===today());
     const rows = [];
     for (const w of works){ const p = await DB.get('patients', w.pid);
       rows.push(`<tr><td>${esc(p?nm(p):'—')}</td>
@@ -5822,6 +6277,7 @@ window.addEventListener('unhandledrejection', e =>
   Login.draw();
 
   Nav.wrap();
+  Hold.init();
 
   /* الشعار نفسه يظهر عند فتح البرنامج وعلى أيقونة التثبيت */
   const lg = $('#applogo');
