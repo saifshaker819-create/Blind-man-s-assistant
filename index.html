@@ -256,6 +256,16 @@ button{font:inherit;font-weight:700;cursor:pointer;border:none;background:none;c
 .lnk{background:none;border:none;box-shadow:none;color:var(--br);font-weight:700;
      font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:6px}
 .lnk:hover{color:var(--br2)}
+/* مؤشّر المزامنة: نقطة صامتة تتكلّم باللون لا برسائل تقاطع العمل */
+.syncdot{width:34px;height:34px;border-radius:12px;border:1px solid var(--edge);
+  background:var(--glass2);position:relative;flex-shrink:0}
+.syncdot::after{content:'';position:absolute;inset:0;margin:auto;width:9px;height:9px;
+  border-radius:99px;transition:background .25s}
+.syncdot.ok::after{background:var(--ok)}
+.syncdot.wait::after{background:var(--wr)}
+.syncdot.off::after{background:var(--bd)}
+.syncdot.busy::after{background:var(--br);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
 .lgd-grp{font-size:11px;font-weight:800;color:var(--ink3);
   margin:11px 0 5px;letter-spacing:.02em}
 .dotc{width:9px;height:9px;border-radius:3px;display:inline-block;margin-inline-end:6px}
@@ -628,6 +638,7 @@ html[dir=ltr] .sw.on .tg::after{transform:translateX(22px)}
         <div class="gr">
           <div class="h3" id="pagetitle"></div>
         </div>
+        <button class="syncdot hide" id="syncdot" onclick="Sync.run(true)"></button>
         <button class="ib" id="scanbtn" onclick="Scan.open()" title="">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"
@@ -815,6 +826,13 @@ ar:{
  camNeedHttps:'قراءة الكاميرا تحتاج فتح البرنامج من عنوان ويب آمن (https) أو من الحاسبة',
  stopCam:'إيقاف الكاميرا', switchCam:'تبديل الكاميرا', scanning:'جاري البحث…',
  codeFound:'تم قراءة الباركود', fixSteps:'انقل الملف إلى مجلد التنزيلات ثم افتحه من داخل المتصفح، أو ارفعه على استضافة ويب وافتحه عبر الرابط.',
+
+/*──── المزامنة ────*/
+ syncNow:'مزامنة الآن', syncing:'جارٍ المزامنة…', syncDone:'تمت المزامنة',
+ syncFail:'تعذّرت المزامنة', syncOff:'بلا إنترنت — العمل محفوظ محلياً',
+ syncPending:'بانتظار المزامنة', syncClean:'كل شيء متزامن', syncNever:'لم تتم مزامنة بعد',
+ lastSync:'آخر مزامنة', pendingN:'تغيير بانتظار الرفع', syncSection:'المزامنة',
+ syncLocalOnly:'هذا الحساب يعمل محلياً فقط', pulled:'وصل', pushed:'أُرسل',
 
 /*──── السيرفر ────*/
  email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
@@ -1027,6 +1045,13 @@ en:{
  camNeedHttps:'Camera scanning needs a secure web address (https) or a desktop browser',
  stopCam:'Stop camera', switchCam:'Switch camera', scanning:'Scanning…',
  codeFound:'Barcode read', fixSteps:'Move the file to your Downloads folder and open it from inside the browser, or host it on the web and open the link.',
+
+/*──── sync ────*/
+ syncNow:'Sync now', syncing:'Syncing…', syncDone:'Synced',
+ syncFail:'Sync failed', syncOff:'Offline — work is saved locally',
+ syncPending:'Waiting to sync', syncClean:'Everything is synced', syncNever:'Not synced yet',
+ lastSync:'Last sync', pendingN:'changes waiting to upload', syncSection:'Sync',
+ syncLocalOnly:'This account works locally only', pulled:'received', pushed:'sent',
 
 /*──── server ────*/
  email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
@@ -1394,7 +1419,7 @@ const DB = {
 
   async _openIDB(){
     return await new Promise((res,rej)=>{
-      const r = indexedDB.open('dentalos', 4);
+      const r = indexedDB.open('dentalos', 5);
       /* تبويب قديم مفتوح يمنع ترقية قاعدة البيانات فتتجمّد بصمت.
          هنا نُعلم المستخدم بدل أن يبقى الزر بلا استجابة. */
       r.onblocked = () => rej(new Error(
@@ -1402,6 +1427,10 @@ const DB = {
       setTimeout(() => rej(new Error('تعذّر فتح قاعدة البيانات — أعد تحميل الصفحة')), 8000);
       r.onupgradeneeded = e => {
         const db = e.target.result;
+        /* صندوق الصادر: كل تعديل محلي يُسجَّل هنا حتى يُرفع بنجاح،
+           فلا يضيع عمل أُنجز بلا إنترنت. */
+        if (!db.objectStoreNames.contains('outbox'))
+          db.createObjectStore('outbox', { keyPath:'id' });
         for (const s of DB.STORES){
           if (!db.objectStoreNames.contains(s)){
             const os = db.createObjectStore(s, { keyPath:'id' });
@@ -1422,10 +1451,18 @@ const DB = {
     return db.transaction(store, mode).objectStore(store);
   },
 
+  /* كل كتابة تُختم بوقتها وتُقيَّد في صندوق الصادر.
+     التغليف هنا لا في مواضع الاستدعاء، فلا يمكن أن يفوت تعديل. */
   async put(store, obj){
-    if (this.fallback) return MEM.put(store, obj);
-    const os = await this.tx(store,'readwrite');
-    return new Promise((res,rej)=>{ const r=os.put(obj); r.onsuccess=()=>res(obj); r.onerror=()=>rej(r.error); });
+    if (store !== 'outbox' && obj && typeof obj === 'object' && !Sync.quiet)
+      obj._up = Date.now();
+    const done = this.fallback ? await MEM.put(store, obj)
+      : await new Promise(async (res,rej)=>{
+          const os = await this.tx(store,'readwrite');
+          const r = os.put(obj); r.onsuccess=()=>res(obj); r.onerror=()=>rej(r.error);
+        });
+    if (store !== 'outbox' && obj?.id) Sync.queue(store, obj.id, false);
+    return done;
   },
   async get(store, id){
     if (this.fallback) return MEM.get(store, id);
@@ -1446,9 +1483,14 @@ const DB = {
     });
   },
   async del(store, id){
-    if (this.fallback) return MEM.del(store, id);
-    const os = await this.tx(store,'readwrite');
-    return new Promise((res,rej)=>{ const r=os.delete(id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+    const done = this.fallback ? await MEM.del(store, id)
+      : await new Promise(async (res,rej)=>{
+          const os = await this.tx(store,'readwrite');
+          const r = os.delete(id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error);
+        });
+    /* الحذف يُرفع كشاهدة، وإلا عاد السجل من جهاز آخر */
+    if (store !== 'outbox') Sync.queue(store, id, true);
+    return done;
   },
   async clearAll(){
     if (this.fallback) return MEM.clearAll();
@@ -1817,6 +1859,168 @@ const ROLES = [
   {r:'pharmacy',  ic:'💊', col:'ok'},
   {r:'patient',   ic:'👤', col:'wr'},
 ];
+
+/*═══════════════ المزامنة ═══════════════
+  البرنامج يكتب في الجهاز أولاً ودائماً — لا انتظار للشبكة ولا
+  توقّف عند انقطاعها. كل تعديل يُقيَّد في صندوق صادر، ويُرفع متى
+  توفّر الاتصال. والوارد يُسحب بالرقم المتسلسل، فلا يُنقل إلا
+  الجديد.
+
+  التعارض: الأحدث يفوز (بحسب وقت التعديل في الجهاز). اختير هذا
+  لأن سجلاً واحداً نادراً ما يُحرَّر من جهازين معاً في عيادة، وأي
+  حسم أعقد يخفي على المستخدم أي نسخة بقيت.
+═════════════════════════════════════════*/
+const SYNC_STORES = ['patients','visits','works','payments','rx',
+                     'files','tooth','appts','settings','suggest'];
+
+/* الصيدلي يرى الوصفات والحساسيات فقط — مفروض في القاعدة أيضاً */
+const ROLE_STORES = {
+  pharmacy: { pull:['rx','patients'], push:['rx'] },
+};
+
+const Sync = {
+  busy:false, quiet:false, last:0, pending:0, err:null,
+
+  scope(){
+    const r = ROLE_STORES[S.role];
+    return { pull: r ? r.pull : SYNC_STORES, push: r ? r.push : SYNC_STORES };
+  },
+
+  on(){ return Cloud.ready() && !!Cloud.session && !!Cloud.me?.clinic_id; },
+
+  revKey(){ return 'd_rev_' + (Cloud.me?.clinic_id || 'x'); },
+  rev(){ return Number(localStorage.getItem(this.revKey()) || 0); },
+  setRev(v){ try { localStorage.setItem(this.revKey(), String(v)); } catch(_){} },
+
+  /*──── صندوق الصادر ────*/
+  async queue(store, rid, deleted){
+    if (this.quiet) return;                       /* الوارد لا يُعاد رفعه */
+    if (!SYNC_STORES.includes(store)) return;
+    if (store === 'settings' && rid === 'clinics') return;  /* دليل محلي */
+    try {
+      await DB.put('outbox', { id: store + '|' + rid, store, rid,
+                               at: Date.now(), deleted: !!deleted });
+      this.pending++;
+      this.paint();
+    } catch(_){ /* الصندوق لا يعطّل الحفظ */ }
+  },
+
+  async count(){
+    try { this.pending = (await DB.all('outbox')).length; } catch(_){ this.pending = 0; }
+    return this.pending;
+  },
+
+  /*──── الرفع ────*/
+  async push(){
+    const box = await DB.all('outbox');
+    if (!box.length) return 0;
+    const allow = this.scope().push;
+    const items = box.filter(x => allow.includes(x.store));
+
+    let sent = 0;
+    /* دفعات صغيرة: صور الأشعة ثقيلة، ودفعة واحدة ضخمة تفشل كلها */
+    for (let i = 0; i < items.length; i += 25){
+      const slice = items.slice(i, i + 25);
+      const changes = [];
+      for (const x of slice){
+        const doc = x.deleted ? null : await DB.get(x.store, x.rid);
+        if (!doc && !x.deleted){ await DB.del('outbox', x.id); continue; }
+        changes.push({ store:x.store, id:x.rid, doc: doc || {},
+                       updated_at: x.at, deleted: !!x.deleted || !doc });
+      }
+      if (!changes.length) continue;
+      await Cloud.call('/rest/v1/rpc/sync_push', { method:'POST', body:{ changes } });
+      for (const x of slice) await DB.del('outbox', x.id);
+      sent += changes.length;
+    }
+    /* ما لا يخصّ دوري يُنظَّف حتى لا يتراكم بلا فائدة */
+    for (const x of box) if (!allow.includes(x.store)) await DB.del('outbox', x.id);
+    return sent;
+  },
+
+  /*──── السحب ────*/
+  async pull(){
+    const allow = this.scope().pull;
+    let since = this.rev(), got = 0, guard = 0;
+
+    while (guard++ < 40){
+      const rows = await Cloud.call('/rest/v1/rpc/sync_pull',
+        { method:'POST', body:{ since, lim:400 } });
+      if (!Array.isArray(rows) || !rows.length) break;
+
+      this.quiet = true;                       /* الوارد لا يدخل الصادر */
+      try {
+        for (const r of rows){
+          if (r.rev > since) since = r.rev;
+          if (!allow.includes(r.store)) continue;
+          if (r.deleted){ await DB.del(r.store, r.id); got++; continue; }
+          /* الأحدث يفوز: نسخة الجهاز الأجدّ لا تُدهس بنسخة أقدم */
+          const mine = await DB.get(r.store, r.id);
+          const mineAt = Number(mine?._up || 0);
+          if (mine && mineAt > Number(r.updated_at || 0)) continue;
+          const doc = r.doc || {};
+          doc.id = r.id; doc._up = Number(r.updated_at || 0);
+          await DB.put(r.store, doc);
+          got++;
+        }
+      } finally { this.quiet = false; }
+
+      this.setRev(since);
+      if (rows.length < 400) break;
+    }
+    return got;
+  },
+
+  /*──── دورة كاملة ────*/
+  async run(manual){
+    if (this.busy || !this.on()) return;
+    if (!navigator.onLine){ this.err = T('syncOff'); this.paint(); return; }
+    this.busy = true; this.err = null; this.paint();
+    try {
+      /* التذكرة تُجدَّد قبل انتهائها بدقيقة حتى لا تفشل الدورة */
+      if (Cloud.session && Cloud.session.exp - Date.now() < 60000) await Cloud.refresh();
+      const up   = await this.push();
+      const down = await this.pull();
+      this.last = Date.now();
+      try { localStorage.setItem('d_synced', String(this.last)); } catch(_){}
+      await this.count();
+      if (manual) toast(`${T('syncDone')} · ${up} ${T('pushed')} · ${down} ${T('pulled')}`, 's');
+      /* وصل جديد فتُحدَّث الشاشة الظاهرة */
+      if (down && !manual) App.draw();
+      else if (down && manual) App.draw();
+    } catch (e) {
+      this.err = String(e.message || e);
+      if (manual) toast(T('syncFail') + ' — ' + this.err, 'e');
+    } finally {
+      this.busy = false; this.paint();
+    }
+  },
+
+  /*──── المؤشّر في الشريط العلوي ────*/
+  paint(){
+    const el = $('#syncdot'); if (!el) return;
+    if (!this.on()){ el.classList.add('hide'); return; }
+    el.classList.remove('hide');
+    const st = this.busy ? 'busy'
+             : (!navigator.onLine || this.err) ? 'off'
+             : this.pending ? 'wait' : 'ok';
+    el.className = 'syncdot ' + st;
+    el.title = this.busy ? T('syncing')
+             : !navigator.onLine ? T('syncOff')
+             : this.err ? this.err
+             : this.pending ? `${this.pending} ${T('pendingN')}`
+             : T('syncClean');
+  },
+
+  init(){
+    this.last = Number(localStorage.getItem('d_synced') || 0);
+    this.count();
+    /* الرفع فور عودة الشبكة — لا ينتظر المؤقّت */
+    window.addEventListener('online',  () => this.run());
+    window.addEventListener('offline', () => this.paint());
+    setInterval(() => this.run(), 45000);
+  },
+};
 
 /*═══════════════ السيرفر ═══════════════
   اتصال مباشر بـ Supabase عبر fetch — بلا مكتبات خارجية، فلا
@@ -6669,6 +6873,21 @@ const Cfg = {
       <button class="btn w gh mt" onclick="installApp()">${T('install')}</button>
       ${isDoc?`<button class="btn w dg mt2" onclick="Setup.reset()">⚠ ${T('del')}</button>`:''}`;
 
+    /* المزامنة: ما ينتظر الرفع وآخر دورة ناجحة */
+    await Sync.count();
+    const sync = `
+      <div class="it" style="cursor:default">
+        <div class="av ${Sync.pending?'w':'g'}">${Sync.pending?'⏳':'✓'}</div>
+        <div class="gr">
+          <div class="h3">${Sync.pending
+            ? `${Sync.pending} ${T('pendingN')}` : T('syncClean')}</div>
+          <div class="tiny">${T('lastSync')}: ${Sync.last?fmtD(Sync.last)+' '+fmtT(Sync.last)
+            :T('syncNever')}</div>
+        </div>
+      </div>
+      ${Sync.err?`<div class="al r mt"><span>!</span><span>${esc(Sync.err)}</span></div>`:''}
+      <button class="btn w mt2" onclick="Sync.run(true)">${T('syncNow')}</button>`;
+
     /* السيرفر: حالة الاتصال والجلسة */
     const cloud = `
       <div class="it" style="cursor:default">
@@ -6720,6 +6939,7 @@ const Cfg = {
         this.acc('g','🏥', T('secGeneral'), general, true)
       + this.acc('p','🖨', T('secPrint'),   print)
       + this.acc('l','🎨', T('secLook'),    look)
+      + (Sync.on() ? this.acc('sy','🔄', T('syncSection'), sync) : '')
       + this.acc('cl','☁', T('cloudSection'), cloud)
       + this.acc('s','🛡', T('secSafety'), safety, defWarn)
       + (S.role==='doctor' ? this.acc('r','🔐', T('secPerm'), perm) : '')
@@ -6888,6 +7108,9 @@ const App = {
     S.tab = TABS[S.role][0][0];
     Nav.reset();
     this.draw();
+    /* أول مزامنة بعد الدخول: يجلب الجهاز ما فاته قبل أن يبدأ العمل */
+    Sync.count().then(()=>Sync.paint());
+    if (Sync.on()) Sync.run();
   },
 
   setTab(t){
@@ -7327,6 +7550,7 @@ window.addEventListener('unhandledrejection', e =>
   Hold.init();
   PickProc.initOutside();
   Guard.init();
+  Sync.init();
 
   /* الشعار نفسه يظهر عند فتح البرنامج وعلى أيقونة التثبيت */
   const lg = $('#applogo');
