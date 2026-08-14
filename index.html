@@ -8,7 +8,7 @@
      الاتصال مسموح لسيرفر العيادة وحده (supabase.co) — أي وجهة
      أخرى مرفوضة، فلا تستطيع شيفرة مدسوسة تسريب بيانات المراجعين.
      وimg-src المحصورة تمنع التسريب عبر صورة خارجية. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; connect-src https://*.supabase.co wss://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; connect-src https://*.supabase.co wss://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>أسناني — My teeth</title>
 <meta name="application-name" content="أسناني">
@@ -833,6 +833,11 @@ ar:{
  syncLocalOnly:'هذا الحساب يعمل محلياً فقط', pulled:'وصل', pushed:'أُرسل',
  liveOn:'متصل مباشرة', liveOff:'تحديث دوري', liveSection:'الاتصال الحيّ',
  newBooking:'حجز جديد من تطبيق المراجعين',
+ encBackup:'كلمة سرّ النسخة الاحتياطية', encHint:'الملف يحوي كل ملفات مراجعيك. اختر كلمة سرّ لفتحه لاحقاً — لا يمكن استرجاعها إن نُسيت.',
+ encAsk:'أدخل كلمة سرّ الملف', encBad:'كلمة السرّ غير صحيحة أو الملف تالف',
+ encOld:'هذا ملف قديم غير مشفّر — استورده ثم صدّر نسخة مشفّرة',
+ encDone:'صُدّرت نسخة مشفّرة', encShort:'كلمة السرّ ٨ خانات فأكثر',
+ encNo:'هذا المتصفح لا يدعم التشفير — لن تُصدَّر نسخة',
 
 /*──── السيرفر ────*/
  email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
@@ -840,7 +845,9 @@ ar:{
  newClinic:'تسجيل عيادة جديدة', cloudSetup:'ربط السيرفر', cloudUrl:'رابط المشروع',
  cloudKey:'المفتاح العام', cloudSave:'حفظ الاتصال', cloudNotSet:'لم يُضبط الاتصال بالسيرفر بعد',
  cloudOk:'متصل بالسيرفر', cloudFail:'تعذّر الاتصال بالسيرفر', cloudSaved:'حُفظ الاتصال',
- badCloudLogin:'البريد أو كلمة المرور غير صحيحة', noMembership:'هذا الحساب غير مرتبط بأي عيادة',
+ badCloudLogin:'البريد أو كلمة المرور غير صحيحة',
+ badKey:'مفتاح الاتصال غير صحيح — راجع CLOUD_KEY في أعلى الملف',
+ needConfirm:'أكّد بريدك من الرسالة المرسلة إليك ثم أعد الدخول', noMembership:'هذا الحساب غير مرتبط بأي عيادة',
  regClinicTitle:'تسجيل عيادة جديدة', clinicName:'اسم العيادة', docName:'اسم الطبيب',
  accDoctor:'حساب الطبيب', accSec:'حساب السكرتير', accPharm:'حساب الصيدلاني',
  regDone:'سُجّلت العيادة — سجّل الدخول الآن', emailTaken:'هذا البريد مستعمل سابقاً',
@@ -850,7 +857,8 @@ ar:{
 
 /*──── الأمان ────*/
  secSafety:'الأمان وكلمة المرور', changePass:'تغيير كلمة المرور', curPass:'كلمة المرور الحالية',
- newPass:'كلمة المرور الجديدة', newPass2:'إعادة كتابة الجديدة', passShort:'كلمة المرور أقصر من ٦ خانات',
+ newPass:'كلمة المرور الجديدة', newPass2:'إعادة كتابة الجديدة', passShort:'كلمة المرور أقصر من ٨ خانات',
+ passWeak:'كلمة مرور سهلة التخمين — اخلط حروفاً وأرقاماً',
  passSame:'الكلمتان غير متطابقتين', passWrong:'كلمة المرور الحالية غير صحيحة', passDone:'تغيّرت كلمة المرور',
  defaultPass:'حساب ما زال يستعمل كلمة المرور الافتراضية ١٢٣٤ — غيّرها الآن',
  defaultPassOne:'كلمة مرورك ما زالت الافتراضية ١٢٣٤', passOf:'كلمة مرور',
@@ -1054,6 +1062,11 @@ en:{
  syncLocalOnly:'This account works locally only', pulled:'received', pushed:'sent',
  liveOn:'Live connection', liveOff:'Periodic refresh', liveSection:'Live link',
  newBooking:'New booking from the patient app',
+ encBackup:'Backup password', encHint:'The file holds every patient record. Choose a password to open it later — it cannot be recovered if forgotten.',
+ encAsk:'Enter the file password', encBad:'Wrong password, or the file is damaged',
+ encOld:'This is an old unencrypted file — import it, then export an encrypted copy',
+ encDone:'Encrypted backup saved', encShort:'Password must be 8+ characters',
+ encNo:'This browser cannot encrypt — no backup will be exported',
 
 /*──── server ────*/
  email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
@@ -1061,7 +1074,9 @@ en:{
  newClinic:'Register a new clinic', cloudSetup:'Server connection', cloudUrl:'Project URL',
  cloudKey:'Publishable key', cloudSave:'Save connection', cloudNotSet:'The server connection is not set yet',
  cloudOk:'Connected to the server', cloudFail:'Could not reach the server', cloudSaved:'Connection saved',
- badCloudLogin:'Wrong email or password', noMembership:'This account is not linked to any clinic',
+ badCloudLogin:'Wrong email or password',
+ badKey:'Invalid connection key — check CLOUD_KEY at the top of the file',
+ needConfirm:'Confirm your email from the message we sent, then sign in', noMembership:'This account is not linked to any clinic',
  regClinicTitle:'Register a new clinic', clinicName:'Clinic name', docName:'Doctor name',
  accDoctor:'Doctor account', accSec:'Secretary account', accPharm:'Pharmacist account',
  regDone:'Clinic registered — sign in now', emailTaken:'This email is already used',
@@ -1071,7 +1086,8 @@ en:{
 
 /*──── security ────*/
  secSafety:'Security & password', changePass:'Change password', curPass:'Current password',
- newPass:'New password', newPass2:'Repeat new password', passShort:'Password is shorter than 6 characters',
+ newPass:'New password', newPass2:'Repeat new password', passShort:'Password is shorter than 8 characters',
+ passWeak:'Too easy to guess — mix letters and numbers',
  passSame:'The two passwords do not match', passWrong:'Current password is wrong', passDone:'Password changed',
  defaultPass:'An account still uses the default password 1234 — change it now',
  defaultPassOne:'Your password is still the default 1234', passOf:'Password of',
@@ -1688,6 +1704,12 @@ const UI = {
 const Hold = {
   t:null, fired:false, x:0, y:0, el:null, MS:550, SLIP:12,
 
+  /* الإجراءات المسموحة بالضغط المطوّل — قائمة مغلقة */
+  ACTIONS:{
+    delPatient: pid       => Del.patient(pid),
+    delTodayRow:(vid, pid) => Del.todayRow(vid, pid),
+  },
+
   init(){
     const clear = () => {
       clearTimeout(this.t); this.t = null;
@@ -1703,10 +1725,12 @@ const Hold = {
       this.fired = false; this.x = e.clientX; this.y = e.clientY;
       this.el = el; el.classList.add('holding');
       this.t = setTimeout(() => {
-        const run = el.dataset.hold;
+        const act = el.dataset.hold, arg = el.dataset.holdArg || '';
         this.fired = true; clear();
         if (navigator.vibrate) try { navigator.vibrate(30); } catch(_){}
-        try { new Function(run)(); }
+        /* تنفيذ من سجلّ مغلق لا من نصّ: هكذا لا يحتاج البرنامج
+           unsafe-eval في سياسة الأمن، فتُسدّ أوسع أبواب حقن الشيفرة. */
+        try { this.ACTIONS[act]?.(...arg.split('|')); }
         catch(err){ toast(String((err && err.message) || err), 'e'); }
       }, this.MS);
     }, true);
@@ -2477,7 +2501,11 @@ const Login = {
       App.start();
     } catch (e) {
       const m = String(e.message || e);
-      if (/invalid|credential|grant/i.test(m)){ Guard.fail(); show(T('badCloudLogin')); }
+      /* خطأ إعداد لا خطأ مستخدم: لا يُعاقَب عليه بقفل المحاولات،
+         ولا يُقال له «كلمة مرورك خاطئة» وهي صحيحة. */
+      if (/api key/i.test(m)) show(T('badKey'));
+      else if (/not confirmed/i.test(m)) show(T('needConfirm'));
+      else if (/invalid|credential|grant/i.test(m)){ Guard.fail(); show(T('badCloudLogin')); }
       else show(m);
     } finally {
       btn.disabled = false; btn.textContent = T('cloudLogin');
@@ -3443,7 +3471,7 @@ const Sec = {
       const live = vi.qstate==='called' || vi.qstate==='chair';
       return `
       <div class="it ${live?'live':''}" onclick="Nav.session('${vi.id}')"
-        ${S.role==='doctor'?`data-hold="Del.todayRow('${vi.id}','${p.id}')"`:''}>
+        ${S.role==='doctor'?`data-hold="delTodayRow" data-hold-arg="${vi.id}|${p.id}"`:''}>
         <div class="av ${vi.qstate==='done'?'g':vi.qstate==='chair'?'':'w'}">${vi._no}</div>
         <div class="gr">
           <div class="row" style="gap:6px">
@@ -3638,7 +3666,7 @@ const Sec = {
     for (const p of ps.slice(0,60)){
       const t = await Ops.patientTotals(p.id);
       rows.push(`<div class="it" onclick="Sec.file('${p.id}')"
-        ${S.role==='doctor'?`data-hold="Del.patient('${p.id}')"`:''}>
+        ${S.role==='doctor'?`data-hold="delPatient" data-hold-arg="${p.id}"`:''}>
         <div class="av">${esc(nm(p).charAt(0))}</div>
         <div class="gr">
           <div class="h3 ell">${esc(nm(p))}</div>
@@ -7289,21 +7317,51 @@ const Cfg = {
     toast(T('saved'),'s'); App.draw();
   },
 
+  /*──── النسخة الاحتياطية ────
+    هذا الملف يخرج من البرنامج إلى مجلد التنزيلات ثم إلى فلاشة أو
+    بريد — يغادر كل حماية بنيناها. وهو يحوي كل ملفات المراجعين.
+    فهو الشيء الوحيد الذي يستحق التشفير فعلاً، لأن مفتاحه في رأس
+    الطبيب لا في الملف. */
   async export(){
+    if (!Guard.can()) return toast(T('encNo'), 'e');
+    const pass = prompt(T('encBackup') + '\n' + T('encHint'));
+    if (pass === null) return;
+    if (String(pass).length < 8) return toast(T('encShort'), 'e');
+
+    toast(T('cloudBusy'));
     const out = {};
     for (const st of DB.STORES) out[st] = await DB.all(st);
-    const blob = new Blob([JSON.stringify(out)], {type:'application/json'});
+
+    const enc = await Vault.seal(JSON.stringify(out), pass);
+    const blob = new Blob([JSON.stringify(enc)], { type:'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `dentalos-${today()}.json`; a.click();
+    a.download = `dentalos-${today()}.dosbak`;
+    a.click();
+    toast(T('encDone'), 's');
   },
 
   async import(inp){
-    const f = inp.files[0]; if(!f) return;
+    const f = inp.files[0]; if (!f) return;
+    let raw;
+    try { raw = JSON.parse(await f.text()); }
+    catch(_){ return toast(T('encBad'), 'e'); }
+
+    let data = raw;
+    if (raw && raw.v === 1 && raw.alg === 'AES-GCM'){
+      const pass = prompt(T('encAsk'));
+      if (pass === null) return;
+      const txt = await Vault.open(raw, pass);
+      if (!txt) return toast(T('encBad'), 'e');
+      try { data = JSON.parse(txt); } catch(_){ return toast(T('encBad'), 'e'); }
+    } else {
+      /* الملفات القديمة تُقبل حتى لا تضيع نسخة موجودة */
+      toast(T('encOld'), 'w');
+    }
+
     if (!ask()) return;
-    const data = JSON.parse(await f.text());
-    for (const st of DB.STORES) for (const row of (data[st]||[])) await DB.put(st, row);
-    await CFG.load(); toast(T('saved'),'s'); location.reload();
+    for (const st of DB.STORES) for (const row of (data[st] || [])) await DB.put(st, row);
+    await CFG.load(); toast(T('saved'), 's'); location.reload();
   },
 };
 
@@ -7403,6 +7461,55 @@ const App = {
     const live = (await DB.all('visits'))
       .filter(v => v.date===today() && (v.qstate==='called' || v.qstate==='chair')).length;
     set('today', live);
+  },
+};
+
+/*═══════════════ خزنة الملفات ═══════════════
+  AES-256-GCM بمفتاح مشتقّ من كلمة سرّ الطبيب عبر PBKDF2.
+  GCM يكشف العبث: ملف عُدِّل بايت واحد منه يُرفض ولا يُفتح جزئياً.
+═══════════════════════════════════════════*/
+const Vault = {
+  async key(pass, salt){
+    const base = await crypto.subtle.importKey('raw',
+      new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name:'PBKDF2', salt, iterations:210000, hash:'SHA-256' },
+      base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+  },
+
+  /* النشر بـ ... ينهار على المصفوفات الكبيرة (نسخة فيها صور أشعة
+     تُقاس بالميغابايت)، فالتحويل يمرّ على دفعات. */
+  b64(buf){
+    const a = new Uint8Array(buf), STEP = 0x8000;
+    let out = '';
+    for (let i = 0; i < a.length; i += STEP)
+      out += String.fromCharCode.apply(null, a.subarray(i, i + STEP));
+    return btoa(out);
+  },
+  bin(b64){
+    const raw = atob(b64), a = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) a[i] = raw.charCodeAt(i);
+    return a;
+  },
+
+  async seal(text, pass){
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv   = crypto.getRandomValues(new Uint8Array(12));
+    const k    = await this.key(pass, salt);
+    const ct   = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, k,
+      new TextEncoder().encode(text));
+    return { v:1, alg:'AES-GCM', kdf:'PBKDF2-SHA256', iter:210000,
+             salt:this.b64(salt), iv:this.b64(iv), data:this.b64(ct),
+             at:Date.now() };
+  },
+
+  async open(box, pass){
+    try {
+      const k  = await this.key(pass, this.bin(box.salt));
+      const pt = await crypto.subtle.decrypt(
+        { name:'AES-GCM', iv:this.bin(box.iv) }, k, this.bin(box.data));
+      return new TextDecoder().decode(pt);
+    } catch(_){ return null; }   /* كلمة خاطئة أو ملف معبوث به */
   },
 };
 
@@ -7535,8 +7642,14 @@ const Guard = {
     if (!usr) return;
     const a = $('#pw-a').value, b = $('#pw-b').value;
     if (mine && !(await this.verify(usr, $('#pw-c').value))) return show(T('passWrong'));
-    if (a.length < 6) return show(T('passShort'));
+    if (a.length < 8) return show(T('passShort'));
     if (a !== b)      return show(T('passSame'));
+    /* منع الشائع: أضعف كلمات المرور هي التي تُخمَّن أولاً */
+    const weak = ['12345678','123456789','password','qwertyui','11111111',
+                  'abcd1234','iraq1234','12341234','00000000','clinic12'];
+    if (weak.includes(a.toLowerCase())) return show(T('passWeak'));
+    if (/^(.)\1+$/.test(a))            return show(T('passWeak'));
+    if (/^\d+$/.test(a))               return show(T('passWeak'));
     await this.setPass(usr, a);
     if (S.user?.id === uid) S.user = usr;
     toast(T('passDone'), 's');
