@@ -1962,6 +1962,7 @@ const ROLE_STORES = {
 
 const Sync = {
   busy:false, quiet:false, last:0, pending:0, err:null, dirty:false,
+  again:false, fails:0, _kick:null, _retry:null,
 
   scope(){
     const r = ROLE_STORES[S.role];
@@ -1984,7 +1985,18 @@ const Sync = {
                                at: Date.now(), deleted: !!deleted });
       this.pending++;
       this.paint();
+      this.kick();
     } catch(_){ /* الصندوق لا يعطّل الحفظ */ }
+  },
+
+  /* الدفع يبدأ من الكتابة نفسها لا من مؤقّت.
+     البثّ الحيّ يخبرني بتغييرات الآخرين، ولا يفعل شيئاً
+     لتغييراتي أنا — فهذه هي التي تُطلقها.
+     تأخير قصير يجمع الكتابات المتتابعة (حفظ خطة = عدة سجلات)
+     في رفعة واحدة بدل رفعة لكل سجل. */
+  kick(){
+    clearTimeout(this._kick);
+    this._kick = setTimeout(() => this.run(), 700);
   },
 
   async count(){
@@ -2055,7 +2067,9 @@ const Sync = {
 
   /*──── دورة كاملة ────*/
   async run(manual){
-    if (this.busy || !this.on()) return;
+    if (!this.on()) return;
+    /* كتابة وقعت أثناء دورة جارية: تُعاد الدورة بعدها بدل إهمالها */
+    if (this.busy){ this.again = true; return; }
     if (!navigator.onLine){ this.err = T('syncOff'); this.paint(); return; }
     this.busy = true; this.err = null; this.paint();
     try {
@@ -2064,6 +2078,7 @@ const Sync = {
       const up   = await this.push();
       const down = await this.pull();
       this.last = Date.now();
+      this.fails = 0;
       try { localStorage.setItem('d_synced', String(this.last)); } catch(_){}
       await this.count();
       if (manual) toast(`${T('syncDone')} · ${up} ${T('pushed')} · ${down} ${T('pulled')}`, 's');
@@ -2071,8 +2086,15 @@ const Sync = {
     } catch (e) {
       this.err = String(e.message || e);
       if (manual) toast(T('syncFail') + ' — ' + this.err, 'e');
+      /* الفشل يعيد المحاولة متباعداً — لا ينتظر المؤقّت البطيء،
+         ولا يكرّر بلا توقّف على شبكة متعثّرة. */
+      this.fails = (this.fails || 0) + 1;
+      clearTimeout(this._retry);
+      this._retry = setTimeout(() => this.run(),
+        Math.min(30000, 1000 * Math.pow(2, Math.min(this.fails, 5))));
     } finally {
       this.busy = false; this.paint();
+      if (this.again){ this.again = false; this.kick(); }
     }
   },
 
@@ -2118,7 +2140,8 @@ const Sync = {
        وبدونه يعود الفحص كل ٢٠ ثانية. */
     setInterval(() => {
       if (!this.on()) return;
-      const gap = Live.up() ? 120000 : 20000;
+      /* شبكة أمان فقط — الدفع الحقيقي يقع لحظة الكتابة */
+      const gap = Live.up() ? 30000 : 12000;
       if (Date.now() - this.last >= gap) this.run();
     }, 5000);
   },
@@ -7218,7 +7241,7 @@ const App = {
     Nav.reset();
     this.draw();
     /* أول مزامنة بعد الدخول: يجلب الجهاز ما فاته قبل أن يبدأ العمل */
-    Sync.count().then(()=>Sync.paint());
+    Sync.count().then(()=>{ Sync.paint(); if (Sync.pending) Sync.kick(); });
     if (Sync.on()){ Sync.run(); Live.connect(); }
   },
 
