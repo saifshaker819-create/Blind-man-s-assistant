@@ -576,10 +576,7 @@ html[dir=ltr] .sw.on .tg::after{transform:translateX(22px)}
       </div>
       <button class="btn w mt2" id="cl-go"></button>
       <div id="cl-err" class="al r mt hide"></div>
-      <div class="row mt2" style="gap:8px">
-        <button class="btn gh gr xs" id="cl-reg"></button>
-        <button class="btn gh gr xs" id="cl-cfg"></button>
-      </div>
+      <button class="btn gh w mt2 xs" id="cl-reg"></button>
       <div class="ctr mt2">
         <button class="lnk" id="cl-local"></button>
       </div>
@@ -835,6 +832,7 @@ ar:{
  lastSync:'آخر مزامنة', pendingN:'تغيير بانتظار الرفع', syncSection:'المزامنة',
  syncLocalOnly:'هذا الحساب يعمل محلياً فقط', pulled:'وصل', pushed:'أُرسل',
  liveOn:'متصل مباشرة', liveOff:'تحديث دوري', liveSection:'الاتصال الحيّ',
+ newBooking:'حجز جديد من تطبيق المراجعين',
 
 /*──── السيرفر ────*/
  email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
@@ -1055,6 +1053,7 @@ en:{
  lastSync:'Last sync', pendingN:'changes waiting to upload', syncSection:'Sync',
  syncLocalOnly:'This account works locally only', pulled:'received', pushed:'sent',
  liveOn:'Live connection', liveOff:'Periodic refresh', liveSection:'Live link',
+ newBooking:'New booking from the patient app',
 
 /*──── server ────*/
  email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
@@ -2104,6 +2103,52 @@ const Sync = {
     return got;
   },
 
+  /*──── حجوزات تطبيق المراجعين ────
+    المراجع يحجز من تطبيقه، والحجز يصل هنا بالشكل نفسه الذي
+    تقرأه شاشة «الحجوزات» — فلا تحتاج تلك الشاشة أي تعديل.
+    الصيدلي لا يعنيه هذا، فيُتخطّى. */
+  bkKey(){ return 'd_bk_' + (Cloud.me?.clinic_id || 'x'); },
+
+  /* قرار العيادة يعود إلى تطبيق المراجع، وإلا بقي حجزه
+     «قيد المراجعة» إلى الأبد. */
+  async bookStatus(id, status){
+    if (!this.on()) return;
+    try {
+      await Cloud.call('/rest/v1/bookings?id=eq.' + encodeURIComponent(id),
+        { method:'PATCH', body:{ status } });
+    } catch(_){ /* يُعاد في الدورة التالية عبر إعادة السحب */ }
+  },
+
+  async bookings(){
+    if (S.role === 'pharmacy') return 0;
+    const since = localStorage.getItem(this.bkKey()) || '1970-01-01T00:00:00Z';
+    const rows = await Cloud.call('/rest/v1/rpc/book_pull',
+      { method:'POST', body:{ since } });
+    if (!Array.isArray(rows) || !rows.length) return 0;
+
+    let mark = since, fresh = 0;
+    this.quiet = true;
+    try {
+      for (const r of rows){
+        if (r.updated_at > mark) mark = r.updated_at;
+        const doc = r.doc || {};
+        /* المعرّف من السيرفر هو المرجع، والعيادة المحلية تُثبَّت
+           حتى يظهر الحجز في قائمة هذه العيادة */
+        const b = { ...doc, id:r.id, cid:CFG.data.cid, srv:true,
+                    st: r.status === 'pending' ? 'new'
+                      : r.status === 'accepted' ? 'accepted' : 'declined' };
+        const old = await DB.get('bookings', r.id);
+        if (old && old.st !== 'new' && b.st === 'new') continue;  /* لا يعود المحسوم */
+        if (!old && b.st === 'new') fresh++;
+        await DB.put('bookings', b);
+      }
+    } finally { this.quiet = false; }
+
+    try { localStorage.setItem(this.bkKey(), mark); } catch(_){}
+    if (fresh) toast(`${fresh} ${T('newBooking')}`, 's');
+    return rows.length;
+  },
+
   /*──── دورة كاملة ────*/
   async run(manual){
     if (!this.on()) return;
@@ -2120,12 +2165,13 @@ const Sync = {
          ثم أرفع المدموج، فلا يضيع طرف. */
       const down = await this.pull();
       const up   = await this.push();
+      const bk   = await this.bookings();
       this.last = Date.now();
       this.fails = 0;
       try { localStorage.setItem('d_synced', String(this.last)); } catch(_){}
       await this.count();
       if (manual) toast(`${T('syncDone')} · ${up} ${T('pushed')} · ${down} ${T('pulled')}`, 's');
-      if (down) this.redraw();
+      if (down || bk) this.redraw();
     } catch (e) {
       this.err = String(e.message || e);
       if (manual) toast(T('syncFail') + ' — ' + this.err, 'e');
@@ -2235,21 +2281,27 @@ const Sync = {
   في هذه المرحلة السيرفر مسؤول عن أمر واحد: من أنت وأي عيادة.
   البيانات نفسها ما زالت محلية بالكامل — المزامنة خطوة تالية.
 ═══════════════════════════════════════*/
+/*═══════════════ إعدادات السيرفر ═══════════════
+  ★ المكان الوحيد الذي تعدّله: الصق مفتاحك في CLOUD_KEY أدناه.
+    (Supabase ← Project Settings ← API Keys ← Publishable key)
+  المفتاح العام آمن داخل الملف — كل ما يستطيعه محكوم بسياسات
+  العزل في القاعدة. لا تضع هنا مفتاح secret أبداً.
+═══════════════════════════════════════════════*/
+const CLOUD_URL = 'https://eziaplhqcgaoqpfphddh.supabase.co';
+const CLOUD_KEY = 'sb_publishable_KQWQDnHTsfEcY4VFUAtm5g_5nfEc';
+
 const Cloud = {
-  cfg:{ url:'', key:'' },
+  cfg:{ url:CLOUD_URL, key:CLOUD_KEY },
   session:null,      /* { token, refresh, exp, email } */
   me:null,           /* ناتج whoami: الدور والعيادة */
 
   /*──── الإعدادات ────*/
   load(){
-    try {
-      this.cfg = JSON.parse(localStorage.getItem('d_cloud')) || { url:'', key:'' };
-      this.session = JSON.parse(localStorage.getItem('d_sess')) || null;
-    } catch(_){ this.cfg = { url:'', key:'' }; this.session = null; }
-  },
-  saveCfg(url, key){
-    this.cfg = { url:String(url||'').trim().replace(/\/+$/,''), key:String(key||'').trim() };
-    try { localStorage.setItem('d_cloud', JSON.stringify(this.cfg)); } catch(_){}
+    /* العنوان والمفتاح من الملف لا من الجهاز: لا ضبط يدوي،
+       ولا جهاز يبقى على إعداد قديم بعد تحديث البرنامج. */
+    this.cfg = { url:CLOUD_URL.replace(/\/+$/,''), key:CLOUD_KEY };
+    try { this.session = JSON.parse(localStorage.getItem('d_sess')) || null; }
+    catch(_){ this.session = null; }
   },
   ready(){ return !!(this.cfg.url && this.cfg.key); },
   saveSess(v){
@@ -2367,7 +2419,6 @@ const Login = {
     $('#lb-cpass').textContent  = T('pass');
     $('#cl-go').textContent     = T('cloudLogin');
     $('#cl-reg').textContent    = T('newClinic');
-    $('#cl-cfg').textContent    = T('cloudSetup');
     $('#cl-local').textContent  = T('offlineLogin');
     $('#lg-tocloud').textContent= T('backToCloud');
 
@@ -2430,49 +2481,6 @@ const Login = {
       else show(m);
     } finally {
       btn.disabled = false; btn.textContent = T('cloudLogin');
-    }
-  },
-
-  /*──── ضبط الاتصال بالسيرفر ────*/
-  cloudCfg(){
-    const c = Cloud.cfg;
-    UI.sheet(`
-      <div class="shhead">
-        <div class="accic" style="width:44px;height:44px;font-size:19px">☁</div>
-        <div class="gr"><div class="h2">${T('cloudSetup')}</div>
-          <div class="tiny">${T('cloudSection')}</div></div>
-        <button class="ib" onclick="UI.close()">✕</button>
-      </div>
-      <div class="card">
-        <label class="lb">${T('cloudUrl')}</label>
-        <input id="cc-url" dir="ltr" spellcheck="false" placeholder="https://xxxx.supabase.co"
-               value="${esc(c.url)}">
-        <div class="mt"><label class="lb">${T('cloudKey')}</label>
-          <input id="cc-key" dir="ltr" spellcheck="false" placeholder="sb_publishable_..."
-                 value="${esc(c.key)}"></div>
-        <div id="cc-msg" class="al w mt hide"></div>
-        <div class="row mt2" style="gap:9px">
-          <button class="btn gh gr" onclick="UI.close()">${T('cancel')}</button>
-          <button class="btn gr" style="flex:2" onclick="Login.cloudCfgSave()">
-            ${T('cloudSave')}</button>
-        </div>
-      </div>`);
-  },
-
-  async cloudCfgSave(){
-    const url = $('#cc-url').value, key = $('#cc-key').value;
-    const msg = $('#cc-msg');
-    if (!url.trim() || !key.trim()){
-      msg.textContent = T('fillAll'); msg.classList.remove('hide'); return;
-    }
-    Cloud.saveCfg(url, key);
-    msg.textContent = T('cloudBusy'); msg.classList.remove('hide');
-    const ok = await Cloud.ping();
-    msg.textContent = ok ? T('cloudOk') : T('cloudFail');
-    msg.className = 'al mt ' + (ok ? 'g' : 'r');
-    if (ok){
-      toast(T('cloudSaved'), 's');
-      setTimeout(()=>{ UI.close(); this.drawCloud(); }, 700);
     }
   },
 
@@ -3591,6 +3599,7 @@ const Sec = {
   async decide(id, ok){
     const b = await DB.get('bookings', id); if (!b) return;
     if (!ok){ b.st='declined'; await DB.put('bookings',b); toast(T('declined'));
+      if (b.srv) Sync.bookStatus(b.id, 'declined');
       return Nav.home(); }
 
     /* القبول ينشئ ملف المراجع كاملاً ببياناته التي أدخلها بنفسه */
@@ -3601,6 +3610,7 @@ const Sec = {
                    complaint:b.complaint, prevDental:b.prevDental, other:b.other, mh:b.mh };
     p = await Ops.savePatient(data, p?.id);
     b.st='accepted'; b.pid=p.id; await DB.put('bookings', b);
+    if (b.srv) Sync.bookStatus(b.id, 'accepted');
     await Ops.openVisit(p.id, b.complaint);
     toast(T('accepted'),'s');
     Nav.home();
@@ -7127,10 +7137,7 @@ const Cfg = {
           ${S.clinicName?`<div class="tiny">${T('clinicOf')}: ${esc(S.clinicName)}</div>`:''}
         </div>
       </div>`:''}
-      <div class="row mt2" style="gap:8px">
-        <button class="btn gh gr" onclick="Login.cloudCfg()">${T('cloudSetup')}</button>
-        <button class="btn gh gr" onclick="Cfg.pingCloud()">${T('testConn')}</button>
-      </div>`;
+      <button class="btn gh w mt2" onclick="Cfg.pingCloud()">${T('testConn')}</button>`;
 
     /* الأمان: كلمة المرور والقفل التلقائي */
     const users = await DB.all('users');
@@ -7761,7 +7768,6 @@ window.addEventListener('unhandledrejection', e =>
   Cloud.load();
   $('#cl-go').onclick    = () => Login.cloudSubmit();
   $('#cl-reg').onclick   = () => Login.regClinic();
-  $('#cl-cfg').onclick   = () => Login.cloudCfg();
   $('#cl-local').onclick = () => Login.setMode('local');
   $('#lg-tocloud').onclick = () => Login.setMode('cloud');
   $('#cl-pass').onkeydown  = e => { if (e.key==='Enter') Login.cloudSubmit(); };
