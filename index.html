@@ -209,6 +209,45 @@ button{font:inherit;font-weight:700;cursor:pointer;border:none;background:none;c
     font-family:'Zain',sans-serif;font-size:13px;font-weight:800;
     background:var(--glass2);color:var(--ink2);border:1px solid var(--edge)}
 .rk.top{background:var(--wrL);color:var(--wr);border-color:transparent}
+
+/*──────── حقل اختيار نوع العمل ────────*/
+.pp{position:relative}
+.pp .pp-q{padding-inline-end:46px}
+.pp .pp-tg{position:absolute;inset-inline-end:8px;top:50%;transform:translateY(-50%);
+  width:30px;height:30px;border-radius:10px;color:var(--ink3);font-size:13px;
+  display:grid;place-items:center;background:var(--glass2)}
+.pp .pp-tg:hover{color:var(--br);background:var(--brL)}
+.pp-pan{margin-top:7px;border:1px solid var(--stroke);border-radius:15px;
+  background:var(--glassS);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  box-shadow:var(--shL);max-height:290px;overflow:auto;padding:7px}
+.pp-row{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:11px;
+  cursor:pointer;font-size:13.5px;font-weight:600;transition:background .14s}
+.pp-row:hover{background:var(--brL)}
+.pp-row .dt{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.pp-row .cnt{margin-inline-start:auto;font-size:11px;color:var(--ink3);font-weight:700}
+.pp-head{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:11px;
+  cursor:pointer;background:var(--glass2);font-weight:800;font-size:13px;margin-bottom:5px}
+.pp-hint{padding:9px 11px;font-size:12px;color:var(--ink3);font-weight:600}
+
+/*──────── بحث ناعم ────────*/
+.soft{display:flex;align-items:center;gap:9px;padding:4px 6px 4px 14px;
+  border:1px solid var(--stroke);border-radius:99px;background:var(--glassS);
+  box-shadow:var(--sh);transition:border-color .18s,box-shadow .18s}
+.soft:focus-within{border-color:var(--br);box-shadow:0 0 0 4px var(--brL)}
+.soft .ic{color:var(--ink3);font-size:15px;flex-shrink:0}
+.soft input{flex:1;border:none;background:transparent;box-shadow:none;padding:9px 0;
+  font-size:14.5px;font-weight:600}
+.soft input:focus{border:none;box-shadow:none}
+
+/*──────── وسيلة إيضاح المخطط ────────*/
+.lgd-more{display:flex;align-items:center;justify-content:center;gap:9px;font-weight:800}
+.lgd-more .arw{display:inline-grid;place-items:center;width:24px;height:24px;
+  border-radius:99px;background:var(--brL);color:var(--br);font-size:14px;
+  animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+.lgd-grp{font-size:11px;font-weight:800;color:var(--ink3);
+  margin:11px 0 5px;letter-spacing:.02em}
+.dotc{width:9px;height:9px;border-radius:3px;display:inline-block;margin-inline-end:6px}
 .av{width:42px;height:42px;border-radius:14px;flex-shrink:0;background:var(--brL);
     color:var(--br);display:grid;place-items:center;font-family:'Zain',sans-serif;
     font-size:18px;font-weight:800}
@@ -744,6 +783,12 @@ ar:{
  stopCam:'إيقاف الكاميرا', switchCam:'تبديل الكاميرا', scanning:'جاري البحث…',
  codeFound:'تم قراءة الباركود', fixSteps:'انقل الملف إلى مجلد التنزيلات ثم افتحه من داخل المتصفح، أو ارفعه على استضافة ويب وافتحه عبر الرابط.',
 
+/*──── اختيار نوع العمل وحالات السن ────*/
+ procPick:'اكتب أو اختر نوع العمل', allGroups:'كل المجموعات', pickGroup:'اختر مجموعة',
+ customProc:'سيُحفظ كما كتبته', noProcMatch:'لا يوجد نوع مطابق — اكتبه كما تريد وسيُحفظ',
+ moreStatus:'افتح حالات أكثر', lessStatus:'إخفاء الحالات الإضافية',
+ searchStatus:'ابحث عن حالة السن', pickStatus:'اختر حالة السن',
+
 /*──── الحذف والضغط المطوّل ────*/
  delPt:'حذف المراجع نهائياً', delPtQ:'حذف هذا المراجع مع كل جلساته وحساباته وأرشيفه؟',
  delPtQ2:'تأكيد أخير — سيُمحى الملف بالكامل ولا يمكن التراجع.', ptDeleted:'حُذف المراجع',
@@ -924,6 +969,12 @@ en:{
  stopCam:'Stop camera', switchCam:'Switch camera', scanning:'Scanning…',
  codeFound:'Barcode read', fixSteps:'Move the file to your Downloads folder and open it from inside the browser, or host it on the web and open the link.',
 
+/*──── procedure picker & tooth conditions ────*/
+ procPick:'Type or choose a procedure', allGroups:'All groups', pickGroup:'Choose a group',
+ customProc:'Will be saved exactly as typed', noProcMatch:'No match — type it freely and it will be saved',
+ moreStatus:'Show more conditions', lessStatus:'Hide extra conditions',
+ searchStatus:'Search a tooth condition', pickStatus:'Choose the tooth condition',
+
 /*──── deletion & long press ────*/
  delPt:'Delete patient permanently', delPtQ:'Delete this patient with all sessions, accounts and archive?',
  delPtQ2:'Final confirmation — the file will be erased and cannot be restored.', ptDeleted:'Patient deleted',
@@ -999,44 +1050,210 @@ const MHG = { gen:{ar:'عام',en:'General'}, car:{ar:'القلب والدورة
               fem:{ar:'للنساء فقط',en:'Women only'} };
 
 /*───────────── أنواع الأعمال (قابلة للتعديل من الإعدادات) ─────────────*/
+const PGRP = {
+ g1:{ar:'الفحص والتشخيص', en:'Examination & diagnosis', col:'#2563EB'},
+ g2:{ar:'الوقاية والتنظيف', en:'Prevention & cleaning', col:'#059669'},
+ g3:{ar:'الحشوات والترميم', en:'Fillings & restoration', col:'#D97706'},
+ g4:{ar:'علاج العصب', en:'Endodontics', col:'#7C3AED'},
+ g5:{ar:'الخلع والجراحة', en:'Extraction & surgery', col:'#DC2626'},
+ g6:{ar:'علاج اللثة', en:'Periodontics', col:'#0F766E'},
+ g7:{ar:'التركيبات والتعويضات', en:'Prosthodontics', col:'#0891B2'},
+ g8:{ar:'زراعة الأسنان', en:'Dental implants', col:'#4F46E5'},
+ g9:{ar:'تقويم الأسنان', en:'Orthodontics', col:'#DB2777'},
+ g10:{ar:'تجميل الأسنان', en:'Cosmetic dentistry', col:'#0284C7'},
+ g11:{ar:'أسنان الأطفال', en:'Pediatric dentistry', col:'#65A30D'},
+};
 const PROCS_DEF = [
- {c:'endo1',    ar:'معالجة لبية — فتح وجلسة أولى', en:'endo 1st & open',  cat:'endo',  col:'#F0A500', st:'root_canal', p:50},
- {c:'endo23',   ar:'معالجة لبية — جلسة ٢ و ٣',     en:'endo 2nd & 3rd',   cat:'endo',  col:'#F0A500', st:'root_canal', p:50},
- {c:'endoRe',   ar:'إعادة معالجة لبية',            en:'endo retreatment', cat:'endo',  col:'#D18700', st:'root_canal', p:100},
- {c:'light',    ar:'حشوة ضوئية',                   en:'light cure',       cat:'rest',  col:'#2E7DD1', st:'filled',     p:125},
- {c:'amalgam',  ar:'حشوة املغم',                   en:'amalgam',          cat:'rest',  col:'#6B7C85', st:'filled',     p:75},
- {c:'exo',      ar:'قلع',                          en:'exo',              cat:'surg',  col:'#D94A3D', st:'extracted',  p:25},
- {c:'surgExo',  ar:'قلع جراحي',                    en:'surgical exo',     cat:'surg',  col:'#B93227', st:'extracted',  p:75},
- {c:'implant',  ar:'زراعة',                        en:'IMPLANT',          cat:'surg',  col:'#12A05F', st:'implant',    p:600},
- {c:'crown',    ar:'تاج',                          en:'crown',            cat:'pros',  col:'#7B4FD1', st:'crown',      p:200},
- {c:'bridge',   ar:'جسر',                          en:'bridge',           cat:'pros',  col:'#6438C4', st:'bridge',     p:400},
- {c:'denture',  ar:'طقم',                          en:'denture',          cat:'pros',  col:'#9B72E0', st:'',           p:500},
- {c:'scaling',  ar:'تنظيف وتقليح',                 en:'scaling',          cat:'perio', col:'#0E9BB5', st:'',           p:50},
- {c:'perio',    ar:'معالجة لثة',                   en:'perio treatment',  cat:'perio', col:'#0B7F94', st:'',           p:75},
- {c:'ortho',    ar:'تقويم',                        en:'orthodontics',     cat:'orth',  col:'#DB3F86', st:'',           p:1000},
- {c:'pulpo',    ar:'بتر لب (أطفال)',               en:'pulpotomy',        cat:'pedo',  col:'#EE7B2E', st:'root_canal', p:50},
- {c:'sealant',  ar:'مادة مانعة للتسوس',            en:'fissure sealant',  cat:'pedo',  col:'#1E9E52', st:'filled',     p:30},
- {c:'whiten',   ar:'تبييض',                        en:'whitening',        cat:'cosm',  col:'#C9A800', st:'',           p:150},
- {c:'consult',  ar:'استشارة / فحص',                en:'consultation',     cat:'gen',   col:'#5F7C85', st:'',           p:10},
+ {c:'p101', cat:'g1', ar:'فحص أسنان شامل', en:'Comprehensive Dental Examination', col:'#2563EB', st:'', p:0},
+ {c:'p102', cat:'g1', ar:'فحص طارئ', en:'Emergency Dental Examination', col:'#3870ED', st:'', p:0},
+ {c:'p103', cat:'g1', ar:'فحص اللثة', en:'Periodontal Examination', col:'#4A7EEE', st:'', p:0},
+ {c:'p104', cat:'g1', ar:'خطة علاجية', en:'Treatment Planning', col:'#5D8BF0', st:'planned', p:0},
+ {c:'p105', cat:'g1', ar:'استشارة أسنان', en:'Dental Consultation', col:'#6F98F2', st:'', p:0},
+ {c:'p106', cat:'g1', ar:'فحص مفصل الفك', en:'TMJ Examination', col:'#82A5F4', st:'', p:0},
+ {c:'p107', cat:'g1', ar:'فحص الإطباق', en:'Occlusal Examination', col:'#1F52C3', st:'', p:0},
+ {c:'p108', cat:'g1', ar:'فحص أسنان الأطفال', en:'Pediatric Dental Examination', col:'#3261C8', st:'', p:0},
+ {c:'p201', cat:'g2', ar:'تنظيف الأسنان', en:'Dental Cleaning', col:'#059669', st:'', p:0},
+ {c:'p202', cat:'g2', ar:'إزالة الجير', en:'Scaling', col:'#1A9F76', st:'', p:0},
+ {c:'p203', cat:'g2', ar:'تلميع الأسنان', en:'Teeth Polishing', col:'#30A882', st:'', p:0},
+ {c:'p204', cat:'g2', ar:'تطبيق الفلورايد', en:'Fluoride Application', col:'#45B18F', st:'', p:0},
+ {c:'p205', cat:'g2', ar:'سدادات الشقوق والحفر', en:'Pit and Fissure Sealant', col:'#5ABA9C', st:'filled', p:0},
+ {c:'p206', cat:'g2', ar:'تعليم العناية بالفم', en:'Oral Hygiene Instruction', col:'#6FC3A9', st:'', p:0},
+ {c:'p207', cat:'g2', ar:'تنظيف عميق للثة', en:'Deep Cleaning', col:'#047C57', st:'', p:0},
+ {c:'p208', cat:'g2', ar:'معالجة حساسية الأسنان', en:'Tooth Sensitivity Treatment', col:'#198765', st:'', p:0},
+ {c:'p301', cat:'g3', ar:'حشوة ضوئية', en:'Composite Filling', col:'#D97706', st:'filled', p:0},
+ {c:'p302', cat:'g3', ar:'حشوة مؤقتة', en:'Temporary Filling', col:'#DC831B', st:'filled', p:0},
+ {c:'p303', cat:'g3', ar:'حشوة زجاج أيونومر', en:'Glass Ionomer Filling', col:'#DF8E30', st:'filled', p:0},
+ {c:'p304', cat:'g3', ar:'حشوة أملغم', en:'Amalgam Filling', col:'#E39A45', st:'filled', p:0},
+ {c:'p305', cat:'g3', ar:'بناء السن', en:'Core Build-Up', col:'#E6A55B', st:'filled', p:0},
+ {c:'p306', cat:'g3', ar:'ترميم سن مكسور', en:'Fractured Tooth Restoration', col:'#E9B170', st:'filled', p:0},
+ {c:'p307', cat:'g3', ar:'حشوة داخلية', en:'Inlay Restoration', col:'#B46305', st:'filled', p:0},
+ {c:'p308', cat:'g3', ar:'ترميم جزئي للسن', en:'Onlay Restoration', col:'#BA701A', st:'filled', p:0},
+ {c:'p309', cat:'g3', ar:'إعادة بناء السن', en:'Tooth Reconstruction', col:'#C17E30', st:'filled', p:0},
+ {c:'p401', cat:'g4', ar:'علاج عصب سن أمامي', en:'Anterior Root Canal Treatment', col:'#7C3AED', st:'root_canal', p:0},
+ {c:'p402', cat:'g4', ar:'علاج عصب ضرس', en:'Molar Root Canal Treatment', col:'#874BEF', st:'root_canal', p:0},
+ {c:'p403', cat:'g4', ar:'علاج عصب ضاحك', en:'Premolar Root Canal Treatment', col:'#925BF0', st:'root_canal', p:0},
+ {c:'p404', cat:'g4', ar:'فتح حجرة العصب', en:'Access Opening', col:'#9D6CF2', st:'root_canal', p:0},
+ {c:'p405', cat:'g4', ar:'إزالة العصب', en:'Pulp Extirpation', col:'#A97DF3', st:'root_canal', p:0},
+ {c:'p406', cat:'g4', ar:'تنظيف وتشكيل القنوات', en:'Canal Cleaning and Shaping', col:'#B48EF5', st:'root_canal', p:0},
+ {c:'p407', cat:'g4', ar:'حشو قنوات الجذر', en:'Root Canal Obturation', col:'#6730C5', st:'root_canal', p:0},
+ {c:'p408', cat:'g4', ar:'إعادة علاج العصب', en:'Root Canal Retreatment', col:'#7442CA', st:'root_canal', p:0},
+ {c:'p409', cat:'g4', ar:'دواء داخل القناة', en:'Intracanal Medication', col:'#8153CF', st:'root_canal', p:0},
+ {c:'p410', cat:'g4', ar:'حشوة مؤقتة بعد علاج العصب', en:'Temporary Root Canal Filling', col:'#8E65D4', st:'root_canal', p:0},
+ {c:'p501', cat:'g5', ar:'خلع سن بسيط', en:'Simple Tooth Extraction', col:'#DC2626', st:'extracted', p:0},
+ {c:'p502', cat:'g5', ar:'خلع جراحي', en:'Surgical Tooth Extraction', col:'#DF3838', st:'extracted', p:0},
+ {c:'p503', cat:'g5', ar:'خلع ضرس العقل', en:'Wisdom Tooth Extraction', col:'#E24B4B', st:'extracted', p:0},
+ {c:'p504', cat:'g5', ar:'إزالة بقايا الجذور', en:'Root Fragment Removal', col:'#E55D5D', st:'extracted', p:0},
+ {c:'p505', cat:'g5', ar:'شق وتصريف خراج', en:'Abscess Incision and Drainage', col:'#E87070', st:'', p:0},
+ {c:'p506', cat:'g5', ar:'خياطة جراحية', en:'Surgical Suturing', col:'#EB8282', st:'', p:0},
+ {c:'p601', cat:'g6', ar:'علاج التهاب اللثة', en:'Gingivitis Treatment', col:'#0F766E', st:'', p:0},
+ {c:'p602', cat:'g6', ar:'علاج جيوب اللثة', en:'Periodontal Pocket Treatment', col:'#23827A', st:'', p:0},
+ {c:'p603', cat:'g6', ar:'تجريف اللثة', en:'Periodontal Curettage', col:'#388D87', st:'', p:0},
+ {c:'p604', cat:'g6', ar:'تسوية الجذور', en:'Root Planing', col:'#4C9993', st:'', p:0},
+ {c:'p605', cat:'g6', ar:'علاج أمراض اللثة', en:'Periodontal Disease Treatment', col:'#61A59F', st:'', p:0},
+ {c:'p701', cat:'g7', ar:'تاج', en:'Dental Crown', col:'#0891B2', st:'crown', p:0},
+ {c:'p702', cat:'g7', ar:'تاج مؤقت', en:'Temporary Crown', col:'#1D9AB9', st:'crown', p:0},
+ {c:'p703', cat:'g7', ar:'جسر', en:'Dental Bridge', col:'#32A4BF', st:'bridge', p:0},
+ {c:'p704', cat:'g7', ar:'جسر مؤقت', en:'Temporary Bridge', col:'#47ADC6', st:'bridge', p:0},
+ {c:'p705', cat:'g7', ar:'فينير', en:'Dental Veneer', col:'#5CB6CC', st:'crown', p:0},
+ {c:'p706', cat:'g7', ar:'طقم أسنان كامل', en:'Complete Denture', col:'#71C0D3', st:'', p:0},
+ {c:'p707', cat:'g7', ar:'طقم أسنان جزئي', en:'Partial Denture', col:'#077894', st:'', p:0},
+ {c:'p801', cat:'g8', ar:'تقييم زراعة الأسنان', en:'Dental Implant Assessment', col:'#4F46E5', st:'planned', p:0},
+ {c:'p802', cat:'g8', ar:'زراعة سن', en:'Dental Implant Placement', col:'#5E56E7', st:'implant', p:0},
+ {c:'p803', cat:'g8', ar:'تركيب دعامة الزرعة', en:'Implant Abutment Placement', col:'#6D65E9', st:'implant', p:0},
+ {c:'p804', cat:'g8', ar:'تاج على الزرعة', en:'Implant Crown', col:'#7C75EC', st:'implant', p:0},
+ {c:'p805', cat:'g8', ar:'متابعة الزرعة', en:'Implant Follow-up', col:'#8B85EE', st:'implant', p:0},
+ {c:'p901', cat:'g9', ar:'فحص تقويمي', en:'Orthodontic Examination', col:'#DB2777', st:'', p:0},
+ {c:'p902', cat:'g9', ar:'تركيب تقويم ثابت', en:'Fixed Orthodontic Treatment', col:'#DE3983', st:'', p:0},
+ {c:'p903', cat:'g9', ar:'تقويم متحرك', en:'Removable Orthodontic Treatment', col:'#E14C8E', st:'', p:0},
+ {c:'p904', cat:'g9', ar:'تغيير سلك التقويم', en:'Orthodontic Wire Change', col:'#E45E9A', st:'', p:0},
+ {c:'p905', cat:'g9', ar:'تركيب المطاط', en:'Orthodontic Elastic Placement', col:'#E770A5', st:'', p:0},
+ {c:'p906', cat:'g9', ar:'مثبت الأسنان', en:'Orthodontic Retainer', col:'#EA83B1', st:'', p:0},
+ {c:'p1001', cat:'g10', ar:'تبييض الأسنان', en:'Teeth Whitening', col:'#0284C7', st:'', p:0},
+ {c:'p1002', cat:'g10', ar:'تبييض داخل العيادة', en:'In-Office Whitening', col:'#188ECC', st:'', p:0},
+ {c:'p1003', cat:'g10', ar:'تبييض منزلي', en:'Home Whitening', col:'#2D99D1', st:'', p:0},
+ {c:'p1004', cat:'g10', ar:'إغلاق الفراغات', en:'Diastema Closure', col:'#43A3D5', st:'filled', p:0},
+ {c:'p1005', cat:'g10', ar:'إعادة تشكيل الأسنان', en:'Tooth Reshaping', col:'#58AEDA', st:'', p:0},
+ {c:'p1101', cat:'g11', ar:'حشوة سن لبني', en:'Primary Tooth Filling', col:'#65A30D', st:'filled', p:0},
+ {c:'p1102', cat:'g11', ar:'علاج عصب سن لبني', en:'Primary Tooth Root Canal Treatment', col:'#72AB22', st:'root_canal', p:0},
+ {c:'p1103', cat:'g11', ar:'خلع سن لبني', en:'Primary Tooth Extraction', col:'#7FB336', st:'extracted', p:0},
+ {c:'p1104', cat:'g11', ar:'فلورايد للأطفال', en:'Pediatric Fluoride Application', col:'#8CBA4B', st:'', p:0},
+ {c:'p1105', cat:'g11', ar:'حافظ مسافة', en:'Space Maintainer', col:'#99C25F', st:'', p:0},
 ];
 /* النسخة الفعلية — تُحمَّل من الإعدادات إن عدّلها الطبيب */
 let PROCS = JSON.parse(JSON.stringify(PROCS_DEF));
 
 /*───────────── حالات الأسنان (قابلة للتعديل من الإعدادات) ─────────────*/
+const SGRP = {
+ tx:{ar:'حالات العلاج', en:'Treatment states', col:'#2E7DD1'},
+ s1:{ar:'التسوس واللب', en:'Caries & pulp', col:'#7A4A22'},
+ s2:{ar:'اللثة والدواعم', en:'Gums & periodontium', col:'#0D8B7E'},
+ s3:{ar:'الكسور والرضوض', en:'Fractures & trauma', col:'#D9432E'},
+ s4:{ar:'التآكل والحساسية', en:'Wear & sensitivity', col:'#D08700'},
+ s5:{ar:'المينا والتصبغات', en:'Enamel & discoloration', col:'#6A3FBE'},
+ s6:{ar:'الإطباق والتنضيد', en:'Occlusion & alignment', col:'#D6336C'},
+ s7:{ar:'الفك والألم', en:'Jaw & pain', col:'#4756D6'},
+ s8:{ar:'أنسجة الفم', en:'Oral soft tissues', col:'#B02FA8'},
+ s9:{ar:'العظم والزرعات والفقدان', en:'Bone, implants & tooth loss', col:'#0B8A4E'},
+ s10:{ar:'الأسنان اللبنية', en:'Primary teeth', col:'#6C8F1E'},
+};
 const TSTAT_DEF = {
- sound:      {ar:'سليم',        en:'Sound',      col:null},
- caries:     {ar:'تسوس',        en:'Caries',     col:'#8B5E34'},
- filled:     {ar:'حشوة',        en:'Filled',     col:'#2E7DD1'},
- root_canal: {ar:'معالجة لبية', en:'Root canal', col:'#F0A500'},
- crown:      {ar:'تاج',         en:'Crown',      col:'#7B4FD1'},
- bridge:     {ar:'جسر',         en:'Bridge',     col:'#6438C4'},
- implant:    {ar:'زرعة',        en:'Implant',    col:'#12A05F'},
- extracted:  {ar:'مخلوع',       en:'Extracted',  col:'#D94A3D'},
- missing:    {ar:'مفقود',       en:'Missing',    col:'#8795A0'},
- planned:    {ar:'مخطط له',     en:'Planned',    col:'#0E9BB5'},
+ sound:      {g:'tx', ar:'سليم', en:'Sound', col:null},
+ caries:     {g:'tx', ar:'تسوس', en:'Caries', col:'#8B5E34'},
+ filled:     {g:'tx', ar:'حشوة', en:'Filled', col:'#2E7DD1'},
+ root_canal: {g:'tx', ar:'معالجة لبية', en:'Root canal', col:'#F0A500'},
+ crown:      {g:'tx', ar:'تاج', en:'Crown', col:'#7B4FD1'},
+ bridge:     {g:'tx', ar:'جسر', en:'Bridge', col:'#6438C4'},
+ implant:    {g:'tx', ar:'زرعة', en:'Implant', col:'#12A05F'},
+ extracted:  {g:'tx', ar:'مخلوع', en:'Extracted', col:'#D94A3D'},
+ missing:    {g:'tx', ar:'مفقود', en:'Missing', col:'#8795A0'},
+ planned:    {g:'tx', ar:'مخطط له', en:'Planned', col:'#0E9BB5'},
+ c01:        {g:'s1', ar:'تسوس الأسنان', en:'Dental Caries', col:'#7A4A22'},
+ c02:        {g:'s1', ar:'التهاب لب السن', en:'Pulpitis', col:'#855935'},
+ c03:        {g:'s1', ar:'نخر لب السن', en:'Pulp Necrosis', col:'#916948'},
+ c04:        {g:'s1', ar:'خراج الأسنان', en:'Dental Abscess', col:'#9C785A'},
+ c32:        {g:'s1', ar:'التهاب حول ذروة الجذر', en:'Periapical Periodontitis', col:'#A7886D'},
+ c33:        {g:'s1', ar:'كيس حول جذور الأسنان', en:'Radicular Cyst', col:'#B39780'},
+ c34:        {g:'s1', ar:'التهاب العظم والنقي', en:'Osteomyelitis', col:'#653D1C'},
+ c35:        {g:'s1', ar:'موت الأسنان', en:'Non-vital Tooth', col:'#724D2F'},
+ c05:        {g:'s2', ar:'التهاب اللثة', en:'Gingivitis', col:'#0D8B7E'},
+ c06:        {g:'s2', ar:'التهاب دواعم السن', en:'Periodontitis', col:'#229589'},
+ c07:        {g:'s2', ar:'انحسار اللثة', en:'Gingival Recession', col:'#369F94'},
+ c16:        {g:'s2', ar:'تراكم الجير', en:'Dental Calculus', col:'#4BA99F'},
+ c48:        {g:'s2', ar:'التهاب حواف اللثة', en:'Gingival Inflammation', col:'#5FB2AA'},
+ c49:        {g:'s2', ar:'نزيف اللثة', en:'Gingival Bleeding', col:'#74BCB5'},
+ c50:        {g:'s2', ar:'تضخم اللثة', en:'Gingival Enlargement', col:'#0B7369'},
+ c51:        {g:'s2', ar:'انحسار العظم الداعم للأسنان', en:'Periodontal Bone Loss', col:'#207F76'},
+ c52:        {g:'s2', ar:'جيوب دواعم السن', en:'Periodontal Pockets', col:'#348B82'},
+ c53:        {g:'s2', ar:'حركة الأسنان', en:'Tooth Mobility', col:'#49978F'},
+ c54:        {g:'s2', ar:'فقدان ارتباط اللثة بالسن', en:'Clinical Attachment Loss', col:'#5EA39C'},
+ c08:        {g:'s3', ar:'كسر السن', en:'Tooth Fracture', col:'#D9432E'},
+ c09:        {g:'s3', ar:'تشقق السن', en:'Cracked Tooth', col:'#DC5340'},
+ c37:        {g:'s3', ar:'رضوض الأسنان', en:'Dental Trauma', col:'#DF6352'},
+ c38:        {g:'s3', ar:'خلع الأسنان الرضي', en:'Tooth Luxation', col:'#E37363'},
+ c39:        {g:'s3', ar:'خروج السن من مكانه', en:'Tooth Extrusion', col:'#E68375'},
+ c40:        {g:'s3', ar:'دخول السن إلى العظم', en:'Tooth Intrusion', col:'#E99387'},
+ c41:        {g:'s3', ar:'سقوط السن بالكامل', en:'Tooth Avulsion', col:'#B43826'},
+ c42:        {g:'s3', ar:'تآكل جذور الأسنان', en:'Root Resorption', col:'#BA4938'},
+ c43:        {g:'s3', ar:'انكشاف جذور الأسنان', en:'Exposed Tooth Root', col:'#C15A4B'},
+ c10:        {g:'s4', ar:'حساسية الأسنان', en:'Tooth Sensitivity', col:'#D08700'},
+ c11:        {g:'s4', ar:'تآكل الأسنان', en:'Tooth Erosion', col:'#D49116'},
+ c12:        {g:'s4', ar:'اهتراء الأسنان', en:'Tooth Wear', col:'#D89B2B'},
+ c13:        {g:'s4', ar:'تسحج الأسنان', en:'Tooth Abrasion', col:'#DCA641'},
+ c14:        {g:'s4', ar:'تآكل الأسنان الناتج عن الاحتكاك', en:'Tooth Attrition', col:'#E0B057'},
+ c25:        {g:'s4', ar:'صرير الأسنان', en:'Bruxism', col:'#E4BA6C'},
+ c15:        {g:'s5', ar:'تصبغات الأسنان', en:'Tooth Discoloration', col:'#6A3FBE'},
+ c36:        {g:'s5', ar:'تغير لون السن بعد الإصابة', en:'Post-traumatic Tooth Discoloration', col:'#774FC4'},
+ c44:        {g:'s5', ar:'عيوب مينا الأسنان', en:'Enamel Defects', col:'#8360C9'},
+ c45:        {g:'s5', ar:'نقص تكلس المينا', en:'Enamel Hypoplasia', col:'#9070CF'},
+ c46:        {g:'s5', ar:'الفلورة السنية', en:'Dental Fluorosis', col:'#9D80D4'},
+ c47:        {g:'s5', ar:'تشققات المينا', en:'Enamel Cracks', col:'#A991DA'},
+ c18:        {g:'s6', ar:'الأسنان المطمورة', en:'Impacted Tooth', col:'#D6336C'},
+ c19:        {g:'s6', ar:'الأسنان المفقودة', en:'Missing Teeth', col:'#D94478'},
+ c20:        {g:'s6', ar:'ازدحام الأسنان', en:'Dental Crowding', col:'#DD5685'},
+ c21:        {g:'s6', ar:'سوء إطباق الأسنان', en:'Malocclusion', col:'#E06791'},
+ c22:        {g:'s6', ar:'بروز الأسنان', en:'Protruding Teeth', col:'#E4789E'},
+ c23:        {g:'s6', ar:'الفراغات بين الأسنان', en:'Diastema', col:'#E78AAA'},
+ c80:        {g:'s6', ar:'مشاكل الإطباق', en:'Occlusal Problems', col:'#B22A5A'},
+ c24:        {g:'s7', ar:'اضطرابات مفصل الفك', en:'Temporomandibular Joint Disorders', col:'#4756D6'},
+ c72:        {g:'s7', ar:'ألم الأسنان', en:'Toothache', col:'#5764D9'},
+ c73:        {g:'s7', ar:'ألم الوجه والفك', en:'Orofacial Pain', col:'#6673DD'},
+ c74:        {g:'s7', ar:'ألم مفصل الفك', en:'Temporomandibular Joint Pain', col:'#7681E0'},
+ c75:        {g:'s7', ar:'طقطقة مفصل الفك', en:'TMJ Clicking', col:'#868FE4'},
+ c76:        {g:'s7', ar:'محدودية فتح الفم', en:'Limited Mouth Opening', col:'#959EE7'},
+ c77:        {g:'s7', ar:'انحراف الفك عند الفتح', en:'Jaw Deviation', col:'#3B47B2'},
+ c78:        {g:'s7', ar:'صعوبة المضغ', en:'Difficulty Chewing', col:'#4C57B9'},
+ c79:        {g:'s7', ar:'مشاكل النطق المرتبطة بالأسنان', en:'Dental Speech Problems', col:'#5C66BF'},
+ c17:        {g:'s8', ar:'رائحة الفم الكريهة', en:'Halitosis', col:'#B02FA8'},
+ c26:        {g:'s8', ar:'قرح الفم', en:'Oral Ulcers', col:'#B741AF'},
+ c27:        {g:'s8', ar:'التهاب الفم', en:'Stomatitis', col:'#BD52B7'},
+ c28:        {g:'s8', ar:'التهاب ما حول ضرس العقل', en:'Pericoronitis', col:'#C464BE'},
+ c29:        {g:'s8', ar:'جفاف الفم', en:'Xerostomia', col:'#CB76C6'},
+ c60:        {g:'s8', ar:'جفاف وتشقق الشفاه', en:'Cheilitis', col:'#D287CD'},
+ c61:        {g:'s8', ar:'التهاب زاوية الفم', en:'Angular Cheilitis', col:'#92278B'},
+ c62:        {g:'s8', ar:'التهاب اللسان', en:'Glossitis', col:'#9B3995'},
+ c63:        {g:'s8', ar:'اللسان الجغرافي', en:'Geographic Tongue', col:'#A54C9F'},
+ c64:        {g:'s8', ar:'اللسان المشعر', en:'Hairy Tongue', col:'#AE5EA9'},
+ c65:        {g:'s8', ar:'التهاب الغدد اللعابية', en:'Sialadenitis', col:'#B770B2'},
+ c66:        {g:'s8', ar:'حصوات الغدد اللعابية', en:'Sialolithiasis', col:'#C083BC'},
+ c67:        {g:'s8', ar:'زيادة إفراز اللعاب', en:'Hypersalivation', col:'#741F6F'},
+ c68:        {g:'s8', ar:'تقرحات متكررة بالفم', en:'Recurrent Oral Ulcers', col:'#80327B'},
+ c69:        {g:'s8', ar:'القلاع الفموي', en:'Oral Candidiasis', col:'#8C4587'},
+ c70:        {g:'s8', ar:'التهاب الغشاء المخاطي للفم', en:'Oral Mucositis', col:'#975894'},
+ c71:        {g:'s8', ar:'رائحة الفم بسبب أسباب فموية', en:'Oral Halitosis', col:'#A36BA0'},
+ c30:        {g:'s9', ar:'فقدان العظم السنخي', en:'Alveolar Bone Loss', col:'#0B8A4E'},
+ c55:        {g:'s9', ar:'التهاب حول الزرعة', en:'Peri-implantitis', col:'#20945D'},
+ c56:        {g:'s9', ar:'التهاب مخاطية حول الزرعة', en:'Peri-implant Mucositis', col:'#349E6C'},
+ c57:        {g:'s9', ar:'فشل زراعة الأسنان', en:'Dental Implant Failure', col:'#49A87B'},
+ c58:        {g:'s9', ar:'فقدان الأسنان الجزئي', en:'Partial Edentulism', col:'#5EB28A'},
+ c59:        {g:'s9', ar:'فقدان الأسنان الكامل', en:'Complete Edentulism', col:'#73BC99'},
+ c31:        {g:'s10', ar:'مشاكل الأسنان اللبنية', en:'Primary Teeth Problems', col:'#6C8F1E'},
 };
 /* النسخة الفعلية — تُحمَّل من الإعدادات إن عدّلها الطبيب */
 let TSTAT = JSON.parse(JSON.stringify(TSTAT_DEF));
+/* رقم إصدار المكتبتين — رفعُه يستبدل النسخ المحفوظة القديمة */
+const LIB_V = 2;
+/* مجموعة العنصر مع احتياط للسجلات القديمة */
+const SG_OF = k => SGRP[(TSTAT[k]||{}).g] || null;
 /* وصول آمن: حالة محذوفة لا تكسر سجلاً قديماً */
 const TS = k => TSTAT[k] || { ar:k, en:k, col:null };
 /*═══════════════ التخزين — IndexedDB ═══════════════*/
@@ -1218,6 +1435,13 @@ const CFG = {
     const s = await DB.get('settings','cfg');
     if (s) Object.assign(this.data, s.v);
     if (!this.data.cid){ this.data.cid = uid(); await this.save(); }
+    /* المكتبتان تُحدَّثان مع إصدار البرنامج: النسخة المحفوظة من
+       إصدار أقدم تُستبدل بالجديدة مرة واحدة، ثم تبقى تعديلات
+       الطبيب محفوظة كالعادة. */
+    if (this.data.libV !== LIB_V){
+      delete this.data.procs; delete this.data.tstat;
+      this.data.libV = LIB_V; await this.save();
+    }
     if (this.data.tstat) TSTAT = this.data.tstat;
     if (this.data.procs) PROCS = this.data.procs;
     await this.register();
@@ -1433,9 +1657,38 @@ const Chart = {
       ${body}</svg>`;
   },
 
+  /* الحالات كثيرة، فتظهر عشراً عشراً بدل جدار ألوان تحت المخطط */
+  legShow:10,
   legend(){
-    return `<div class="lgd">${Object.entries(TSTAT).filter(([,v])=>v.col)
-      .map(([k,v])=>`<span><i style="background:${v.col}"></i>${esc(isAr()?v.ar:v.en)}</span>`).join('')}</div>`;
+    const all  = Object.entries(TSTAT).filter(([,v])=>v.col);
+    const n    = Math.min(this.legShow, all.length);
+    const left = all.length - n;
+    let last = null;
+    const items = all.slice(0,n).map(([k,v])=>{
+      const g = SG_OF(k);
+      const head = (g && g !== last)
+        ? `<div class="lgd-grp" style="width:100%;color:${g.col}">${esc(isAr()?g.ar:g.en)}</div>`
+        : '';
+      last = g;
+      return head + `<span><i style="background:${v.col}"></i>${esc(isAr()?v.ar:v.en)}</span>`;
+    }).join('');
+    return `<div class="lgdbox">
+      <div class="lgd">${items}</div>
+      ${left>0
+        ? `<button class="btn w gh mt lgd-more" onclick="Chart.moreLeg()">
+             <span>${T('moreStatus')}</span>
+             <span class="pill n">${left}</span>
+             <span class="arw">↓</span></button>`
+        : all.length>10
+        ? `<button class="btn w gh mt lgd-more" onclick="Chart.lessLeg()">
+             <span>${T('lessStatus')}</span><span class="arw">↑</span></button>` : ''}
+    </div>`;
+  },
+  moreLeg(){ this.legShow += 10; this.redrawLeg(); },
+  lessLeg(){ this.legShow = 10;  this.redrawLeg(); },
+  /* قد يظهر المخطط في أكثر من صفحة، فتُحدَّث كل وسائل الإيضاح */
+  redrawLeg(){
+    document.querySelectorAll('.lgdbox').forEach(b => { b.outerHTML = Chart.legend(); });
   },
   switcher(){
     return `<div class="row" style="gap:5px">${['palmer','fdi','universal'].map(m=>
@@ -2877,7 +3130,7 @@ const Sec = {
     UI.sheet(`
       <div class="h2">${T('addWork')}</div>
       <div class="mt2"><label class="lb">${T('workType')} <span class="req">*</span></label>
-        <select id="w-p">${PROCS.map(p=>`<option value="${p.c}" data-p="${p.p}">${isAr()?p.ar:p.en}</option>`).join('')}</select></div>
+        ${PickProc.html('w-p', '', 'w-a')}</div>
       <div class="g2 mt">
         <div><label class="lb">${T('workSite')}</label>
           <input id="w-f" class="mono" inputmode="numeric" dir="ltr" placeholder="26" value="${fdi||''}"></div>
@@ -2891,14 +3144,14 @@ const Sec = {
         <button class="btn gr" style="flex:2" onclick="Sec.saveWork('${vid}')">${T('save')}</button>
       </div>`);
     SG.attach($('#w-n'),'worknote');
-    const sel=$('#w-p'), amt=$('#w-a');
-    const sync=()=>{ if(!amt.value) amt.value = sel.selectedOptions[0]?.dataset.p||''; };
-    sel.onchange=()=>{ amt.value = sel.selectedOptions[0]?.dataset.p||''; }; sync();
+    SG.attach($('#w-p-q'),'proctext');
   },
 
   async saveWork(vid){
     const v = await DB.get('visits', vid);
-    const proc = $('#w-p').value;
+    const proc = PickProc.read('w-p');
+    if (!proc){ $('#w-p-q')?.classList.add('err'); return toast(T('typeProc'),'e'); }
+    if (proc.startsWith('x:')) await SG.learn('proctext', proc.slice(2));
     const fdi  = Number($('#w-f').value)||null;
     const w = { id:uid(), vid, pid:v.pid, proc, fdi,
                 course: fdi ? await Ops.course(v.pid, fdi) : null,
@@ -3619,16 +3872,7 @@ const Doc = {
       <div class="card">
         <div class="h3">${plan?T('editPlan'):T('startPlan')}</div>
         <div class="mt"><label class="lb">${T('planProc')} <span class="req">*</span></label>
-          <select id="pl-proc" onchange="Doc.procChanged()">
-            ${PROCS.map(x=>`<option value="${x.c}"
-              ${plan?.proc===x.c?'selected':''} data-p="${x.p}">${isAr()?x.ar:x.en}</option>`).join('')}
-            <option value="__x" ${String(plan?.proc||'').startsWith('x:')?'selected':''}>
-              ${T('otherProc')}</option>
-          </select>
-          <div id="pl-custom" class="mt ${String(plan?.proc||'').startsWith('x:')?'':'hide'}">
-            <input id="pl-text" placeholder="${T('typeProc')}"
-              value="${esc(String(plan?.proc||'').startsWith('x:')?plan.proc.slice(2):'')}">
-          </div>
+          ${PickProc.html('pl-proc', plan?.proc || '', 'pl-price')}
         </div>
         <div class="g2 mt">
           <div><label class="lb">${T('planCount')} <span class="req">*</span></label>
@@ -3653,24 +3897,11 @@ const Doc = {
 
   wirePlan(){
     SG.attach($('#pl-note'), 'plannote');
-    /* الكتابة اليدوية تتعلّم وتُقترح لاحقاً */
-    SG.attach($('#pl-text'), 'proctext');
+    /* ما يُكتب يدوياً في حقل نوع العمل يتعلّم ويُقترح لاحقاً */
+    SG.attach($('#pl-proc-q'), 'proctext');
     const pr = $('#pl-price');
-    if (pr && !pr.value){
-      const o = $('#pl-proc')?.selectedOptions[0];
-      pr.value = o?.dataset.p || '';
-    }
+    if (pr && !pr.value) pr.value = Number($('#pl-proc')?.dataset.p || 0) || '';
     this.rebuildChips();
-  },
-
-  /* إظهار حقل الكتابة اليدوية عند اختيار «أخرى» */
-  procChanged(){
-    const sel = $('#pl-proc'); if (!sel) return;
-    const custom = sel.value === '__x';
-    $('#pl-custom')?.classList.toggle('hide', !custom);
-    const pr = $('#pl-price');
-    if (pr) pr.value = custom ? '' : (sel.selectedOptions[0]?.dataset.p || '');
-    if (custom) setTimeout(()=>$('#pl-text')?.focus(), 80);
   },
 
   /* أرقام الجلسات تُبنى حسب العدد المطلوب، ويمكن اختيار أكثر من واحدة */
@@ -3690,13 +3921,9 @@ const Doc = {
   },
 
   async savePlan(fdi){
-    let proc = $('#pl-proc').value;
-    if (proc === '__x'){
-      const t = ($('#pl-text')?.value || '').trim();
-      if (t.length < 2){ $('#pl-text')?.classList.add('err'); return toast(T('typeProc'),'e'); }
-      proc = 'x:' + t;
-      await SG.learn('proctext', t);
-    }
+    const proc = PickProc.read('pl-proc');
+    if (!proc){ $('#pl-proc-q')?.classList.add('err'); return toast(T('typeProc'),'e'); }
+    if (proc.startsWith('x:')) await SG.learn('proctext', proc.slice(2));
     const count = Math.max(1, Number($('#pl-n').value) || 1);
     const price = Number($('#pl-price').value) || 0;
     const note  = ($('#pl-note').value || '').trim();
@@ -3788,17 +4015,59 @@ const Doc = {
     this.tooth(fdi);
   },
 
+  /*──── اختيار حالة السن: بحث ناعم ثم عشر حالات في كل ضغطة ────*/
+  stQ:'', stShow:10,
+
   statusPicker(fdi){
+    this.stQ = ''; this.stShow = 10;
     UI.sheet(`
-      <div class="shhead"><div class="gr"><div class="h2">${T('setStatus')}</div>
-        <div class="tiny">${T('tooth')} ${Chart.lbl(fdi)}</div></div>
+      <div class="shhead">
+        <div class="av mono" style="width:46px;height:46px;font-size:14px">${Chart.lbl(fdi)}</div>
+        <div class="gr"><div class="h2">${T('pickStatus')}</div>
+          <div class="tiny">${T('tooth')} ${Chart.lbl(fdi)}</div></div>
         <button class="ib" onclick="Nav.back()">✕</button></div>
-      <div class="card"><div class="row wrapv" style="gap:6px">
-        ${Object.entries(TSTAT).map(([k,v])=>`
-          <button class="btn sm gh" onclick="Doc.setSt(${fdi},'${k}')"
-            style="${v.col?`border-color:${v.col};color:${v.col}`:''}">
-            ${esc(isAr()?v.ar:v.en)}</button>`).join('')}
-      </div></div>`);
+      <div class="card">
+        <label class="soft">
+          <span class="ic">🔎</span>
+          <input id="st-q" autocomplete="off" placeholder="${T('searchStatus')}"
+            oninput="Doc.stFilter(${fdi})">
+        </label>
+        <div id="st-list" class="mt2"></div>
+      </div>`);
+    this.stList(fdi);
+    setTimeout(()=>$('#st-q')?.focus(), 120);
+  },
+
+  stFilter(fdi){ this.stQ = $('#st-q')?.value || ''; this.stShow = 10; this.stList(fdi); },
+  stMore(fdi){ this.stShow += 10; this.stList(fdi); },
+
+  stList(fdi){
+    const box = $('#st-list'); if (!box) return;
+    const q = this.stQ.trim().toLowerCase();
+    let all = Object.entries(TSTAT);
+    if (q) all = all.filter(([,v]) => (v.ar + ' ' + v.en).toLowerCase().includes(q));
+    const n = Math.min(this.stShow, all.length), left = all.length - n;
+
+    let last = null;
+    const items = all.slice(0,n).map(([k,v])=>{
+      const g = q ? null : SG_OF(k);
+      const head = (g && g !== last)
+        ? `<div class="lgd-grp" style="width:100%;color:${g.col}">${esc(isAr()?g.ar:g.en)}</div>`
+        : '';
+      last = g;
+      return head + `<button class="btn sm gh" onclick="Doc.setSt(${fdi},'${k}')"
+        style="${v.col?`border-color:${v.col};color:${v.col}`:''}">
+        ${v.col?`<i class="dotc" style="background:${v.col}"></i>`:''}
+        ${esc(isAr()?v.ar:v.en)}</button>`;
+    }).join('');
+
+    box.innerHTML = `
+      <div class="row wrapv" style="gap:6px">
+        ${items || `<div class="emp">${T('noResult')}</div>`}
+      </div>
+      ${left>0?`<button class="btn w gh mt2 lgd-more" onclick="Doc.stMore(${fdi})">
+        <span>${T('moreStatus')}</span><span class="pill n">${left}</span>
+        <span class="arw">↓</span></button>`:''}`;
   },
 
   /* فتح ملف السن من صفحة المراجع: المفتوح يفتح البطاقة الحية،
@@ -4512,6 +4781,128 @@ const Nav = {
 
   home(){ this.reset(); S.chartOpen = false; UI.close(); App.draw(); },
   reset(){ this.stack = []; },
+};
+
+/*═══════════════ اختيار نوع العمل ═══════════════
+  حقل واحد يقبل ثلاث طرق: الكتابة المباشرة مع اقتراحات فورية،
+  أو تصفّح المجموعات ثم أنواعها، أو كتابة نوع غير موجود فيُحفظ
+  كما هو. يخدم نموذج خطة السن وإضافة عمل معاً.
+═══════════════════════════════════════════════*/
+const PickProc = {
+  st:{},   /* لكل حقل: المجموعة المفتوحة وحقل السعر المرتبط */
+
+  /* النص الظاهر لأي رمز — يشمل الأنواع المكتوبة يدوياً */
+  label(code){
+    const c = String(code||'');
+    if (!c) return '';
+    return c.startsWith('x:') ? c.slice(2) : pName(c);
+  },
+
+  html(id, code, priceId){
+    this.st[id] = { grp:null, priceId:priceId||'' };
+    const p = code && !String(code).startsWith('x:') ? P(code) : null;
+    return `
+      <div class="pp" id="${id}-box">
+        <input type="hidden" id="${id}" value="${esc(code||'')}" data-p="${p?p.p:0}">
+        <input id="${id}-q" class="pp-q" autocomplete="off" placeholder="${T('procPick')}"
+          value="${esc(this.label(code))}"
+          oninput="PickProc.type('${id}')" onfocus="PickProc.open('${id}')">
+        <button type="button" class="pp-tg" onclick="PickProc.toggle('${id}')">▾</button>
+        <div class="pp-pan hide" id="${id}-pan"></div>
+      </div>`;
+  },
+
+  pan(id){ return $('#'+id+'-pan'); },
+  open(id){ const p = this.pan(id); if (p){ p.classList.remove('hide'); this.render(id); } },
+  close(id){ this.pan(id)?.classList.add('hide'); },
+  toggle(id){
+    const p = this.pan(id); if (!p) return;
+    if (p.classList.contains('hide')){ this.st[id].grp = null; this.open(id); }
+    else this.close(id);
+  },
+
+  /* الكتابة تبحث في كل الأنواع فوراً وتتجاوز المجموعات */
+  type(id){ this.st[id].grp = null; $('#'+id).value = ''; this.open(id); },
+
+  grp(id, g){ this.st[id].grp = g; $('#'+id+'-q').value = ''; $('#'+id).value = ''; this.render(id); },
+
+  pick(id, code){
+    const p = P(code);
+    const h = $('#'+id); h.value = code; h.dataset.p = p.p || 0;
+    $('#'+id+'-q').value = this.label(code);
+    const pi = this.st[id].priceId ? $('#'+this.st[id].priceId) : null;
+    if (pi) pi.value = p.p || '';
+    this.close(id);
+  },
+
+  render(id){
+    const box = this.pan(id); if (!box) return;
+    const q  = ($('#'+id+'-q')?.value || '').trim().toLowerCase();
+    const st = this.st[id];
+
+    /* ١ — كتابة: اقتراحات من كل المجموعات */
+    if (q){
+      const hits = PROCS.filter(x =>
+        (x.ar + ' ' + x.en).toLowerCase().includes(q)).slice(0, 40);
+      box.innerHTML = hits.length
+        ? hits.map(x => this.row(id, x, true)).join('')
+        : `<div class="pp-hint">${T('noProcMatch')}</div>`;
+      return;
+    }
+
+    /* ٢ — مجموعة مفتوحة: أنواعها */
+    if (st.grp){
+      const g = PGRP[st.grp] || { ar:st.grp, en:st.grp, col:'var(--br)' };
+      box.innerHTML = `
+        <div class="pp-head" onclick="PickProc.grp('${id}','')">
+          <span style="color:var(--br)">${isAr()?'›':'‹'}</span>
+          <span>${T('allGroups')}</span>
+          <span class="cnt" style="color:${g.col}">${esc(isAr()?g.ar:g.en)}</span>
+        </div>
+        ${PROCS.filter(x=>x.cat===st.grp).map(x=>this.row(id,x,false)).join('')}`;
+      return;
+    }
+
+    /* ٣ — الافتراضي: المجموعات */
+    const groups = Object.entries(PGRP).filter(([k]) => PROCS.some(x=>x.cat===k));
+    const other  = PROCS.filter(x => !PGRP[x.cat]);
+    box.innerHTML = `<div class="pp-hint">${T('pickGroup')}</div>` +
+      groups.map(([k,g])=>`
+        <div class="pp-row" onclick="PickProc.grp('${id}','${k}')">
+          <span class="dt" style="background:${g.col}"></span>
+          <span>${esc(isAr()?g.ar:g.en)}</span>
+          <span class="cnt">${PROCS.filter(x=>x.cat===k).length} ${isAr()?'›':'‹'}</span>
+        </div>`).join('') +
+      other.map(x=>this.row(id,x,false)).join('');
+  },
+
+  row(id, x, showGrp){
+    const g = PGRP[x.cat];
+    return `<div class="pp-row" onclick="PickProc.pick('${id}','${esc(x.c)}')">
+      <span class="dt" style="background:${x.col}"></span>
+      <span class="ell">${esc(isAr()?x.ar:x.en)}</span>
+      ${showGrp&&g?`<span class="cnt">${esc(isAr()?g.ar:g.en)}</span>`
+        :x.p?`<span class="cnt mono">${N(x.p)}</span>`:''}</div>`;
+  },
+
+  /* الضغط خارج الحقل يُغلق اللوحة — ولا يُغلقها الضغط داخلها */
+  initOutside(){
+    document.addEventListener('pointerdown', e => {
+      const box = e.target.closest && e.target.closest('.pp');
+      document.querySelectorAll('.pp-pan').forEach(p => {
+        if (!box || !box.contains(p)) p.classList.add('hide');
+      });
+    }, true);
+  },
+
+  /* القراءة عند الحفظ: المختار، أو ما كُتب يدوياً كما هو */
+  read(id){
+    const code = $('#'+id)?.value || '';
+    const txt  = ($('#'+id+'-q')?.value || '').trim();
+    if (code && txt === this.label(code)) return code;
+    if (txt.length >= 2) return 'x:' + txt;
+    return code || '';
+  },
 };
 
 /*═══════════════ الحذف ═══════════════
@@ -6278,6 +6669,7 @@ window.addEventListener('unhandledrejection', e =>
 
   Nav.wrap();
   Hold.init();
+  PickProc.initOutside();
 
   /* الشعار نفسه يظهر عند فتح البرنامج وعلى أيقونة التثبيت */
   const lg = $('#applogo');
