@@ -8,7 +8,7 @@
      الاتصال مسموح لسيرفر العيادة وحده (supabase.co) — أي وجهة
      أخرى مرفوضة، فلا تستطيع شيفرة مدسوسة تسريب بيانات المراجعين.
      وimg-src المحصورة تمنع التسريب عبر صورة خارجية. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; connect-src https://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; connect-src https://*.supabase.co wss://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>أسناني — My teeth</title>
 <meta name="application-name" content="أسناني">
@@ -265,6 +265,7 @@ button{font:inherit;font-weight:700;cursor:pointer;border:none;background:none;c
 .syncdot.wait::after{background:var(--wr)}
 .syncdot.off::after{background:var(--bd)}
 .syncdot.busy::after{background:var(--br);animation:pulse 1s ease-in-out infinite}
+.syncdot.live{border-color:var(--ok);box-shadow:0 0 0 2px var(--okL)}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
 .lgd-grp{font-size:11px;font-weight:800;color:var(--ink3);
   margin:11px 0 5px;letter-spacing:.02em}
@@ -833,6 +834,7 @@ ar:{
  syncPending:'بانتظار المزامنة', syncClean:'كل شيء متزامن', syncNever:'لم تتم مزامنة بعد',
  lastSync:'آخر مزامنة', pendingN:'تغيير بانتظار الرفع', syncSection:'المزامنة',
  syncLocalOnly:'هذا الحساب يعمل محلياً فقط', pulled:'وصل', pushed:'أُرسل',
+ liveOn:'متصل مباشرة', liveOff:'تحديث دوري', liveSection:'الاتصال الحيّ',
 
 /*──── السيرفر ────*/
  email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
@@ -1052,6 +1054,7 @@ en:{
  syncPending:'Waiting to sync', syncClean:'Everything is synced', syncNever:'Not synced yet',
  lastSync:'Last sync', pendingN:'changes waiting to upload', syncSection:'Sync',
  syncLocalOnly:'This account works locally only', pulled:'received', pushed:'sent',
+ liveOn:'Live connection', liveOff:'Periodic refresh', liveSection:'Live link',
 
 /*──── server ────*/
  email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
@@ -1860,6 +1863,85 @@ const ROLES = [
   {r:'patient',   ic:'👤', col:'wr'},
 ];
 
+/*═══════════════ الاتصال الحيّ ═══════════════
+  السيرفر يُخبر الأجهزة لحظة تغيّر أي سجل، بدل أن تسأله كل ٤٥
+  ثانية. الفرق عملي: الاستدعاء من السكرتير يصل شاشة الطبيب خلال
+  ثانية بدل دقيقة.
+
+  اتصال WebSocket مباشر ببروتوكول Realtime — بلا مكتبة خارجية.
+  إن تعذّر، يبقى الفحص الدوري شبكة أمان فلا يتوقّف شيء.
+═══════════════════════════════════════════*/
+const Live = {
+  ws:null, n:0, hb:null, retry:0, deb:null, joined:false,
+
+  up(){ return !!(this.ws && this.ws.readyState === 1 && this.joined); },
+
+  connect(){
+    if (!Sync.on() || !navigator.onLine) return;
+    if (this.ws && (this.ws.readyState === 0 || this.ws.readyState === 1)) return;
+    let url;
+    try {
+      url = Cloud.cfg.url.replace(/^http/, 'ws')
+          + '/realtime/v1/websocket?apikey=' + encodeURIComponent(Cloud.cfg.key)
+          + '&vsn=1.0.0';
+      this.ws = new WebSocket(url);
+    } catch(_){ return this.later(); }
+
+    this.ws.onopen = () => {
+      this.retry = 0; this.joined = false;
+      /* الاشتراك محصور بعيادتي — والسيرفر يطبّق سياسات RLS فوقه */
+      this.send('realtime:dentalos', 'phx_join', {
+        config: {
+          postgres_changes: [{
+            event:'*', schema:'public', table:'records',
+            filter:'clinic_id=eq.' + Cloud.me.clinic_id,
+          }],
+        },
+        access_token: Cloud.session?.token,
+      });
+      clearInterval(this.hb);
+      this.hb = setInterval(() => this.send('phoenix', 'heartbeat', {}), 25000);
+    };
+
+    this.ws.onmessage = ev => {
+      let m; try { m = JSON.parse(ev.data); } catch(_){ return; }
+      if (m.event === 'phx_reply' && m.topic.startsWith('realtime:')){
+        this.joined = (m.payload?.status === 'ok');
+        Sync.paint();
+        return;
+      }
+      if (m.event === 'postgres_changes'){
+        /* عدة تغييرات متتابعة تُجمَع في سحبة واحدة */
+        clearTimeout(this.deb);
+        this.deb = setTimeout(() => Sync.run(), 350);
+      }
+    };
+
+    this.ws.onclose = () => { this.joined = false; Sync.paint(); this.later(); };
+    this.ws.onerror = () => { try { this.ws.close(); } catch(_){} };
+  },
+
+  send(topic, event, payload){
+    if (!this.ws || this.ws.readyState !== 1) return;
+    this.ws.send(JSON.stringify({ topic, event, payload, ref: String(++this.n) }));
+  },
+
+  /* إعادة المحاولة تتباعد تدريجياً حتى لا ترهق شبكة ضعيفة */
+  later(){
+    clearInterval(this.hb);
+    if (!Sync.on()) return;
+    const wait = Math.min(30000, 1500 * Math.pow(2, Math.min(this.retry++, 4)));
+    setTimeout(() => this.connect(), wait);
+  },
+
+  stop(){
+    clearInterval(this.hb); clearTimeout(this.deb);
+    this.joined = false; this.retry = 0;
+    try { this.ws?.close(); } catch(_){}
+    this.ws = null;
+  },
+};
+
 /*═══════════════ المزامنة ═══════════════
   البرنامج يكتب في الجهاز أولاً ودائماً — لا انتظار للشبكة ولا
   توقّف عند انقطاعها. كل تعديل يُقيَّد في صندوق صادر، ويُرفع متى
@@ -1879,7 +1961,7 @@ const ROLE_STORES = {
 };
 
 const Sync = {
-  busy:false, quiet:false, last:0, pending:0, err:null,
+  busy:false, quiet:false, last:0, pending:0, err:null, dirty:false,
 
   scope(){
     const r = ROLE_STORES[S.role];
@@ -1985,9 +2067,7 @@ const Sync = {
       try { localStorage.setItem('d_synced', String(this.last)); } catch(_){}
       await this.count();
       if (manual) toast(`${T('syncDone')} · ${up} ${T('pushed')} · ${down} ${T('pulled')}`, 's');
-      /* وصل جديد فتُحدَّث الشاشة الظاهرة */
-      if (down && !manual) App.draw();
-      else if (down && manual) App.draw();
+      if (down) this.redraw();
     } catch (e) {
       this.err = String(e.message || e);
       if (manual) toast(T('syncFail') + ' — ' + this.err, 'e');
@@ -1995,6 +2075,22 @@ const Sync = {
       this.busy = false; this.paint();
     }
   },
+
+  /*──── إعادة رسم آمنة ────────
+    الوارد يظهر فوراً على الشاشة الرئيسية، لكنه لا يقاطع عملاً
+    جارياً: صفحة مفتوحة أو حقل يكتب فيه الطبيب يُؤجَّل الرسم
+    حتى يفرغ، فلا يُمحى نصّ تحت يده. */
+  redraw(){
+    const typing = document.activeElement &&
+      /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    const inPage = Nav.stack.length > 0;
+    if (typing || inPage){ this.dirty = true; return; }
+    this.dirty = false;
+    App.draw();
+  },
+
+  /* عند العودة للشاشة الرئيسية يُطبَّق ما تأجّل */
+  flush(){ if (this.dirty) this.redraw(); },
 
   /*──── المؤشّر في الشريط العلوي ────*/
   paint(){
@@ -2004,21 +2100,27 @@ const Sync = {
     const st = this.busy ? 'busy'
              : (!navigator.onLine || this.err) ? 'off'
              : this.pending ? 'wait' : 'ok';
-    el.className = 'syncdot ' + st;
+    el.className = 'syncdot ' + st + (Live.up() ? ' live' : '');
     el.title = this.busy ? T('syncing')
              : !navigator.onLine ? T('syncOff')
              : this.err ? this.err
              : this.pending ? `${this.pending} ${T('pendingN')}`
-             : T('syncClean');
+             : `${T('syncClean')} · ${Live.up() ? T('liveOn') : T('liveOff')}`;
   },
 
   init(){
     this.last = Number(localStorage.getItem('d_synced') || 0);
     this.count();
     /* الرفع فور عودة الشبكة — لا ينتظر المؤقّت */
-    window.addEventListener('online',  () => this.run());
+    window.addEventListener('online',  () => { Live.connect(); this.run(); });
     window.addEventListener('offline', () => this.paint());
-    setInterval(() => this.run(), 45000);
+    /* شبكة أمان فقط: مع الاتصال الحيّ يكفي فحص كل دقيقتين،
+       وبدونه يعود الفحص كل ٢٠ ثانية. */
+    setInterval(() => {
+      if (!this.on()) return;
+      const gap = Live.up() ? 120000 : 20000;
+      if (Date.now() - this.last >= gap) this.run();
+    }, 5000);
   },
 };
 
@@ -5413,13 +5515,13 @@ const Nav = {
   back(){
     this.stack.pop();
     const top = this.stack[this.stack.length-1];
-    if (!top){ UI.close(); App.draw(); return; }
+    if (!top){ UI.close(); App.draw(); Sync.dirty = false; return; }
     this.busy = true;
     try { return this.raw[top.path](...top.a); }
     finally { this.busy = false; }
   },
 
-  home(){ this.reset(); S.chartOpen = false; UI.close(); App.draw(); },
+  home(){ this.reset(); S.chartOpen = false; UI.close(); App.draw(); Sync.dirty = false; },
   reset(){ this.stack = []; },
 };
 
@@ -6885,6 +6987,13 @@ const Cfg = {
             :T('syncNever')}</div>
         </div>
       </div>
+      <div class="it mt" style="cursor:default">
+        <div class="av ${Live.up()?'g':'w'}">${Live.up()?'⚡':'⏱'}</div>
+        <div class="gr">
+          <div class="h3">${Live.up()?T('liveOn'):T('liveOff')}</div>
+          <div class="tiny">${T('liveSection')}</div>
+        </div>
+      </div>
       ${Sync.err?`<div class="al r mt"><span>!</span><span>${esc(Sync.err)}</span></div>`:''}
       <button class="btn w mt2" onclick="Sync.run(true)">${T('syncNow')}</button>`;
 
@@ -7110,7 +7219,7 @@ const App = {
     this.draw();
     /* أول مزامنة بعد الدخول: يجلب الجهاز ما فاته قبل أن يبدأ العمل */
     Sync.count().then(()=>Sync.paint());
-    if (Sync.on()) Sync.run();
+    if (Sync.on()){ Sync.run(); Live.connect(); }
   },
 
   setTab(t){
@@ -7319,6 +7428,7 @@ const Auth = { out(){ S.role=null; S.user=null; S.patient=null; S.visit=null;
   S.chartOpen=false; S.clinicName=null; Nav.reset(); UI.close();
   /* الخروج المحلي ينهي جلسة السيرفر أيضاً، فلا تبقى تذكرة صالحة
      على جهاز تركه صاحبه. */
+  Live.stop();
   if (Cloud.session) Cloud.signOut();
   $('#app').classList.add('hide'); $('#login').classList.remove('hide'); Login.back(); Login.draw(); } };
 
