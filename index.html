@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#00695C">
 <!-- سياسة أمن المحتوى: البرنامج لا يتصل بالإنترنت إطلاقاً.
-     connect-src 'none' تمنع أي شيفرة مدسوسة من تسريب بيانات
-     المراجعين، وimg-src المحصورة تمنع التسريب عبر صورة خارجية.
-     المسموح فقط: الخطوط، والصور المخزّنة داخل الجهاز. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
+     الاتصال مسموح لسيرفر العيادة وحده (supabase.co) — أي وجهة
+     أخرى مرفوضة، فلا تستطيع شيفرة مدسوسة تسريب بيانات المراجعين.
+     وimg-src المحصورة تمنع التسريب عبر صورة خارجية. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; connect-src https://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>أسناني — My teeth</title>
 <meta name="application-name" content="أسناني">
@@ -252,6 +252,10 @@ button{font:inherit;font-weight:700;cursor:pointer;border:none;background:none;c
   animation:nudge 1.6s ease-in-out infinite}
 @keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
 .lgd-more .arw.up{background:var(--glass2);color:var(--ink3);animation:none}
+/* رابط نصّي داخل شاشة الدخول */
+.lnk{background:none;border:none;box-shadow:none;color:var(--br);font-weight:700;
+     font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:6px}
+.lnk:hover{color:var(--br2)}
 .lgd-grp{font-size:11px;font-weight:800;color:var(--ink3);
   margin:11px 0 5px;letter-spacing:.02em}
 .dotc{width:9px;height:9px;border-radius:3px;display:inline-block;margin-inline-end:6px}
@@ -549,7 +553,28 @@ html[dir=ltr] .sw.on .tg::after{transform:translateX(22px)}
       font-size:17px;color:var(--br);margin-top:-4px">My teeth</div>
     <div class="sub ctr" id="lg-tag" style="margin-bottom:22px"></div>
 
-    <div id="lg-roles" class="col"></div>
+    <!-- ═══ الدخول عبر السيرفر: شاشة واحدة، والدور يجيء من السيرفر ═══ -->
+    <div id="lg-cloud" class="card">
+      <div id="cl-warn" class="al w hide" style="margin-bottom:12px"></div>
+      <label class="lb" id="lb-email"></label>
+      <input id="cl-email" type="email" dir="ltr" autocomplete="username"
+             inputmode="email" spellcheck="false">
+      <div class="mt">
+        <label class="lb" id="lb-cpass"></label>
+        <input id="cl-pass" type="password" dir="ltr" autocomplete="current-password">
+      </div>
+      <button class="btn w mt2" id="cl-go"></button>
+      <div id="cl-err" class="al r mt hide"></div>
+      <div class="row mt2" style="gap:8px">
+        <button class="btn gh gr xs" id="cl-reg"></button>
+        <button class="btn gh gr xs" id="cl-cfg"></button>
+      </div>
+      <div class="ctr mt2">
+        <button class="lnk" id="cl-local"></button>
+      </div>
+    </div>
+
+    <div id="lg-roles" class="col hide"></div>
 
     <div id="lg-form" class="card hide">
       <div class="row" style="margin-bottom:14px">
@@ -565,6 +590,7 @@ html[dir=ltr] .sw.on .tg::after{transform:translateX(22px)}
       <button class="btn w mt2" id="lg-go"></button>
       <div id="lg-err" class="al r mt hide"></div>
       <div class="tiny ctr mt" id="lg-hint"></div>
+      <div class="ctr mt2"><button class="lnk" id="lg-tocloud"></button></div>
     </div>
 
     <div class="row mt2" style="justify-content:center">
@@ -790,6 +816,20 @@ ar:{
  stopCam:'إيقاف الكاميرا', switchCam:'تبديل الكاميرا', scanning:'جاري البحث…',
  codeFound:'تم قراءة الباركود', fixSteps:'انقل الملف إلى مجلد التنزيلات ثم افتحه من داخل المتصفح، أو ارفعه على استضافة ويب وافتحه عبر الرابط.',
 
+/*──── السيرفر ────*/
+ email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
+ offlineLogin:'دخول محلي بلا إنترنت', backToCloud:'الدخول بالبريد',
+ newClinic:'تسجيل عيادة جديدة', cloudSetup:'ربط السيرفر', cloudUrl:'رابط المشروع',
+ cloudKey:'المفتاح العام', cloudSave:'حفظ الاتصال', cloudNotSet:'لم يُضبط الاتصال بالسيرفر بعد',
+ cloudOk:'متصل بالسيرفر', cloudFail:'تعذّر الاتصال بالسيرفر', cloudSaved:'حُفظ الاتصال',
+ badCloudLogin:'البريد أو كلمة المرور غير صحيحة', noMembership:'هذا الحساب غير مرتبط بأي عيادة',
+ regClinicTitle:'تسجيل عيادة جديدة', clinicName:'اسم العيادة', docName:'اسم الطبيب',
+ accDoctor:'حساب الطبيب', accSec:'حساب السكرتير', accPharm:'حساب الصيدلاني',
+ regDone:'سُجّلت العيادة — سجّل الدخول الآن', emailTaken:'هذا البريد مستعمل سابقاً',
+ regFailed:'تعذّر التسجيل', fillAll:'أكمل الحقول المطلوبة', pass8:'كلمة المرور ٨ خانات فأكثر',
+ signedAs:'الدخول باسم', cloudSection:'السيرفر والاتصال', testConn:'اختبار الاتصال',
+ cloudSignOut:'خروج من السيرفر', clinicOf:'عيادة',
+
 /*──── الأمان ────*/
  secSafety:'الأمان وكلمة المرور', changePass:'تغيير كلمة المرور', curPass:'كلمة المرور الحالية',
  newPass:'كلمة المرور الجديدة', newPass2:'إعادة كتابة الجديدة', passShort:'كلمة المرور أقصر من ٦ خانات',
@@ -987,6 +1027,20 @@ en:{
  camNeedHttps:'Camera scanning needs a secure web address (https) or a desktop browser',
  stopCam:'Stop camera', switchCam:'Switch camera', scanning:'Scanning…',
  codeFound:'Barcode read', fixSteps:'Move the file to your Downloads folder and open it from inside the browser, or host it on the web and open the link.',
+
+/*──── server ────*/
+ email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
+ offlineLogin:'Local sign-in (no internet)', backToCloud:'Sign in with email',
+ newClinic:'Register a new clinic', cloudSetup:'Server connection', cloudUrl:'Project URL',
+ cloudKey:'Publishable key', cloudSave:'Save connection', cloudNotSet:'The server connection is not set yet',
+ cloudOk:'Connected to the server', cloudFail:'Could not reach the server', cloudSaved:'Connection saved',
+ badCloudLogin:'Wrong email or password', noMembership:'This account is not linked to any clinic',
+ regClinicTitle:'Register a new clinic', clinicName:'Clinic name', docName:'Doctor name',
+ accDoctor:'Doctor account', accSec:'Secretary account', accPharm:'Pharmacist account',
+ regDone:'Clinic registered — sign in now', emailTaken:'This email is already used',
+ regFailed:'Registration failed', fillAll:'Complete the required fields', pass8:'Password must be 8+ characters',
+ signedAs:'Signed in as', cloudSection:'Server & connection', testConn:'Test connection',
+ cloudSignOut:'Sign out of server', clinicOf:'Clinic',
 
 /*──── security ────*/
  secSafety:'Security & password', changePass:'Change password', curPass:'Current password',
@@ -1532,7 +1586,7 @@ const SG = {
 
 /*═══════════════ الحالة والواجهة ═══════════════*/
 const S = { role:null, user:null, tab:null, patient:null, visit:null, sel:null,
-            rxDraft:[], clinic:null, chartOpen:false };
+            rxDraft:[], clinic:null, chartOpen:false, clinicName:null };
 
 const UI = {
   theme(){
@@ -1764,8 +1818,324 @@ const ROLES = [
   {r:'patient',   ic:'👤', col:'wr'},
 ];
 
+/*═══════════════ السيرفر ═══════════════
+  اتصال مباشر بـ Supabase عبر fetch — بلا مكتبات خارجية، فلا
+  سلسلة تبعيات تُحدَّث أو تُخترق. الإعدادات تُحفظ في الجهاز لا في
+  الكود، فتقدر تبدّل المشروع بلا تعديل الملف.
+
+  في هذه المرحلة السيرفر مسؤول عن أمر واحد: من أنت وأي عيادة.
+  البيانات نفسها ما زالت محلية بالكامل — المزامنة خطوة تالية.
+═══════════════════════════════════════*/
+const Cloud = {
+  cfg:{ url:'', key:'' },
+  session:null,      /* { token, refresh, exp, email } */
+  me:null,           /* ناتج whoami: الدور والعيادة */
+
+  /*──── الإعدادات ────*/
+  load(){
+    try {
+      this.cfg = JSON.parse(localStorage.getItem('d_cloud')) || { url:'', key:'' };
+      this.session = JSON.parse(localStorage.getItem('d_sess')) || null;
+    } catch(_){ this.cfg = { url:'', key:'' }; this.session = null; }
+  },
+  saveCfg(url, key){
+    this.cfg = { url:String(url||'').trim().replace(/\/+$/,''), key:String(key||'').trim() };
+    try { localStorage.setItem('d_cloud', JSON.stringify(this.cfg)); } catch(_){}
+  },
+  ready(){ return !!(this.cfg.url && this.cfg.key); },
+  saveSess(v){
+    this.session = v;
+    try {
+      if (v) localStorage.setItem('d_sess', JSON.stringify(v));
+      else   localStorage.removeItem('d_sess');
+    } catch(_){}
+  },
+
+  /*──── نداء عام ────*/
+  async call(path, { method='GET', body=null, auth=true, raw=false } = {}){
+    if (!this.ready()) throw new Error(T('cloudNotSet'));
+    const h = { 'apikey': this.cfg.key, 'Content-Type': 'application/json' };
+    h['Authorization'] = 'Bearer ' +
+      ((auth && this.session?.token) ? this.session.token : this.cfg.key);
+
+    let r;
+    try {
+      r = await fetch(this.cfg.url + path, {
+        method, headers:h, body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch(_){ throw new Error(T('cloudFail')); }
+
+    const txt = await r.text();
+    let data = null;
+    try { data = txt ? JSON.parse(txt) : null; } catch(_){ data = txt; }
+    if (raw) return { ok:r.ok, status:r.status, data };
+    if (!r.ok){
+      const msg = data?.error_description || data?.msg || data?.error || data?.message || r.status;
+      throw new Error(String(msg));
+    }
+    return data;
+  },
+
+  /*──── الدخول ────*/
+  async signIn(email, password){
+    const d = await this.call('/auth/v1/token?grant_type=password', {
+      method:'POST', auth:false, body:{ email, password },
+    });
+    this.saveSess({
+      token: d.access_token,
+      refresh: d.refresh_token,
+      exp: Date.now() + (Number(d.expires_in||3600) * 1000),
+      email,
+    });
+    return this.whoami();
+  },
+
+  /* الدور يجيء من السيرفر لا من اختيار المستخدم — هذا جوهر
+     شاشة الدخول الواحدة. */
+  async whoami(){
+    const d = await this.call('/rest/v1/rpc/whoami', { method:'POST', body:{} });
+    this.me = d || { role:'none' };
+    return this.me;
+  },
+
+  /* التذكرة قصيرة العمر، فتُجدَّد صامتاً قبل انتهائها */
+  async refresh(){
+    if (!this.session?.refresh) return false;
+    try {
+      const d = await this.call('/auth/v1/token?grant_type=refresh_token', {
+        method:'POST', auth:false, body:{ refresh_token:this.session.refresh },
+      });
+      this.saveSess({
+        token:d.access_token, refresh:d.refresh_token,
+        exp: Date.now() + (Number(d.expires_in||3600)*1000),
+        email:this.session.email,
+      });
+      return true;
+    } catch(_){ this.saveSess(null); return false; }
+  },
+
+  async signOut(){
+    try { await this.call('/auth/v1/logout', { method:'POST' }); } catch(_){}
+    this.saveSess(null); this.me = null;
+  },
+
+  /* تسجيل عيادة: الدالة على السيرفر تنشئ العيادة وحساباتها الثلاثة */
+  async registerClinic(payload){
+    const r = await this.call('/functions/v1/register-clinic', {
+      method:'POST', auth:false, body:payload, raw:true,
+    });
+    if (!r.ok || r.data?.error){
+      const e = r.data?.error;
+      if (e === 'email_taken')    throw new Error(T('emailTaken'));
+      if (e === 'weak_password')  throw new Error(T('pass8'));
+      if (e === 'bad_email')      throw new Error(T('email'));
+      throw new Error(r.data?.detail || e || T('regFailed'));
+    }
+    return r.data;
+  },
+
+  async ping(){
+    try { await this.call('/rest/v1/clinics?select=id&limit=1', { auth:false }); return true; }
+    catch(_){ return false; }
+  },
+};
+
 const Login = {
   pick:null,
+  mode:'cloud',      /* 'cloud' = بالبريد عبر السيرفر، 'local' = احتياط بلا إنترنت */
+
+  /*──── الدخول بالبريد ────*/
+  drawCloud(){
+    $('#lb-email').textContent  = T('email');
+    $('#lb-cpass').textContent  = T('pass');
+    $('#cl-go').textContent     = T('cloudLogin');
+    $('#cl-reg').textContent    = T('newClinic');
+    $('#cl-cfg').textContent    = T('cloudSetup');
+    $('#cl-local').textContent  = T('offlineLogin');
+    $('#lg-tocloud').textContent= T('backToCloud');
+
+    const w = $('#cl-warn');
+    if (!Cloud.ready()){
+      w.textContent = T('cloudNotSet');
+      w.classList.remove('hide');
+      $('#cl-go').disabled = true;
+      $('#cl-reg').disabled = true;
+    } else {
+      w.classList.add('hide');
+      $('#cl-go').disabled = false;
+      $('#cl-reg').disabled = false;
+    }
+  },
+
+  /* التبديل بين الشاشتين — المحلي يبقى شبكة أمان عند انقطاع النت */
+  setMode(m){
+    this.mode = m;
+    $('#lg-cloud').classList.toggle('hide', m !== 'cloud');
+    $('#lg-roles').classList.toggle('hide', m !== 'local');
+    $('#lg-form').classList.add('hide');
+    $('#cl-err').classList.add('hide');
+    if (m === 'local') this.draw();
+    else this.drawCloud();
+  },
+
+  /*──── تنفيذ الدخول بالبريد ────*/
+  async cloudSubmit(){
+    const err = $('#cl-err');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    err.classList.add('hide');
+
+    const email = $('#cl-email').value.trim().toLowerCase();
+    const pass  = $('#cl-pass').value;
+    if (!email || !pass) return show(T('fillAll'));
+
+    const left = Guard.lockLeft();
+    if (left) return show(`${T('tooMany')} ${Math.ceil(left/1000)}s`);
+
+    const btn = $('#cl-go');
+    btn.disabled = true; btn.textContent = T('cloudBusy');
+    try {
+      const me = await Cloud.signIn(email, pass);
+      if (!me || me.role === 'none'){
+        await Cloud.signOut();
+        return show(T('noMembership'));
+      }
+      Guard.ok();
+      /* ★ الدور يقرّره السيرفر، فتُفتح واجهة الطبيب أو السكرتير
+         أو الصيدلية أو المراجع تلقائياً من شاشة واحدة. */
+      S.role = me.role;
+      S.user = { id:email, role:me.role, name:me.full_name || me.n1 || email,
+                 cloud:true, clinic_id:me.clinic_id || null };
+      if (me.clinic_name) S.clinicName = me.clinic_name;
+      App.start();
+    } catch (e) {
+      const m = String(e.message || e);
+      if (/invalid|credential|grant/i.test(m)){ Guard.fail(); show(T('badCloudLogin')); }
+      else show(m);
+    } finally {
+      btn.disabled = false; btn.textContent = T('cloudLogin');
+    }
+  },
+
+  /*──── ضبط الاتصال بالسيرفر ────*/
+  cloudCfg(){
+    const c = Cloud.cfg;
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">☁</div>
+        <div class="gr"><div class="h2">${T('cloudSetup')}</div>
+          <div class="tiny">${T('cloudSection')}</div></div>
+        <button class="ib" onclick="UI.close()">✕</button>
+      </div>
+      <div class="card">
+        <label class="lb">${T('cloudUrl')}</label>
+        <input id="cc-url" dir="ltr" spellcheck="false" placeholder="https://xxxx.supabase.co"
+               value="${esc(c.url)}">
+        <div class="mt"><label class="lb">${T('cloudKey')}</label>
+          <input id="cc-key" dir="ltr" spellcheck="false" placeholder="sb_publishable_..."
+                 value="${esc(c.key)}"></div>
+        <div id="cc-msg" class="al w mt hide"></div>
+        <div class="row mt2" style="gap:9px">
+          <button class="btn gh gr" onclick="UI.close()">${T('cancel')}</button>
+          <button class="btn gr" style="flex:2" onclick="Login.cloudCfgSave()">
+            ${T('cloudSave')}</button>
+        </div>
+      </div>`);
+  },
+
+  async cloudCfgSave(){
+    const url = $('#cc-url').value, key = $('#cc-key').value;
+    const msg = $('#cc-msg');
+    if (!url.trim() || !key.trim()){
+      msg.textContent = T('fillAll'); msg.classList.remove('hide'); return;
+    }
+    Cloud.saveCfg(url, key);
+    msg.textContent = T('cloudBusy'); msg.classList.remove('hide');
+    const ok = await Cloud.ping();
+    msg.textContent = ok ? T('cloudOk') : T('cloudFail');
+    msg.className = 'al mt ' + (ok ? 'g' : 'r');
+    if (ok){
+      toast(T('cloudSaved'), 's');
+      setTimeout(()=>{ UI.close(); this.drawCloud(); }, 700);
+    }
+  },
+
+  /*──── تسجيل عيادة جديدة ────*/
+  regClinic(){
+    const f = (id, lb, extra='') =>
+      `<div class="mt"><label class="lb">${lb} <span class="req">*</span></label>
+       <input id="${id}" ${extra}></div>`;
+    const acc = (pre, title) => `
+      <div class="card flat mt" style="padding:12px">
+        <div class="lbl">${title}</div>
+        <div class="mt"><label class="lb">${T('email')}</label>
+          <input id="${pre}-e" type="email" dir="ltr" spellcheck="false" inputmode="email"></div>
+        <div class="mt"><label class="lb">${T('pass')}</label>
+          <input id="${pre}-p" type="password" dir="ltr"></div>
+      </div>`;
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">🏥</div>
+        <div class="gr"><div class="h2">${T('regClinicTitle')}</div></div>
+        <button class="ib" onclick="UI.close()">✕</button>
+      </div>
+      <div class="card">
+        ${f('rc-name', T('clinicName'))}
+        ${f('rc-doc',  T('docName'))}
+        <div class="g2 mt">
+          <div><label class="lb">${T('country')}</label><input id="rc-country" value="العراق"></div>
+          <div><label class="lb">${T('gov')}</label><input id="rc-gov"></div>
+        </div>
+        <div class="mt"><label class="lb">${T('area')}</label><input id="rc-area"></div>
+        ${acc('rc-d', T('accDoctor'))}
+        ${acc('rc-s', T('accSec'))}
+        ${acc('rc-h', T('accPharm'))}
+        <div id="rc-err" class="al r mt hide"></div>
+        <div class="row mt2" style="gap:9px">
+          <button class="btn gh gr" onclick="UI.close()">${T('cancel')}</button>
+          <button class="btn gr" style="flex:2" id="rc-go"
+            onclick="Login.regClinicSave()">${T('save')}</button>
+        </div>
+      </div>`);
+  },
+
+  async regClinicSave(){
+    const v  = id => ($('#'+id)?.value || '').trim();
+    const err = $('#rc-err');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    err.classList.add('hide');
+
+    if (!v('rc-name') || !v('rc-doc')) return show(T('fillAll'));
+    const roles = [['rc-d','doctor'], ['rc-s','secretary'], ['rc-h','pharmacy']];
+    for (const [pre] of roles){
+      if (!v(pre+'-e')) return show(T('fillAll'));
+      if (v(pre+'-p').length < 8) return show(T('pass8'));
+    }
+
+    const accounts = {};
+    for (const [pre, role] of roles)
+      accounts[role] = { email:v(pre+'-e').toLowerCase(), password:v(pre+'-p') };
+
+    const btn = $('#rc-go');
+    btn.disabled = true; btn.textContent = T('cloudBusy');
+    try {
+      await Cloud.registerClinic({
+        clinic:{ name:v('rc-name'), doctor_name:v('rc-doc'),
+                 country:v('rc-country'), gov:v('rc-gov'), area:v('rc-area') },
+        accounts,
+      });
+      UI.close();
+      toast(T('regDone'), 's');
+      /* البريد يُملأ تلقائياً ليدخل الطبيب فوراً */
+      $('#cl-email').value = accounts.doctor.email;
+      $('#cl-pass').value = '';
+      $('#cl-pass').focus();
+    } catch (e) {
+      show(String(e.message || e));
+    } finally {
+      btn.disabled = false; btn.textContent = T('save');
+    }
+  },
+
   draw(){
     $('#lg-tag').textContent = T('tag');
     $$('.lgL').forEach(x=>x.textContent = isAr()?'EN':'ع');
@@ -6299,6 +6669,28 @@ const Cfg = {
       <button class="btn w gh mt" onclick="installApp()">${T('install')}</button>
       ${isDoc?`<button class="btn w dg mt2" onclick="Setup.reset()">⚠ ${T('del')}</button>`:''}`;
 
+    /* السيرفر: حالة الاتصال والجلسة */
+    const cloud = `
+      <div class="it" style="cursor:default">
+        <div class="av ${Cloud.ready()?'g':'w'}">☁</div>
+        <div class="gr">
+          <div class="h3">${Cloud.ready()?T('cloudOk'):T('cloudNotSet')}</div>
+          <div class="tiny mono ell">${esc(Cloud.cfg.url||'—')}</div>
+        </div>
+      </div>
+      ${Cloud.session?`<div class="it" style="cursor:default">
+        <div class="av">👤</div>
+        <div class="gr">
+          <div class="tiny">${T('signedAs')}</div>
+          <div class="mono ell" style="font-weight:700">${esc(Cloud.session.email)}</div>
+          ${S.clinicName?`<div class="tiny">${T('clinicOf')}: ${esc(S.clinicName)}</div>`:''}
+        </div>
+      </div>`:''}
+      <div class="row mt2" style="gap:8px">
+        <button class="btn gh gr" onclick="Login.cloudCfg()">${T('cloudSetup')}</button>
+        <button class="btn gh gr" onclick="Cfg.pingCloud()">${T('testConn')}</button>
+      </div>`;
+
     /* الأمان: كلمة المرور والقفل التلقائي */
     const users = await DB.all('users');
     const mins  = [0,1,5,10,30];
@@ -6328,6 +6720,7 @@ const Cfg = {
         this.acc('g','🏥', T('secGeneral'), general, true)
       + this.acc('p','🖨', T('secPrint'),   print)
       + this.acc('l','🎨', T('secLook'),    look)
+      + this.acc('cl','☁', T('cloudSection'), cloud)
       + this.acc('s','🛡', T('secSafety'), safety, defWarn)
       + (S.role==='doctor' ? this.acc('r','🔐', T('secPerm'), perm) : '')
       + (S.role==='doctor' ? this.acc('t','🦷', T('toothStatuses'), statuses) : '')
@@ -6413,6 +6806,13 @@ const Cfg = {
   },
 
   async rmSign(){ if (!ask()) return; delete CFG.data.sign; await CFG.save(); this.draw(); },
+
+  async pingCloud(){
+    if (!Cloud.ready()) return toast(T('cloudNotSet'), 'e');
+    toast(T('cloudBusy'));
+    const ok = await Cloud.ping();
+    toast(ok ? T('cloudOk') : T('cloudFail'), ok ? 's' : 'e');
+  },
 
   async setIdle(v){
     CFG.data.idleMin = Number(v) || 0;
@@ -6693,7 +7093,10 @@ const Guard = {
 };
 
 const Auth = { out(){ S.role=null; S.user=null; S.patient=null; S.visit=null;
-  S.chartOpen=false; Nav.reset(); UI.close();
+  S.chartOpen=false; S.clinicName=null; Nav.reset(); UI.close();
+  /* الخروج المحلي ينهي جلسة السيرفر أيضاً، فلا تبقى تذكرة صالحة
+     على جهاز تركه صاحبه. */
+  if (Cloud.session) Cloud.signOut();
   $('#app').classList.add('hide'); $('#login').classList.remove('hide'); Login.back(); Login.draw(); } };
 
 /*═══════════════ الهوية والتثبيت كتطبيق ═══════════════
@@ -6907,6 +7310,17 @@ window.addEventListener('unhandledrejection', e =>
   $('#lg-go').onclick = () => Login.submit();
   $('#lg-pass').onkeydown = e => { if (e.key==='Enter') Login.submit(); };
   $('#lg-user').onkeydown = e => { if (e.key==='Enter' && Login.pick==='patient') Login.submit(); };
+
+  /* شاشة الدخول بالبريد هي الافتراضية، والمحلي احتياط عند انقطاع النت */
+  Cloud.load();
+  $('#cl-go').onclick    = () => Login.cloudSubmit();
+  $('#cl-reg').onclick   = () => Login.regClinic();
+  $('#cl-cfg').onclick   = () => Login.cloudCfg();
+  $('#cl-local').onclick = () => Login.setMode('local');
+  $('#lg-tocloud').onclick = () => Login.setMode('cloud');
+  $('#cl-pass').onkeydown  = e => { if (e.key==='Enter') Login.cloudSubmit(); };
+  $('#cl-email').onkeydown = e => { if (e.key==='Enter') $('#cl-pass').focus(); };
+  Login.drawCloud();
   Login.draw();
 
   Nav.wrap();
