@@ -1457,13 +1457,18 @@ const DB = {
   /* كل كتابة تُختم بوقتها وتُقيَّد في صندوق الصادر.
      التغليف هنا لا في مواضع الاستدعاء، فلا يمكن أن يفوت تعديل. */
   async put(store, obj){
+    /* الختم بساعة متفق عليها بين الأجهزة لا بساعة الجهاز وحده */
     if (store !== 'outbox' && obj && typeof obj === 'object' && !Sync.quiet)
-      obj._up = Date.now();
-    const done = this.fallback ? await MEM.put(store, obj)
-      : await new Promise(async (res,rej)=>{
-          const os = await this.tx(store,'readwrite');
-          const r = os.put(obj); r.onsuccess=()=>res(obj); r.onerror=()=>rej(r.error);
-        });
+      obj._up = Sync.now();
+    let done;
+    if (this.fallback) done = await MEM.put(store, obj);
+    else {
+      /* المعاملة تُفتح خارج الوعد: منفّذ async يبتلع الرفض فيتجمّد الحفظ بصمت */
+      const os = await this.tx(store,'readwrite');
+      done = await new Promise((res,rej)=>{
+        const r = os.put(obj); r.onsuccess=()=>res(obj); r.onerror=()=>rej(r.error);
+      });
+    }
     if (store !== 'outbox' && obj?.id) Sync.queue(store, obj.id, false);
     return done;
   },
@@ -1486,11 +1491,14 @@ const DB = {
     });
   },
   async del(store, id){
-    const done = this.fallback ? await MEM.del(store, id)
-      : await new Promise(async (res,rej)=>{
-          const os = await this.tx(store,'readwrite');
-          const r = os.delete(id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error);
-        });
+    let done;
+    if (this.fallback) done = await MEM.del(store, id);
+    else {
+      const os = await this.tx(store,'readwrite');
+      done = await new Promise((res,rej)=>{
+        const r = os.delete(id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error);
+      });
+    }
     /* الحذف يُرفع كشاهدة، وإلا عاد السجل من جهاز آخر */
     if (store !== 'outbox') Sync.queue(store, id, true);
     return done;
@@ -1964,6 +1972,10 @@ const Sync = {
   busy:false, quiet:false, last:0, pending:0, err:null, dirty:false,
   again:false, fails:0, _kick:null, _retry:null,
 
+  /* فرق ساعة هذا الجهاز عن السيرفر — يُقاس من كل ردّ */
+  skew:0,
+  now(){ return Date.now() + this.skew; },
+
   scope(){
     const r = ROLE_STORES[S.role];
     return { pull: r ? r.pull : SYNC_STORES, push: r ? r.push : SYNC_STORES };
@@ -1982,7 +1994,7 @@ const Sync = {
     if (store === 'settings' && rid === 'clinics') return;  /* دليل محلي */
     try {
       await DB.put('outbox', { id: store + '|' + rid, store, rid,
-                               at: Date.now(), deleted: !!deleted });
+                               at: this.now(), deleted: !!deleted });
       this.pending++;
       this.paint();
       this.kick();
@@ -2012,21 +2024,36 @@ const Sync = {
     const items = box.filter(x => allow.includes(x.store));
 
     let sent = 0;
-    /* دفعات صغيرة: صور الأشعة ثقيلة، ودفعة واحدة ضخمة تفشل كلها */
-    for (let i = 0; i < items.length; i += 25){
-      const slice = items.slice(i, i + 25);
-      const changes = [];
-      for (const x of slice){
-        const doc = x.deleted ? null : await DB.get(x.store, x.rid);
-        if (!doc && !x.deleted){ await DB.del('outbox', x.id); continue; }
-        changes.push({ store:x.store, id:x.rid, doc: doc || {},
-                       updated_at: x.at, deleted: !!x.deleted || !doc });
-      }
-      if (!changes.length) continue;
-      await Cloud.call('/rest/v1/rpc/sync_push', { method:'POST', body:{ changes } });
-      for (const x of slice) await DB.del('outbox', x.id);
-      sent += changes.length;
+    /* الدفعة تُقاس بالحجم لا بالعدد: صورة أشعة واحدة قد تعادل
+       ألف سجل نصّي، و٢٥ صورة في طلب واحد تتجاوز حدّ السيرفر
+       فتفشل الدفعة كلها ويعلق العمل. */
+    const CAP = 900 * 1024;
+    let batch = [], done = [], size = 0;
+
+    const flush = async () => {
+      if (!batch.length) return;
+      await Cloud.call('/rest/v1/rpc/sync_push', { method:'POST', body:{ changes:batch } });
+      for (const x of done) await DB.del('outbox', x.id);
+      sent += batch.length;
+      batch = []; done = []; size = 0;
+    };
+
+    for (const x of items){
+      const doc = x.deleted ? null : await DB.get(x.store, x.rid);
+      if (!doc && !x.deleted){ await DB.del('outbox', x.id); continue; }
+      /* بعد الدمج يصير ختم السجل أحدث من وقت كتابتي، فيُرسل
+         الأحدث وإلا رفض السيرفر المدموج باعتباره قديماً. */
+      const ch = { store:x.store, id:x.rid, doc: doc || {},
+                   updated_at: Math.max(Number(x.at||0), Number(doc?._up || 0)),
+                   deleted: !!x.deleted || !doc };
+      let len = 200;
+      try { len = JSON.stringify(ch).length; } catch(_){}
+      /* سجل أكبر من السقف وحده يُرسل منفرداً */
+      if (batch.length && size + len > CAP) await flush();
+      batch.push(ch); done.push(x); size += len;
+      if (batch.length >= 50) await flush();
     }
+    await flush();
     /* ما لا يخصّ دوري يُنظَّف حتى لا يتراكم بلا فائدة */
     for (const x of box) if (!allow.includes(x.store)) await DB.del('outbox', x.id);
     return sent;
@@ -2037,9 +2064,9 @@ const Sync = {
     const allow = this.scope().pull;
     let since = this.rev(), got = 0, guard = 0;
 
-    while (guard++ < 40){
+    while (guard++ < 200){
       const rows = await Cloud.call('/rest/v1/rpc/sync_pull',
-        { method:'POST', body:{ since, lim:400 } });
+        { method:'POST', body:{ since, lim:120 } });
       if (!Array.isArray(rows) || !rows.length) break;
 
       this.quiet = true;                       /* الوارد لا يدخل الصادر */
@@ -2048,19 +2075,31 @@ const Sync = {
           if (r.rev > since) since = r.rev;
           if (!allow.includes(r.store)) continue;
           if (r.deleted){ await DB.del(r.store, r.id); got++; continue; }
-          /* الأحدث يفوز: نسخة الجهاز الأجدّ لا تُدهس بنسخة أقدم */
           const mine = await DB.get(r.store, r.id);
-          const mineAt = Number(mine?._up || 0);
-          if (mine && mineAt > Number(r.updated_at || 0)) continue;
-          const doc = r.doc || {};
-          doc.id = r.id; doc._up = Number(r.updated_at || 0);
+          const mineAt  = Number(mine?._up || 0);
+          const theirAt = Number(r.updated_at || 0);
+          let doc = r.doc || {};
+
+          if (mine && mineAt > theirAt){
+            /* نسختي أحدث — لكن قد يحمل الوارد حقلاً أجدّ من حقلي،
+               فأدمجه بدل أن أهمل الوارد كلّه. */
+            const merged = Sync.merge(r.store, mine, doc, mineAt, theirAt);
+            if (!merged) continue;
+            doc = merged;
+          } else if (mine){
+            /* نسختهم أحدث — أحتفظ بحقولي التي خُتمت بعد ختمهم */
+            doc = Sync.merge(r.store, doc, mine, theirAt, mineAt) || doc;
+          }
+
+          doc.id = r.id;
+          doc._up = Math.max(mineAt, theirAt);
           await DB.put(r.store, doc);
           got++;
         }
       } finally { this.quiet = false; }
 
       this.setRev(since);
-      if (rows.length < 400) break;
+      if (rows.length < 120) break;
     }
     return got;
   },
@@ -2075,8 +2114,12 @@ const Sync = {
     try {
       /* التذكرة تُجدَّد قبل انتهائها بدقيقة حتى لا تفشل الدورة */
       if (Cloud.session && Cloud.session.exp - Date.now() < 60000) await Cloud.refresh();
-      const up   = await this.push();
+      /* السحب قبل الرفع — وهذا شرط لصحّة الدمج:
+         لو رفعتُ أولاً لوصلت نسختي إلى السيرفر قبل أن أرى تعديل
+         زميلي، فيُدهس عمله. وبالسحب أولاً يُدمج عمله في نسختي
+         ثم أرفع المدموج، فلا يضيع طرف. */
       const down = await this.pull();
+      const up   = await this.push();
       this.last = Date.now();
       this.fails = 0;
       try { localStorage.setItem('d_synced', String(this.last)); } catch(_){}
@@ -2096,6 +2139,43 @@ const Sync = {
       this.busy = false; this.paint();
       if (this.again){ this.again = false; this.kick(); }
     }
+  },
+
+  /*──── دمج الحقول المشتركة ────────
+    الزيارة سجل يحرّره دوران: السكرتير يحرّك حالة الطابور،
+    والطبيب يكتب ملخص الجلسة. لو حُسم التعارض على مستوى السجل
+    لمحا أحدهما عمل الآخر — وهذا يقع فعلاً حين ينقطع النت
+    فيعمل الجهازان معاً.
+
+    فلكل حقل مشترك ختمه الخاص، ويفوز صاحب الختم الأحدث وحده.
+    base هي النسخة الفائزة، وother النسخة الأخرى.
+    تُرجع null إذا لم يكن في other ما يستحق النقل. */
+  FIELDS:{ visits:[['done','_doneAt'], ['qstate','_qAt']] },
+
+  merge(store, base, other, baseAt, otherAt){
+    const map = this.FIELDS[store];
+    if (!map) return null;
+    let took = false;
+    const out = { ...base };
+    for (const [field, stamp] of map){
+      if (other[field] === undefined || other[field] === base[field]) continue;
+      const bs = base[stamp], os = other[stamp];
+      let take;
+      if (bs !== undefined && os !== undefined) take = Number(os) > Number(bs);
+      /* ختم صريح في جهة واحدة يعني تعديلاً متعمّداً على الحقل،
+         والجهة الأخرى تحمل قيمة موروثة من نسخة قديمة — فيفوز
+         الختم الصريح ولو كان السجل ككل أقدم. */
+      else if (os !== undefined) take = true;
+      else if (bs !== undefined) take = false;
+      else take = Number(otherAt || 0) > Number(baseAt || 0);
+      const b = 0, o = take ? 1 : 0;
+      if (o > b){
+        out[field] = other[field];
+        if (other[stamp] !== undefined) out[stamp] = other[stamp];
+        took = true;
+      }
+    }
+    return took ? out : null;
   },
 
   /*──── إعادة رسم آمنة ────────
@@ -2193,6 +2273,14 @@ const Cloud = {
         method, headers:h, body: body ? JSON.stringify(body) : undefined,
       });
     } catch(_){ throw new Error(T('cloudFail')); }
+
+    /* الساعة المشتركة: كل ردّ يحمل وقت السيرفر، فتُقاس فروق
+       ساعات الأجهزة عليه ويُحسم التعارض بمرجع واحد. */
+    const sd = r.headers.get('date');
+    if (sd){
+      const t = Date.parse(sd);
+      if (t && typeof Sync !== 'undefined') Sync.skew = t - Date.now();
+    }
 
     const txt = await r.text();
     let data = null;
@@ -3372,6 +3460,7 @@ const Sec = {
   async setQ(vid, st){
     const v = await DB.get('visits', vid);
     v.qstate = st;
+    v._qAt = Sync.now();          /* ختم الحقل نفسه، لا السجل كله */
     if (st === 'done'){ v.st = 'done'; }
     await DB.put('visits', v);
     if (st === 'done') return Appt.ask(v.pid, vid);
@@ -4313,6 +4402,7 @@ const Doc = {
     const el = $('#dn-'+vid); if (!el) return;
     const v = await DB.get('visits', vid);
     v.done = el.value.trim();
+    v._doneAt = Sync.now();       /* ختم ملخص الجلسة على حدة */
     await DB.put('visits', v);
     await SG.learn('donenote', v.done);
     toast(T('saved'),'s');
