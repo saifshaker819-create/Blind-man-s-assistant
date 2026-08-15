@@ -833,6 +833,7 @@ ar:{
  myAccount:'حسابي',
  confirmAll:'أُنشئت الحسابات الثلاثة. كل واحد منها يحتاج تأكيد بريده قبل أول دخول — أُرسلت رسالة لكل بريد.',
  confirmSteps:'البُرُد التي أُرسلت إليها الرسائل',
+ resendMail:'إعادة إرسال رسالة التأكيد', mailSent:'أُرسلت الرسالة',
 
 /*──── السيرفر ────*/
  email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
@@ -860,7 +861,9 @@ ar:{
  lockOff:'مطفأ', lockMin:'دقيقة', autoLocked:'أُقفل البرنامج تلقائياً',
  lockNow:'إقفال الآن', doctorOnlyData:'النسخ الاحتياطي والحذف للطبيب وحده',
  noCrypto:'هذا المتصفح لا يدعم تعمية كلمة المرور — تُحفظ كما هي',
- confirmDoc:'أدخل كلمة مرور الطبيب للمتابعة', wrongDoc:'كلمة مرور الطبيب غير صحيحة',
+ confirmDoc:'أدخل كلمة مرور حساب الطبيب للمتابعة', wrongDoc:'كلمة المرور غير صحيحة',
+ wipeWarn:'محو كل بيانات هذا الجهاز: المراجعون والجلسات والحسابات والأرشيف. لا يمكن التراجع.',
+ wipeWarn2:'تأكيد أخير — هل صدّرت نسخة احتياطية مشفّرة؟',
 
 /*──── اختيار نوع العمل وحالات السن ────*/
  procPick:'اكتب أو اختر نوع العمل', allGroups:'كل المجموعات', pickGroup:'اختر مجموعة',
@@ -1075,6 +1078,7 @@ en:{
  myAccount:'My account',
  confirmAll:'The three accounts were created. Each must confirm its email before the first sign-in — a message was sent to each.',
  confirmSteps:'Emails the messages were sent to',
+ resendMail:'Resend the confirmation message', mailSent:'Message sent',
 
 /*──── server ────*/
  email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
@@ -1102,7 +1106,9 @@ en:{
  lockOff:'Off', lockMin:'min', autoLocked:'The app was locked automatically',
  lockNow:'Lock now', doctorOnlyData:'Backup and deletion are for the doctor only',
  noCrypto:'This browser cannot hash passwords — they are stored as typed',
- confirmDoc:'Enter the doctor password to continue', wrongDoc:'Wrong doctor password',
+ confirmDoc:'Enter the doctor account password to continue', wrongDoc:'Wrong password',
+ wipeWarn:'Erase all data on this device: patients, sessions, accounts and archive. This cannot be undone.',
+ wipeWarn2:'Final confirmation — did you export an encrypted backup?',
 
 /*──── procedure picker & tooth conditions ────*/
  procPick:'Type or choose a procedure', allGroups:'All groups', pickGroup:'Choose a group',
@@ -2322,6 +2328,11 @@ const Sync = {
   المفتاح العام آمن داخل الملف — كل ما يستطيعه محكوم بسياسات
   العزل في القاعدة. لا تضع هنا مفتاح secret أبداً.
 ═══════════════════════════════════════════════*/
+/* عنوان العودة: البرنامجان يتشاركان سيرفراً واحداً، فلولا هذا
+   لعادت رسائل تأكيد الطاقم إلى تطبيق المراجع. كل برنامج يرسل
+   عنوانه مع الطلب، فيرجع البريد إلى مَن طلبه. */
+const backHere = () => location.origin + location.pathname;
+
 const CLOUD_URL = 'https://eziaplhqcgaoqpfphddh.supabase.co';
 const CLOUD_KEY = 'sb_publishable_KQWQDnHTsfEcY4VFUAtm5g_5nfEciOc';
 
@@ -2426,7 +2437,9 @@ const Cloud = {
   /* تسجيل عيادة: الدالة على السيرفر تنشئ العيادة وحساباتها الثلاثة */
   async registerClinic(payload){
     const r = await this.call('/functions/v1/register-clinic', {
-      method:'POST', auth:false, body:payload, raw:true,
+      method:'POST', auth:false,
+      body:{ ...payload, redirect_to: backHere() },   /* رسائل التأكيد تعود هنا */
+      raw:true,
     });
     if (!r.ok || r.data?.error){
       const e = r.data?.error;
@@ -2506,6 +2519,15 @@ const Login = {
       </div>`);
   },
 
+  /* إعادة إرسال رسالة التأكيد — إلى هذا البرنامج لا إلى غيره */
+  async resend(email){
+    try {
+      await Cloud.call('/auth/v1/resend?redirect_to=' + encodeURIComponent(backHere()),
+        { method:'POST', auth:false, body:{ type:'signup', email } });
+      toast(T('mailSent'), 's');
+    } catch (e) { toast(String(e.message || e), 'e'); }
+  },
+
   async resetSend(){
     const mail = ($('#rs-mail').value || '').trim().toLowerCase();
     const err = $('#rs-err');
@@ -2515,7 +2537,7 @@ const Login = {
 
     const b = $('#rs-send'); b.disabled = true; b.textContent = T('cloudBusy');
     try {
-      await Cloud.call('/auth/v1/recover',
+      await Cloud.call('/auth/v1/recover?redirect_to=' + encodeURIComponent(backHere()),
         { method:'POST', auth:false, body:{ email:mail } });
       $('#rs-step2').classList.remove('hide');
       setTimeout(()=>$('#rs-code')?.focus(), 100);
@@ -2614,7 +2636,13 @@ const Login = {
       /* خطأ إعداد لا خطأ مستخدم: لا يُعاقَب عليه بقفل المحاولات،
          ولا يُقال له «كلمة مرورك خاطئة» وهي صحيحة. */
       if (/api key/i.test(m)) show(T('badKey'));
-      else if (/not confirmed/i.test(m)) show(T('needConfirm'));
+      else if (/not confirmed/i.test(m)){
+        show(T('needConfirm'));
+        /* زر إعادة الإرسال يظهر عند الحاجة إليه فقط */
+        err.insertAdjacentHTML('beforeend',
+          `<button class="lnk" style="display:block;margin-top:6px"
+             onclick="Login.resend('${email}')">${T('resendMail')}</button>`);
+      }
       else if (/invalid|credential|grant/i.test(m)){ Guard.fail(); show(T('badCloudLogin')); }
       else show(m);
     } finally {
@@ -2798,10 +2826,23 @@ const Setup = {
   },
   /* المحو الكامل كان متاحاً من شاشة الدخول بلا أي حاجز —
      الآن يمرّ بكلمة مرور الطبيب ثم بتأكيد. */
+  /* المحو الكامل: كلمة مرور حساب الطبيب نفسه، لا رمز محلي.
+     يُتحقَّق منها بدخول فعلي إلى السيرفر — فلا تكفي جلسة مفتوحة
+     تُركت على جهاز. */
   async reset(){
-    const users = await DB.all('users');
-    if (users.length && !(await Guard.confirmDoctor())) return;
-    if (!ask('حذف كل البيانات نهائياً؟ / Delete ALL data permanently?')) return;
+    if (S.role && S.role !== 'doctor') return toast(T('docOnly'), 'e');
+
+    if (Cloud.session?.email){
+      const p = prompt(T('confirmDoc'));
+      if (p === null) return;
+      try {
+        await Cloud.call('/auth/v1/token?grant_type=password',
+          { method:'POST', auth:false, body:{ email:Cloud.session.email, password:p } });
+      } catch(_){ return toast(T('wrongDoc'), 'e'); }
+    }
+
+    if (!ask(T('wipeWarn'))) return;
+    if (!ask(T('wipeWarn2'))) return;
     await DB.clearAll(); localStorage.clear(); location.reload();
   },
 };
@@ -3491,6 +3532,7 @@ const Sec = {
       const p = await DB.get('patients', vi.pid); if (!p) continue;
       if (q && !( nm(p).toLowerCase().includes(q)
                || String(p.mrn||'').toLowerCase().includes(q)
+               || String(p.bc||'') === q                    /* باركود المراجع */
                || (qd && (p.phone||'').replace(/\D/g,'').includes(qd)) )) continue;
       rows.push({ vi, p, tt: await Ops.visitTotals(vi.id) });
     }
@@ -6546,9 +6588,21 @@ const Scan = {
   async go(code){
     const raw = (code || $('#sc-in')?.value || '').trim().toUpperCase();
     if (!raw) return;
-    /* باركود مراجع؟ يُفتح ملفه مباشرة */
+    /* باركود مراجع: يُبحث عنه في قائمة اليوم — نفس ما يفعله
+       رمز الجلسة، فيرى الموظّف دوره لا ملفه. */
     const pt = await Ops.findPtByCode(raw);
-    if (pt){ this.stop(true); UI.close(); Nav.reset(); return Sec.file(pt.id); }
+    if (pt){
+      this.stop(true); UI.close(); Nav.reset();
+      Sec.qq = pt.bc || pt.mrn || nm(pt);
+      S.patient = null;
+      S.tab = 'today';
+      App.draw();
+      const vs = await DB.by('visits','pid',pt.id);
+      const has = vs.some(v => v.date === today());
+      toast(has ? `${nm(pt)} — ${T('bookedToday')}` : T('notBookedToday'),
+            has ? 's' : 'e');
+      return;
+    }
 
     const v = await Ops.findByCode(raw);
     if (!v){
@@ -7177,18 +7231,16 @@ const Cfg = {
         <button class="btn gh gr" onclick="Cfg.pcReset()">${T('resetProcs')}</button>
       </div>`;
 
-    /* ملف النسخ الاحتياطي يحوي كل ملفات المراجعين — لا يُصدَّر
-       ولا يُمحى إلا بيد الطبيب. */
-    const isDoc = S.role === 'doctor';
+    /* ملف النسخ الاحتياطي يحوي كل ملفات المراجعين، والمحو لا
+       يُسترجع — فالقسم كله لا يظهر إلا للطبيب. */
     const data = `
-      ${isDoc?`<div class="row" style="gap:8px">
+      <div class="row" style="gap:8px">
         <button class="btn gh gr" onclick="Cfg.export()">${T('exportData')}</button>
         <button class="btn gh gr" onclick="$('#imp').click()">${T('importData')}</button>
       </div>
-      <input type="file" id="imp" accept=".json" class="hide" onchange="Cfg.import(this)">`
-      :`<div class="al w"><span>!</span><span>${T('doctorOnlyData')}</span></div>`}
+      <input type="file" id="imp" accept=".json,.dosbak" class="hide" onchange="Cfg.import(this)">
       <button class="btn w gh mt" onclick="installApp()">${T('install')}</button>
-      ${isDoc?`<button class="btn w dg mt2" onclick="Setup.reset()">⚠ ${T('del')}</button>`:''}`;
+      <button class="btn w dg mt2" onclick="Setup.reset()">⚠ ${T('del')}</button>`;
 
     /* المزامنة: ما ينتظر الرفع وآخر دورة ناجحة */
     await Sync.count();
@@ -7259,7 +7311,7 @@ const Cfg = {
 
 
     $('#view').innerHTML =
-        this.acc('g','🏥', T('secGeneral'), general, true)
+        this.acc('g','🏥', T('secGeneral'), general)
       + this.acc('p','🖨', T('secPrint'),   print)
       + this.acc('l','🎨', T('secLook'),    look)
       + (Sync.on() ? this.acc('sy','🔄', T('syncSection'), sync) : '')
@@ -7268,7 +7320,7 @@ const Cfg = {
       + (S.role==='doctor' ? this.acc('r','🔐', T('secPerm'), perm) : '')
       + (S.role==='doctor' ? this.acc('t','🦷', T('toothStatuses'), statuses) : '')
       + (S.role==='doctor' ? this.acc('pc','🧰', T('procTypes'), procs) : '')
-      + this.acc('d','💾', T('secData'),    data);
+      + (S.role==='doctor' ? this.acc('d','💾', T('secData'), data) : '');
 
     const pick = (id, key) => {
       const n = $('#'+id); if (!n) return;
