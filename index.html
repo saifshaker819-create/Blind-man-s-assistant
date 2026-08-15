@@ -577,29 +577,10 @@ html[dir=ltr] .sw.on .tg::after{transform:translateX(22px)}
       <button class="btn w mt2" id="cl-go"></button>
       <div id="cl-err" class="al r mt hide"></div>
       <button class="btn gh w mt2 xs" id="cl-reg"></button>
-      <div class="ctr mt2">
-        <button class="lnk" id="cl-local"></button>
-      </div>
+      <div class="ctr mt"><button class="lnk" id="cl-forgot"></button></div>
     </div>
 
-    <div id="lg-roles" class="col hide"></div>
 
-    <div id="lg-form" class="card hide">
-      <div class="row" style="margin-bottom:14px">
-        <button class="ib" onclick="Login.back()">→</button>
-        <div class="gr"><div class="h3" id="lg-title"></div></div>
-      </div>
-      <label class="lb" id="lb-user"></label>
-      <input id="lg-user" class="mono" dir="ltr" autocomplete="username">
-      <div class="mt">
-        <label class="lb" id="lb-pass"></label>
-        <input id="lg-pass" type="password" dir="ltr" autocomplete="current-password">
-      </div>
-      <button class="btn w mt2" id="lg-go"></button>
-      <div id="lg-err" class="al r mt hide"></div>
-      <div class="tiny ctr mt" id="lg-hint"></div>
-      <div class="ctr mt2"><button class="lnk" id="lg-tocloud"></button></div>
-    </div>
 
     <div class="row mt2" style="justify-content:center">
       <button class="ib" onclick="UI.lang()"><span class="lgL">EN</span></button>
@@ -838,10 +819,23 @@ ar:{
  encOld:'هذا ملف قديم غير مشفّر — استورده ثم صدّر نسخة مشفّرة',
  encDone:'صُدّرت نسخة مشفّرة', encShort:'كلمة السرّ ٨ خانات فأكثر',
  encNo:'هذا المتصفح لا يدعم التشفير — لن تُصدَّر نسخة',
+ ptCode:'رمز المراجع', showCode:'الباركود', dlCode:'تنزيل الباركود',
+ offlineIn:'دخول بلا إنترنت — بآخر بريد ورمز استُعملا على هذا الجهاز',
+ noOffline:'لا يمكن الدخول بلا إنترنت قبل أول دخول ناجح على هذا الجهاز',
+ offlineOld:'مضت مدة طويلة بلا اتصال — لا بدّ من دخول متصل مرة واحدة',
+ forgot:'نسيت كلمة المرور؟', resetTitle:'استعادة كلمة المرور',
+ resetStep1:'اكتب بريدك ليصلك رمز تأكيد من ٦ أرقام',
+ resetSend:'إرسال الرمز', resetSent:'أُرسل الرمز — افحص بريدك',
+ resetCode:'رمز التأكيد', resetNew:'كلمة المرور الجديدة',
+ resetGo:'تغيير كلمة المرور', resetDone:'تغيّرت كلمة المرور — سجّل الدخول',
+ resetBad:'الرمز غير صحيح أو انتهت صلاحيته', resetNoMail:'اكتب بريدك أولاً',
+ code6:'الرمز ٦ أرقام', spamHint:'إن لم تجد الرسالة، افحص مجلد الرسائل المزعجة',
+ myAccount:'حسابي',
+ confirmAll:'أُنشئت الحسابات الثلاثة. كل واحد منها يحتاج تأكيد بريده قبل أول دخول — أُرسلت رسالة لكل بريد.',
+ confirmSteps:'البُرُد التي أُرسلت إليها الرسائل',
 
 /*──── السيرفر ────*/
  email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
- offlineLogin:'دخول محلي بلا إنترنت', backToCloud:'الدخول بالبريد',
  newClinic:'تسجيل عيادة جديدة', cloudSetup:'ربط السيرفر', cloudUrl:'رابط المشروع',
  cloudKey:'المفتاح العام', cloudSave:'حفظ الاتصال', cloudNotSet:'لم يُضبط الاتصال بالسيرفر بعد',
  cloudOk:'متصل بالسيرفر', cloudFail:'تعذّر الاتصال بالسيرفر', cloudSaved:'حُفظ الاتصال',
@@ -1067,10 +1061,23 @@ en:{
  encOld:'This is an old unencrypted file — import it, then export an encrypted copy',
  encDone:'Encrypted backup saved', encShort:'Password must be 8+ characters',
  encNo:'This browser cannot encrypt — no backup will be exported',
+ ptCode:'Patient code', showCode:'Barcode', dlCode:'Download barcode',
+ offlineIn:'Offline sign-in — with the last email and password used on this device',
+ noOffline:'Offline sign-in needs one successful online sign-in on this device first',
+ offlineOld:'Too long without a connection — one online sign-in is required',
+ forgot:'Forgot your password?', resetTitle:'Reset password',
+ resetStep1:'Enter your email to receive a 6-digit code',
+ resetSend:'Send code', resetSent:'Code sent — check your email',
+ resetCode:'Confirmation code', resetNew:'New password',
+ resetGo:'Change password', resetDone:'Password changed — sign in',
+ resetBad:'Wrong or expired code', resetNoMail:'Enter your email first',
+ code6:'The code is 6 digits', spamHint:'If you cannot find it, check your spam folder',
+ myAccount:'My account',
+ confirmAll:'The three accounts were created. Each must confirm its email before the first sign-in — a message was sent to each.',
+ confirmSteps:'Emails the messages were sent to',
 
 /*──── server ────*/
  email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
- offlineLogin:'Local sign-in (no internet)', backToCloud:'Sign in with email',
  newClinic:'Register a new clinic', cloudSetup:'Server connection', cloudUrl:'Project URL',
  cloudKey:'Publishable key', cloudSave:'Save connection', cloudNotSet:'The server connection is not set yet',
  cloudOk:'Connected to the server', cloudFail:'Could not reach the server', cloudSaved:'Connection saved',
@@ -1669,7 +1676,7 @@ const UI = {
     document.documentElement.lang = LG;
     document.documentElement.dir  = isAr()?'rtl':'ltr';
     $$('.lgL').forEach(x=>x.textContent = isAr()?'EN':'ع');
-    if (S.role) App.draw(); else Login.draw();
+    if (S.role) App.draw(); else Login.drawCloud();
   },
   /* صفحة مستقلة تغطّي الشاشة — لا تُغلق بالضغط على الخلفية */
   sheet(html){
@@ -2135,11 +2142,13 @@ const Sync = {
 
   /* قرار العيادة يعود إلى تطبيق المراجع، وإلا بقي حجزه
      «قيد المراجعة» إلى الأبد. */
-  async bookStatus(id, status){
+  async bookStatus(id, status, code){
     if (!this.on()) return;
     try {
+      const body = { status };
+      if (code) body.code = String(code);
       await Cloud.call('/rest/v1/bookings?id=eq.' + encodeURIComponent(id),
-        { method:'PATCH', body:{ status } });
+        { method:'PATCH', body });
     } catch(_){ /* يُعاد في الدورة التالية عبر إعادة السحب */ }
   },
 
@@ -2169,6 +2178,8 @@ const Sync = {
     } finally { this.quiet = false; }
 
     try { localStorage.setItem(this.bkKey(), mark); } catch(_){}
+    /* ما وصل من جهاز آخر قد يحمل باركوداً مكرّراً — يُصلَح هنا */
+    await Ops.fixBarcodes();
     if (fresh) toast(`${fresh} ${T('newBooking')}`, 's');
     return rows.length;
   },
@@ -2443,8 +2454,7 @@ const Login = {
     $('#lb-cpass').textContent  = T('pass');
     $('#cl-go').textContent     = T('cloudLogin');
     $('#cl-reg').textContent    = T('newClinic');
-    $('#cl-local').textContent  = T('offlineLogin');
-    $('#lg-tocloud').textContent= T('backToCloud');
+    $('#cl-forgot').textContent = T('forgot');
 
     const w = $('#cl-warn');
     if (!Cloud.ready()){
@@ -2459,15 +2469,89 @@ const Login = {
     }
   },
 
-  /* التبديل بين الشاشتين — المحلي يبقى شبكة أمان عند انقطاع النت */
-  setMode(m){
-    this.mode = m;
-    $('#lg-cloud').classList.toggle('hide', m !== 'cloud');
-    $('#lg-roles').classList.toggle('hide', m !== 'local');
-    $('#lg-form').classList.add('hide');
-    $('#cl-err').classList.add('hide');
-    if (m === 'local') this.draw();
-    else this.drawCloud();
+  /*──── استعادة كلمة المرور ────
+    رمز من ٦ أرقام يصل البريد، ثم كلمة مرور جديدة. اختير الرمز
+    على الرابط لأن الرابط يفتح متصفحاً آخر ويضيع، والرمز يُنسخ
+    ويُلصق في نفس الشاشة. */
+  reset(){
+    const mail = ($('#cl-email')?.value || '').trim().toLowerCase();
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">🔑</div>
+        <div class="gr"><div class="h2">${T('resetTitle')}</div>
+          <div class="tiny">${T('resetStep1')}</div></div>
+        <button class="ib" onclick="UI.close()">✕</button>
+      </div>
+      <div class="card">
+        <label class="lb">${T('email')}</label>
+        <input id="rs-mail" type="email" dir="ltr" spellcheck="false"
+               inputmode="email" value="${esc(mail)}">
+        <button class="btn w mt2" id="rs-send"
+          onclick="Login.resetSend()">${T('resetSend')}</button>
+
+        <div id="rs-step2" class="hide">
+          <div class="al g mt2"><span>✓</span><span>${T('resetSent')}<br>
+            <span class="tiny">${T('spamHint')}</span></span></div>
+          <div class="mt"><label class="lb">${T('resetCode')}</label>
+            <input id="rs-code" inputmode="numeric" dir="ltr" maxlength="6"
+              placeholder="123456" style="letter-spacing:.4em;text-align:center;
+              font-size:20px;font-weight:800"></div>
+          <div class="mt"><label class="lb">${T('resetNew')}</label>
+            <input id="rs-pass" type="password" dir="ltr" autocomplete="new-password"></div>
+          <button class="btn w mt2" id="rs-go"
+            onclick="Login.resetGo()">${T('resetGo')}</button>
+        </div>
+
+        <div id="rs-err" class="al r mt hide"></div>
+      </div>`);
+  },
+
+  async resetSend(){
+    const mail = ($('#rs-mail').value || '').trim().toLowerCase();
+    const err = $('#rs-err');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    err.classList.add('hide');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return show(T('resetNoMail'));
+
+    const b = $('#rs-send'); b.disabled = true; b.textContent = T('cloudBusy');
+    try {
+      await Cloud.call('/auth/v1/recover',
+        { method:'POST', auth:false, body:{ email:mail } });
+      $('#rs-step2').classList.remove('hide');
+      setTimeout(()=>$('#rs-code')?.focus(), 100);
+    } catch (e) { show(String(e.message || e)); }
+    finally { b.disabled = false; b.textContent = T('resetSend'); }
+  },
+
+  async resetGo(){
+    const err = $('#rs-err');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    err.classList.add('hide');
+    const mail = ($('#rs-mail').value || '').trim().toLowerCase();
+    const code = ($('#rs-code').value || '').trim();
+    const pass = $('#rs-pass').value || '';
+    if (!/^\d{6}$/.test(code)) return show(T('code6'));
+    if (pass.length < 8)       return show(T('passShort'));
+
+    const b = $('#rs-go'); b.disabled = true; b.textContent = T('cloudBusy');
+    try {
+      /* الرمز يُبادَل بتذكرة مؤقّتة، وبها تُغيَّر كلمة المرور */
+      const d = await Cloud.call('/auth/v1/verify', { method:'POST', auth:false,
+        body:{ type:'recovery', email:mail, token:code } });
+      if (!d?.access_token) return show(T('resetBad'));
+      Cloud.saveSess({ token:d.access_token, refresh:d.refresh_token,
+                       exp: Date.now() + 3600000, email:mail });
+      await Cloud.call('/auth/v1/user', { method:'PUT', body:{ password:pass } });
+      Cloud.saveSess(null);
+      Guard.forget();          /* ذاكرة الدخول القديمة لم تعد صالحة */
+      Guard.ok();
+      UI.close();
+      toast(T('resetDone'), 's');
+      $('#cl-email').value = mail; $('#cl-pass').value = ''; $('#cl-pass').focus();
+    } catch (e) {
+      const m = String(e.message || e);
+      show(/token|expired|invalid/i.test(m) ? T('resetBad') : m);
+    } finally { b.disabled = false; b.textContent = T('resetGo'); }
   },
 
   /*──── تنفيذ الدخول بالبريد ────*/
@@ -2492,6 +2576,15 @@ const Login = {
         return show(T('noMembership'));
       }
       Guard.ok();
+      await Guard.remember(email, pass, me);   /* ليعمل بلا إنترنت لاحقاً */
+      /* اسم العيادة والطبيب معروفان من السيرفر — لا يُسأل عنهما مرة أخرى */
+      if (!CFG.data.registered && me.clinic_name){
+        CFG.data.clinic = me.clinic_name;
+        if (me.doctor_name) CFG.data.doctor = me.doctor_name;
+        CFG.data.registered = true;
+        await CFG.save();
+        $('#regbox')?.remove();
+      }
       /* ★ الدور يقرّره السيرفر، فتُفتح واجهة الطبيب أو السكرتير
          أو الصيدلية أو المراجع تلقائياً من شاشة واحدة. */
       S.role = me.role;
@@ -2501,6 +2594,23 @@ const Login = {
       App.start();
     } catch (e) {
       const m = String(e.message || e);
+      /* الشبكة مقطوعة: تُجرَّب ذاكرة الجهاز بدل أن يقف العمل */
+      if (/cloudFail|تعذّر|Failed to fetch|NetworkError/i.test(m) || !navigator.onLine){
+        const r = await Guard.offlineIn(email, pass);
+        if (r.ok){
+          S.role = r.me.role;
+          S.user = { id:email, role:r.me.role, name:r.me.full_name || email,
+                     cloud:true, offline:true, clinic_id:r.me.clinic_id };
+          S.clinicName = r.me.clinic_name;
+          Cloud.me = { role:r.me.role, clinic_id:r.me.clinic_id,
+                       clinic_name:r.me.clinic_name };
+          toast(T('offlineIn'), 'w');
+          return App.start();
+        }
+        if (r.why === 'noOffline')   return show(T('noOffline'));
+        if (r.why === 'offlineOld')  return show(T('offlineOld'));
+        return show(T('badCloudLogin'));
+      }
       /* خطأ إعداد لا خطأ مستخدم: لا يُعاقَب عليه بقفل المحاولات،
          ولا يُقال له «كلمة مرورك خاطئة» وهي صحيحة. */
       if (/api key/i.test(m)) show(T('badKey'));
@@ -2577,11 +2687,28 @@ const Login = {
         accounts,
       });
       UI.close();
-      toast(T('regDone'), 's');
-      /* البريد يُملأ تلقائياً ليدخل الطبيب فوراً */
       $('#cl-email').value = accounts.doctor.email;
       $('#cl-pass').value = '';
-      $('#cl-pass').focus();
+      /* الحسابات الثلاثة تنتظر تأكيد بريدها — يُشرح ذلك صراحةً
+         بدل أن يجرّب الطبيب الدخول فيُرفض بلا سبب مفهوم. */
+      UI.sheet(`
+        <div class="ctr" style="padding:8px 0">
+          <div style="font-size:44px">📩</div>
+          <div class="h2 mt">${T('regDone')}</div>
+        </div>
+        <div class="al w"><span>!</span><span>${T('confirmAll')}</span></div>
+        <div class="card">
+          <div class="lbl">${T('confirmSteps')}</div>
+          <div class="col mt">
+            ${[accounts.doctor.email, accounts.secretary.email, accounts.pharmacy.email]
+              .map((m,i)=>`<div class="it" style="cursor:default">
+                <div class="av" style="width:28px;height:28px;font-size:13px">${i+1}</div>
+                <div class="gr mono ell" style="font-weight:700">${esc(m)}</div>
+              </div>`).join('')}
+          </div>
+          <div class="tiny mt">${T('spamHint')}</div>
+        </div>
+        <button class="btn w mt2" onclick="UI.close()">${T('close')}</button>`);
     } catch (e) {
       show(String(e.message || e));
     } finally {
@@ -2589,154 +2716,6 @@ const Login = {
     }
   },
 
-  draw(){
-    $('#lg-tag').textContent = T('tag');
-    $$('.lgL').forEach(x=>x.textContent = isAr()?'EN':'ع');
-    $('#lg-roles').innerHTML = ROLES.map(x=>`
-      <button class="rolebtn" onclick="Login.go('${x.r}')">
-        <div class="ic" style="background:var(--${x.col}L);font-size:22px">${x.ic}</div>
-        <div class="gr">
-          <div class="h3">${T('r_'+x.r)}</div>
-          <div class="tiny">${T('r_'+x.r+'_d')}</div>
-        </div>
-        <div style="color:var(--ink3);font-size:18px">${isAr()?'‹':'›'}</div>
-      </button>`).join('');
-    $('#lb-user').textContent = T('user');
-    $('#lb-pass').textContent = T('pass');
-    $('#lg-go').textContent   = T('login');
-    /* التلميح الافتراضي يظهر فقط ما دام حساب يستعمل ١٢٣٤ */
-    const hint = $('#lg-hint'); hint.textContent = '';
-    Promise.resolve().then(()=>Guard.anyDefault())
-      .then(d => { if (d) hint.textContent = T('hint'); })
-      .catch(()=>{});
-  },
-  async go(r){
-    this.pick = r;
-    /* المراجع يختار العيادة أولاً — تطبيق واحد لكل العيادات */
-    if (r === 'patient' && !S.clinic) return this.clinicList();
-    $('#lg-roles').classList.add('hide');
-    $('#lg-form').classList.remove('hide');
-    $('#lg-title').textContent = T('r_'+r);
-    $('#lg-user').value = r==='patient' ? '' : r;
-    $('#lg-pass').value = '';
-    $('#lg-err').classList.add('hide');
-    if (r === 'patient'){
-      $('#lb-user').textContent = T('phone');
-      $('#lg-user').placeholder = '07XX XXX XXXX';
-    } else {
-      $('#lb-user').textContent = T('user');
-    }
-    $('#lg-pass').parentElement.classList.toggle('hide', r === 'patient');
-    setTimeout(()=>$( r==='patient' ? '#lg-user' : '#lg-pass').focus(), 100);
-  },
-  back(){
-    S.clinic = null; this.cq = '';
-    $('#lg-roles').classList.remove('hide');
-    $('#lg-form').classList.add('hide');
-    this.draw();
-  },
-
-  /* دليل العيادات مع بحث باسم الطبيب أو العيادة أو المنطقة */
-  cq:'',
-  async clinicList(){
-    $('#lg-roles').innerHTML = `
-      <div class="row" style="margin-bottom:12px">
-        <button class="ib" onclick="Login.back()">${isAr()?'→':'←'}</button>
-        <div class="gr"><div class="h3">${T('pickClinic')}</div>
-          <div class="tiny">${T('r_patient_d')}</div></div>
-      </div>
-      <div class="sbar" style="margin-bottom:12px">
-        <input id="cl-q" placeholder="${T('searchClinic')}" value="${esc(this.cq)}">
-      </div>
-      <div id="cl-list" class="col"></div>`;
-
-    const inp = $('#cl-q');
-    let tm;
-    inp.addEventListener('input', ()=>{ this.cq = inp.value;
-      clearTimeout(tm); tm = setTimeout(()=>this.clinicRows(), 180); });
-    this.clinicRows();
-  },
-
-  async clinicRows(){
-    const box = $('#cl-list'); if (!box) return;
-    let list = await CFG.clinics();
-    const q = this.cq.trim().toLowerCase();
-    if (q) list = list.filter(c =>
-      [c.name, c.doctor, c.area, c.gov, c.country, c.landmark]
-        .filter(Boolean).some(x => String(x).toLowerCase().includes(q)));
-
-    box.innerHTML = list.length ? list.map(c=>`
-      <button class="rolebtn" style="margin-bottom:9px" onclick="Login.setClinic('${c.id}')">
-        <div class="ic" style="background:var(--brL);overflow:hidden">
-          ${c.logo?`<img src="${c.logo}" style="width:100%;height:100%;object-fit:cover">`
-                  :`<span style="font-size:20px">🏥</span>`}</div>
-        <div class="gr" style="min-width:0">
-          <div class="h3 ell">${esc(c.doctor || c.name || '—')}</div>
-          <div class="tiny ell">${esc(c.name||'')}</div>
-          <div class="tiny ell">${[c.area, c.gov, c.country].filter(Boolean).map(esc).join(' · ')}</div>
-        </div>
-        <div style="color:var(--ink3);font-size:18px">${isAr()?'‹':'›'}</div>
-      </button>`).join('')
-     : `<div class="emp">${T('noClinics')}</div>`;
-  },
-
-  async setClinic(cid){
-    const list = await CFG.clinics();
-    S.clinic = list.find(c=>c.id===cid) || null;
-    this.pick = 'patient';
-    $('#lg-roles').classList.add('hide');
-    $('#lg-form').classList.remove('hide');
-    $('#lg-title').textContent = S.clinic?.name || T('r_patient');
-    $('#lb-user').textContent  = T('phone');
-    $('#lg-user').value = ''; $('#lg-user').placeholder = '07XX XXX XXXX';
-    $('#lg-pass').value = '';
-    $('#lg-err').classList.add('hide');
-    setTimeout(()=>$('#lg-user').focus(), 100);
-  },
-  async submit(){
-    try { await this._submit(); }
-    catch (e){
-      const box = $('#lg-err');
-      box.textContent = e.message || String(e);
-      box.classList.remove('hide');
-    }
-  },
-
-  async _submit(){
-    const u = $('#lg-user').value.trim(), p = $('#lg-pass').value;
-    const err = $('#lg-err');
-
-    if (this.pick === 'patient'){
-      if (u.replace(/\D/g,'').length < 10){
-        err.textContent = T('phone') + ' — ' + T('required');
-        err.classList.remove('hide'); return;
-      }
-      const cid = S.clinic?.id || CFG.data.cid;
-      const all = (await DB.all('patients')).filter(x => !x.cid || x.cid === cid);
-      const pt = all.find(x => (x.phone||'').replace(/\D/g,'') === u.replace(/\D/g,''));
-      S.role='patient'; S.user={ phone:u, pid: pt?.id || null, cid };
-      return App.start();
-    }
-
-    /* تعطيل التخمين قبل أي تحقّق */
-    const left = Guard.lockLeft();
-    if (left){
-      err.textContent = `${T('tooMany')} ${Math.ceil(left/1000)}s`;
-      err.classList.remove('hide'); return;
-    }
-
-    const users = await DB.all('users');
-    const usr = users.find(x => x.id === u);
-    if (!usr || !(await Guard.verify(usr, p))){
-      Guard.fail();
-      err.textContent = T('badLogin'); err.classList.remove('hide'); return;
-    }
-    Guard.ok();
-    /* ترقية صامتة: أول دخول ناجح يحوّل النص الصريح إلى صيغة معمّاة */
-    if (!usr.hash && Guard.can()) await Guard.setPass(usr, p);
-    S.role = usr.role; S.user = usr;
-    App.start();
-  },
 };
 
 /*═══════════════ تسجيل العيادة عند أول تشغيل ═══════════════
@@ -2747,13 +2726,12 @@ const Reg = {
   needed(){ return !CFG.data.registered; },
 
   draw(){
-    $('#lg-roles').classList.add('hide');
-    $('#lg-form').classList.add('hide');
-    const host = $('#lg-form').parentElement;
+    const card = $('#lg-cloud');
+    card.classList.add('hide');
     let box = $('#regbox');
     if (!box){
       box = el('<div id="regbox"></div>');
-      host.insertBefore(box, $('#lg-form'));
+      card.parentElement.insertBefore(box, card);
     }
     const c = CFG.data;
     const f = (id,lb,val,req,extra='') =>
@@ -2802,9 +2780,9 @@ const Reg = {
     await CFG.save();
     await CFG.register();
     $('#regbox')?.remove();
+    $('#lg-cloud').classList.remove('hide');
     toast(T('saved'), 's');
-    Login.draw();
-    $('#lg-roles').classList.remove('hide');
+    Login.drawCloud();
   },
 };
 
@@ -3084,6 +3062,40 @@ const Ops = {
     return list.sort((a,b)=> ((b.up||b.at||0) - (a.up||a.at||0)));
   },
 
+  /*──── باركود المراجع ────
+    رقم قصير يُقرأ بالماسح ويُنطق بالهاتف. يبدأ من ١٠٠ في كل
+    عيادة، فلا يخرج أول مراجع برقم ١ ولا يطول بلا داعٍ.
+    التفرّد داخل العيادة فقط — عيادتان مختلفتان قد تحملان الرقم
+    نفسه ولا ضير، فقواعدهما معزولة. */
+  async nextBarcode(){
+    const cid = CFG.data.cid;
+    const used = (await DB.all('patients'))
+      .filter(p => !p.cid || p.cid === cid)
+      .map(p => Number(p.bc) || 0);
+    return String(Math.max(99, ...used) + 1);
+  },
+
+  /* جهازان يعملان بلا إنترنت قد يمنحان الرقم نفسه لمراجعين.
+     بعد المزامنة يُكشف التكرار ويُعاد ترقيم الأحدث تسجيلاً —
+     الأقدم يحتفظ برقمه لأنه غالباً طُبع أو أُعطي لصاحبه. */
+  async fixBarcodes(){
+    const cid = CFG.data.cid;
+    const ps = (await DB.all('patients')).filter(p => !p.cid || p.cid === cid);
+    const seen = new Map();
+    let next = Math.max(99, ...ps.map(p => Number(p.bc) || 0)) + 1;
+    let fixed = 0;
+
+    for (const p of ps.sort((a,b) => (a.at||0) - (b.at||0))){
+      if (!p.bc) continue;
+      const k = String(p.bc);
+      if (!seen.has(k)){ seen.set(k, p.id); continue; }
+      p.bc = String(next++);
+      await DB.put('patients', p);
+      fixed++;
+    }
+    return fixed;
+  },
+
   async nextMrn(){
     const all = await DB.all('patients');
     const y = new Date().getFullYear();
@@ -3098,7 +3110,8 @@ const Ops = {
       p = await DB.get('patients', id);
       p = { ...p, ...data, up:now };
     } else {
-      p = { id:uid(), mrn: await this.nextMrn(), cid: CFG.data.cid, ...data, at:now, up:now };
+      p = { id:uid(), mrn: await this.nextMrn(), bc: await this.nextBarcode(),
+            cid: CFG.data.cid, ...data, at:now, up:now };
     }
     await DB.put('patients', p);
     await Form.learn(data);
@@ -3349,6 +3362,27 @@ const Ops = {
   async findByCode(code){
     const vs = await DB.all('visits');
     return vs.find(v => v.code === String(code||'').trim().toUpperCase()) || null;
+  },
+
+  /* الماسح يقرأ رمز الجلسة أو باركود المراجع — كلاهما مقبول */
+  async findPtByCode(code){
+    const c = String(code||'').trim().replace(/^P/i,'');
+    if (!/^\d+$/.test(c)) return null;
+    const cid = CFG.data.cid;
+    return (await DB.all('patients'))
+      .find(p => String(p.bc) === c && (!p.cid || p.cid === cid)) || null;
+  },
+
+  /* ترقيم الملفات المسجّلة قبل إضافة الباركود */
+  async backfillBarcodes(){
+    const cid = CFG.data.cid;
+    const ps = (await DB.all('patients'))
+      .filter(p => (!p.cid || p.cid === cid) && !p.bc)
+      .sort((a,b) => (a.at||0) - (b.at||0));
+    if (!ps.length) return 0;
+    let next = Number(await this.nextBarcode());
+    for (const p of ps){ p.bc = String(next++); await DB.put('patients', p); }
+    return ps.length;
   },
 };
 
@@ -3637,8 +3671,9 @@ const Sec = {
                    phone:b.phone, address:b.address, job:b.job,
                    complaint:b.complaint, prevDental:b.prevDental, other:b.other, mh:b.mh };
     p = await Ops.savePatient(data, p?.id);
-    b.st='accepted'; b.pid=p.id; await DB.put('bookings', b);
-    if (b.srv) Sync.bookStatus(b.id, 'accepted');
+    b.st='accepted'; b.pid=p.id; b.bc=p.bc; await DB.put('bookings', b);
+    /* الباركود يصل تطبيق المراجع فيُريه للاستقبال من هاتفه */
+    if (b.srv) Sync.bookStatus(b.id, 'accepted', p.bc);
     await Ops.openVisit(p.id, b.complaint);
     toast(T('accepted'),'s');
     Nav.home();
@@ -3851,6 +3886,17 @@ const Sec = {
           ${visitRows.join('') || `<div class="emp">${T('noVisits')}</div>`}</div></div>
       </details>
 
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <div class="lbl">${T('ptCode')}</div>
+            <div class="mono h2" style="letter-spacing:.1em">${esc(p.bc||'—')}</div>
+          </div>
+          ${p.bc?`<button class="btn gh sm" onclick="Sec.ptCode('${pid}')">
+            ▮▮ ${T('showCode')}</button>`:''}
+        </div>
+      </div>
+
       ${S.role==='doctor'?`<button class="btn w dg mt2"
         onclick="Del.patient('${pid}')">${T('delPt')}</button>`:''}
       <button class="btn w gh mt2" onclick="Nav.back()">${T('close')}</button>`;
@@ -3884,6 +3930,21 @@ const Sec = {
   },
 
   /*──── الباركود ────*/
+  /* باركود المراجع نفسه — يبقى معه في كل زياراته */
+  async ptCode(pid){
+    const p = await DB.get('patients', pid);
+    if (!p?.bc) return;
+    UI.sheet(`
+      <div class="h2 ctr">${T('ptCode')}</div>
+      <div class="sub ctr">${esc(nm(p))}</div>
+      <div class="card mt2" style="background:#fff;padding:14px">
+        ${C39.svg(p.bc, 74)}
+        <div class="mono ctr mt" style="color:#000;font-weight:800;
+          letter-spacing:.2em;font-size:19px">${esc(p.bc)}</div>
+      </div>
+      <button class="btn w gh mt2" onclick="Nav.back()">${T('close')}</button>`);
+  },
+
   async barcode(vid){
     const v = await DB.get('visits', vid);
     const p = await DB.get('patients', v.pid);
@@ -6485,6 +6546,10 @@ const Scan = {
   async go(code){
     const raw = (code || $('#sc-in')?.value || '').trim().toUpperCase();
     if (!raw) return;
+    /* باركود مراجع؟ يُفتح ملفه مباشرة */
+    const pt = await Ops.findPtByCode(raw);
+    if (pt){ this.stop(true); UI.close(); Nav.reset(); return Sec.file(pt.id); }
+
     const v = await Ops.findByCode(raw);
     if (!v){
       toast(T('noResult'), 'e');
@@ -6988,7 +7053,6 @@ const Cfg = {
   async draw(){
     const c = CFG.data;
     const dark = document.documentElement.getAttribute('data-theme')==='dark';
-    const defWarn = await Guard.anyDefault();
 
     const general = `
       <label class="lb">${T('clinic')}</label>
@@ -7167,24 +7231,25 @@ const Cfg = {
       </div>`:''}
       <button class="btn gh w mt2" onclick="Cfg.pingCloud()">${T('testConn')}</button>`;
 
-    /* الأمان: كلمة المرور والقفل التلقائي */
-    const users = await DB.all('users');
-    const mins  = [0,1,5,10,30];
-    const cur   = Guard.idleMin();
+    /* الأمان: بريد الحساب وكلمة مروره والقفل التلقائي.
+       كلمات المرور صارت على السيرفر لا في الجهاز، فلا معنى
+       لقائمة حسابات محلية — بريدك أنت وكلمة مرورك أنت. */
+    const mins = [0,1,5,10,30];
+    const cur  = Guard.idleMin();
     const safety = `
-      ${defWarn?`<div class="al r"><span>⚠</span><span>${T('defaultPass')}</span></div>`:''}
-      <div class="col ${defWarn?'mt2':''}">
-        ${users.filter(u => S.role==='doctor' || u.id===S.user?.id).map(u=>`
-          <div class="it" onclick="Guard.passSheet('${u.id}')">
-            <div class="av ${Guard.isDefault(u)?'r':'g'}">🔑</div>
-            <div class="gr">
-              <div class="h3">${esc(T('r_'+u.role))}</div>
-              <div class="tiny mono">${esc(u.id)}${Guard.isDefault(u)
-                ? ` · <span style="color:var(--bd)">1234</span>` : ''}</div>
-            </div>
-            <span style="color:var(--ink3)">${isAr()?'‹':'›'}</span>
-          </div>`).join('')}
+      <div class="it" style="cursor:default">
+        <div class="av">👤</div>
+        <div class="gr">
+          <div class="tiny">${T('myAccount')}</div>
+          <div class="mono ell" style="font-weight:800">
+            ${esc(Cloud.session?.email || S.user?.id || '—')}</div>
+          <div class="tiny">${esc(T('r_'+S.role))}${S.clinicName
+            ? ' · ' + esc(S.clinicName) : ''}</div>
+        </div>
       </div>
+      <button class="btn w gh mt2" onclick="Cfg.changePass()">${T('changePass')}</button>
+      <button class="btn w gh mt" onclick="Cfg.forgotPass()">${T('forgot')}</button>
+
       <div class="mt2"><label class="lb">${T('autoLock')}</label>
         <select onchange="Cfg.setIdle(this.value)">
           ${mins.map(m=>`<option value="${m}" ${cur===m?'selected':''}>
@@ -7192,13 +7257,14 @@ const Cfg = {
         </select></div>
       <button class="btn w gh mt2" onclick="Guard.lock(false)">${T('lockNow')}</button>`;
 
+
     $('#view').innerHTML =
         this.acc('g','🏥', T('secGeneral'), general, true)
       + this.acc('p','🖨', T('secPrint'),   print)
       + this.acc('l','🎨', T('secLook'),    look)
       + (Sync.on() ? this.acc('sy','🔄', T('syncSection'), sync) : '')
       + this.acc('cl','☁', T('cloudSection'), cloud)
-      + this.acc('s','🛡', T('secSafety'), safety, defWarn)
+      + (S.role==='doctor' ? this.acc('s','🛡', T('secSafety'), safety) : '')
       + (S.role==='doctor' ? this.acc('r','🔐', T('secPerm'), perm) : '')
       + (S.role==='doctor' ? this.acc('t','🦷', T('toothStatuses'), statuses) : '')
       + (S.role==='doctor' ? this.acc('pc','🧰', T('procTypes'), procs) : '')
@@ -7283,6 +7349,63 @@ const Cfg = {
   },
 
   async rmSign(){ if (!ask()) return; delete CFG.data.sign; await CFG.save(); this.draw(); },
+
+  /*──── كلمة مرور الحساب على السيرفر ────*/
+  changePass(){
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">🔐</div>
+        <div class="gr"><div class="h2">${T('changePass')}</div>
+          <div class="mono tiny">${esc(Cloud.session?.email||'')}</div></div>
+        <button class="ib" onclick="UI.close()">✕</button>
+      </div>
+      <div class="card">
+        <label class="lb">${T('curPass')}</label>
+        <input id="cp-c" type="password" dir="ltr" autocomplete="current-password">
+        <div class="mt"><label class="lb">${T('newPass')}</label>
+          <input id="cp-a" type="password" dir="ltr" autocomplete="new-password"></div>
+        <div class="mt"><label class="lb">${T('newPass2')}</label>
+          <input id="cp-b" type="password" dir="ltr" autocomplete="new-password"></div>
+        <div id="cp-err" class="al r mt hide"></div>
+        <button class="btn w mt2" id="cp-go" onclick="Cfg.savePass()">${T('save')}</button>
+      </div>`);
+  },
+
+  async savePass(){
+    const err = $('#cp-err');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    err.classList.add('hide');
+    const c = $('#cp-c').value, a = $('#cp-a').value, b = $('#cp-b').value;
+    if (a.length < 8) return show(T('passShort'));
+    if (a !== b)      return show(T('passSame'));
+    const weak = ['12345678','123456789','password','qwertyui','11111111',
+                  'abcd1234','iraq1234','12341234','00000000','clinic12'];
+    if (weak.includes(a.toLowerCase()) || /^(.)\1+$/.test(a) || /^\d+$/.test(a))
+      return show(T('passWeak'));
+
+    const btn = $('#cp-go'); btn.disabled = true; btn.textContent = T('cloudBusy');
+    try {
+      /* الكلمة الحالية تُتحقَّق بدخول فعلي — فلا يغيّرها من جلس
+         على جهاز مفتوح تركه صاحبه. */
+      const mail = Cloud.session?.email;
+      await Cloud.call('/auth/v1/token?grant_type=password',
+        { method:'POST', auth:false, body:{ email:mail, password:c } });
+      await Cloud.call('/auth/v1/user', { method:'PUT', body:{ password:a } });
+      await Guard.remember(mail, a, Cloud.me || { role:S.role });
+      toast(T('passDone'), 's');
+      UI.close();
+    } catch (e) {
+      const m = String(e.message || e);
+      show(/invalid|credential|grant/i.test(m) ? T('passWrong') : m);
+    } finally { btn.disabled = false; btn.textContent = T('save'); }
+  },
+
+  /* «نسيت كلمة المرور» من داخل البرنامج: نفس مسار شاشة الدخول */
+  forgotPass(){
+    const m = Cloud.session?.email || S.user?.id || '';
+    UI.close(); Auth.out();
+    setTimeout(() => { if (m) $('#cl-email').value = m; Login.reset(); }, 260);
+  },
 
   async pingCloud(){
     if (!Cloud.ready()) return toast(T('cloudNotSet'), 'e');
@@ -7396,6 +7519,8 @@ const App = {
     Nav.reset();
     this.draw();
     /* أول مزامنة بعد الدخول: يجلب الجهاز ما فاته قبل أن يبدأ العمل */
+    /* ملفات سُجّلت قبل إضافة الباركود تأخذ أرقامها عند أول تشغيل */
+    Ops.backfillBarcodes().catch(()=>{});
     Sync.count().then(()=>{ Sync.paint(); if (Sync.pending) Sync.kick(); });
     if (Sync.on()){ Sync.run(); Live.connect(); }
   },
@@ -7595,6 +7720,46 @@ const Guard = {
     });
   },
 
+  /*──── الدخول بلا إنترنت ────
+    بعد كل دخول ناجح متصل تُحفظ بصمة البريد والرمز على الجهاز
+    (PBKDF2، لا نصّ صريح). فإذا انقطع النت لاحقاً دخل الموظف
+    بنفس بياناته دون أن يقف العمل.
+    صلاحيتها ١٤ يوماً: جهاز فُقد أو موظف تُرك، لا يبقى بابه
+    مفتوحاً إلى الأبد. */
+  OFFLINE_DAYS:14,
+
+  async remember(email, pass, me){
+    if (!this.can()) return;
+    try {
+      const salt = this.salt();
+      localStorage.setItem('d_off', JSON.stringify({
+        email: String(email).toLowerCase(),
+        salt, hash: await this.hash(pass, salt),
+        role: me.role, clinic_id: me.clinic_id || null,
+        clinic_name: me.clinic_name || null, full_name: me.full_name || null,
+        at: Date.now(),
+      }));
+    } catch(_){}
+  },
+
+  offline(){
+    try { return JSON.parse(localStorage.getItem('d_off')) || null; }
+    catch(_){ return null; }
+  },
+
+  /* يُرجع الحالة بدل true/false، لتُقال للمستخدم علّة الرفض */
+  async offlineIn(email, pass){
+    const o = this.offline();
+    if (!o) return { ok:false, why:'noOffline' };
+    if (Date.now() - o.at > this.OFFLINE_DAYS * 86400000)
+      return { ok:false, why:'offlineOld' };
+    if (o.email !== String(email).toLowerCase()) return { ok:false, why:'bad' };
+    if ((await this.hash(pass, o.salt)) !== o.hash) return { ok:false, why:'bad' };
+    return { ok:true, me:o };
+  },
+
+  forget(){ try { localStorage.removeItem('d_off'); } catch(_){} },
+
   /*──── تأكيد بكلمة مرور الطبيب قبل الإجراءات الخطرة ────*/
   async confirmDoctor(){
     const p = prompt(T('confirmDoc'));
@@ -7663,7 +7828,8 @@ const Auth = { out(){ S.role=null; S.user=null; S.patient=null; S.visit=null;
      على جهاز تركه صاحبه. */
   Live.stop();
   if (Cloud.session) Cloud.signOut();
-  $('#app').classList.add('hide'); $('#login').classList.remove('hide'); Login.back(); Login.draw(); } };
+  $('#app').classList.add('hide'); $('#login').classList.remove('hide');
+  $('#lg-cloud').classList.remove('hide'); Login.drawCloud(); } };
 
 /*═══════════════ الهوية والتثبيت كتطبيق ═══════════════
   الأيقونة تُولَّد داخل الملف نفسه (سن أبيض على أخضر) ثم تُحوَّل
@@ -7873,20 +8039,14 @@ window.addEventListener('unhandledrejection', e =>
 
   /* تُربط الأزرار قبل أي انتظار — لو تعثّر التحميل يبقى الزر مستجيباً
      ويُظهر سبب المشكلة بدل الصمت. */
-  $('#lg-go').onclick = () => Login.submit();
-  $('#lg-pass').onkeydown = e => { if (e.key==='Enter') Login.submit(); };
-  $('#lg-user').onkeydown = e => { if (e.key==='Enter' && Login.pick==='patient') Login.submit(); };
-
   /* شاشة الدخول بالبريد هي الافتراضية، والمحلي احتياط عند انقطاع النت */
   Cloud.load();
   $('#cl-go').onclick    = () => Login.cloudSubmit();
   $('#cl-reg').onclick   = () => Login.regClinic();
-  $('#cl-local').onclick = () => Login.setMode('local');
-  $('#lg-tocloud').onclick = () => Login.setMode('cloud');
+  $('#cl-forgot').onclick = () => Login.reset();
   $('#cl-pass').onkeydown  = e => { if (e.key==='Enter') Login.cloudSubmit(); };
   $('#cl-email').onkeydown = e => { if (e.key==='Enter') $('#cl-pass').focus(); };
   Login.drawCloud();
-  Login.draw();
 
   Nav.wrap();
   Hold.init();
@@ -7903,7 +8063,7 @@ window.addEventListener('unhandledrejection', e =>
     await DB.open();
   } catch (err) {
     if (err.message !== 'STORAGE_FALLBACK'){
-      const box = $('#lg-err');
+      const box = $('#cl-err');
       if (box){ box.textContent = err.message || String(err); box.classList.remove('hide'); }
       toast(err.message || String(err), 'e');
       return;
@@ -7912,12 +8072,12 @@ window.addEventListener('unhandledrejection', e =>
 
   try {
     await Setup.ensure();
-    Login.draw();
-    /* أول تشغيل: تُطلب بيانات العيادة قبل أي شيء */
+    Login.drawCloud();
+    /* أول تشغيل قبل أي دخول: تُطلب بيانات العيادة */
     if (Reg.needed()) Reg.draw();
     if (DB.fallback) Storage.warn();
   } catch (err) {
-    const box = $('#lg-err');
+    const box = $('#cl-err');
     if (box){ box.textContent = err.message || String(err); box.classList.remove('hide'); }
   }
 })();
