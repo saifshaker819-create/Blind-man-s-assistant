@@ -50,8 +50,18 @@
   --sh:0 1px 1px rgba(6,35,43,.04), 0 8px 24px -14px rgba(6,35,43,.30);
   --shL:0 2px 6px rgba(6,35,43,.06), 0 24px 50px -26px rgba(6,35,43,.45);
   --r:18px; --blur:blur(18px) saturate(150%);
+
+  /* هالة الحافة: لونان من عائلة اللون الأساسي — خافت للسكون
+     وأقوى للتركيز. تُعاد تعريفهما في كل ثيم. */
+  --gl:rgba(0,165,148,.30);
+  --gl2:rgba(0,165,148,.55);
+  --glw:14px;          /* اتساع الهالة */
 }
 html[data-theme=dark]{
+  /* الهالة في الليل أوسع وأصفى — الخلفية الداكنة تحتملها */
+  --gl:rgba(63,232,206,.34);
+  --gl2:rgba(63,232,206,.70);
+  --glw:22px;
   --bg:#050D10;
   --blob1:#065A55; --blob2:#0A3352; --blob3:#3A2418;
 
@@ -127,6 +137,126 @@ label.lb{display:block;font-size:13px;font-weight:700;color:var(--ink2);margin-b
 label.lb .req{color:var(--bd);font-weight:800}
 input[type=color]{padding:3px;cursor:pointer}
 input[type=file]{padding:9px;font-size:13px}
+
+
+/*══════════════ الثيمات ══════════════
+  كل ثيم يبدّل عائلة اللون الأساسي وهالتَه وهالات الخلفية.
+  البنية والتباين لا يتغيّران — يتغيّر اللون وحده، فلا تنكسر
+  قراءة نصّ ولا يضيع زر.
+  الاختيار لكل دور على حدة، فثيم الطبيب لا يمسّ السكرتير.
+════════════════════════════════════*/
+
+/* ① النعناع — الافتراضي */
+html[data-skin=mint]{
+  --br:#00736A; --br2:#00A594; --brL:rgba(0,115,106,.13);
+  --blob1:#7FD8CB; --blob2:#9CC8F0; --blob3:#F2D3B8;
+  --gl:rgba(0,165,148,.30); --gl2:rgba(0,165,148,.55);
+}
+html[data-theme=dark][data-skin=mint]{
+  --br:#12C9AE; --br2:#3FE8CE; --brL:rgba(18,201,174,.16);
+  --blob1:#065A55; --blob2:#0A3352; --blob3:#3A2418;
+  --gl:rgba(63,232,206,.34); --gl2:rgba(63,232,206,.70);
+}
+
+/* ② الجمرة — نار دافئة، أقرب ما يكون لحواف متوهّجة */
+html[data-skin=ember]{
+  --br:#B3400F; --br2:#F2660A; --brL:rgba(242,102,10,.13);
+  --blob1:#F7C59F; --blob2:#F2A365; --blob3:#EAD7C3;
+  --gl:rgba(242,102,10,.34); --gl2:rgba(255,122,26,.62);
+}
+html[data-theme=dark][data-skin=ember]{
+  --br:#FF7A1A; --br2:#FFA24D; --brL:rgba(255,122,26,.17);
+  --blob1:#5C2408; --blob2:#3D1A22; --blob3:#4A2E10;
+  --gl:rgba(255,140,45,.40); --gl2:rgba(255,168,80,.78);
+  --bg:#0B0705;
+}
+
+/* ③ النيلي — هادئ للعمل الطويل */
+html[data-skin=indigo]{
+  --br:#3B3FBF; --br2:#5A5FE8; --brL:rgba(90,95,232,.13);
+  --blob1:#B9BEF7; --blob2:#9CC8F0; --blob3:#E3D3F2;
+  --gl:rgba(90,95,232,.30); --gl2:rgba(112,118,255,.58);
+}
+html[data-theme=dark][data-skin=indigo]{
+  --br:#7B80FF; --br2:#A0A4FF; --brL:rgba(123,128,255,.17);
+  --blob1:#1B1F63; --blob2:#0A2352; --blob3:#2B1A4A;
+  --gl:rgba(140,145,255,.36); --gl2:rgba(170,175,255,.72);
+  --bg:#07070F;
+}
+
+/* ④ المحيط — أزرق صافٍ */
+html[data-skin=ocean]{
+  --br:#0A6E9E; --br2:#12A0D6; --brL:rgba(18,160,214,.13);
+  --blob1:#9BD9F0; --blob2:#B7E3E0; --blob3:#D9E4F2;
+  --gl:rgba(18,160,214,.30); --gl2:rgba(40,182,235,.58);
+}
+html[data-theme=dark][data-skin=ocean]{
+  --br:#2BB6EB; --br2:#66D4FF; --brL:rgba(43,182,235,.17);
+  --blob1:#06364F; --blob2:#052A3F; --blob3:#1A2E3A;
+  --gl:rgba(60,200,255,.36); --gl2:rgba(110,220,255,.72);
+  --bg:#030C12;
+}
+
+/* ⑤ الورد — دافئ بلا صخب */
+html[data-skin=rose]{
+  --br:#B02A5B; --br2:#E0447F; --brL:rgba(224,68,127,.13);
+  --blob1:#F5C2D4; --blob2:#E8C3F0; --blob3:#F7DCC9;
+  --gl:rgba(224,68,127,.30); --gl2:rgba(240,90,148,.58);
+}
+html[data-theme=dark][data-skin=rose]{
+  --br:#F0568F; --br2:#FF87B4; --brL:rgba(240,86,143,.17);
+  --blob1:#54123A; --blob2:#3A1240; --blob3:#4A1F2A;
+  --gl:rgba(255,110,165,.36); --gl2:rgba(255,150,190,.72);
+  --bg:#0E050A;
+}
+
+/*══════════════ الحواف المتوهّجة ══════════════
+  هالة خارجية خفيفة في السكون، تشتدّ عند اللمس والتركيز.
+  الغرض أن يُرى الحدّ في وضح النهار أيضاً، لا أن يبهر —
+  فالقيم منخفضة عمداً في الوضع النهاري.
+════════════════════════════════════════════*/
+.btn{ box-shadow:0 1px 1px rgba(0,0,0,.05),
+      0 8px 20px -12px var(--br),
+      0 0 var(--glw) -4px var(--gl2) }
+.btn:hover{ box-shadow:0 1px 1px rgba(0,0,0,.05),
+      0 8px 20px -12px var(--br),
+      0 0 calc(var(--glw) + 8px) -2px var(--gl2) }
+.btn:disabled{ box-shadow:none }
+
+.btn.gh{ box-shadow:inset 0 0 0 1px var(--gl), 0 0 var(--glw) -7px var(--gl) }
+.btn.gh:hover{ border-color:var(--br); color:var(--br);
+      box-shadow:inset 0 0 0 1px var(--gl2), 0 0 var(--glw) -4px var(--gl2) }
+
+input,select,textarea{ box-shadow:0 0 var(--glw) -8px var(--gl) }
+input:focus,select:focus,textarea:focus{
+  border-color:var(--br);
+  box-shadow:0 0 0 4px var(--brL), 0 0 calc(var(--glw) + 6px) -3px var(--gl2);
+}
+input.err,select.err,textarea.err,
+input.err:focus,select.err:focus{
+  box-shadow:0 0 0 4px var(--bdL), 0 0 var(--glw) -4px rgba(178,58,44,.55);
+}
+
+/* العناصر القابلة للنقر تُضيء عند اللمس فيُعرف أنها استجابت */
+.it:hover{ box-shadow:0 0 var(--glw) -6px var(--gl) }
+.pill.b{ box-shadow:0 0 var(--glw) -6px var(--gl2) }
+.syncdot.live{ box-shadow:0 0 0 2px var(--okL), 0 0 12px -4px var(--gl2) }
+
+/* الحركة تُطفأ لمن يطلب تقليلها */
+@media (prefers-reduced-motion:reduce){
+  .btn,.btn.gh,input,select,textarea{transition:none}
+}
+
+/* بطاقات اختيار الثيم */
+.skgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:9px}
+.skcard{display:flex;flex-direction:column;align-items:center;gap:7px;padding:13px 8px;
+  border-radius:15px;background:var(--glass2);border:1px solid var(--edge);
+  font-size:12.5px;font-weight:800;color:var(--ink2);
+  transition:transform .13s,border-color .18s,box-shadow .18s}
+.skcard:active{transform:scale(.97)}
+.skcard.on{border-color:var(--br);color:var(--ink);
+  box-shadow:0 0 0 2px var(--brL), 0 0 16px -5px var(--gl2)}
+.skdot{width:30px;height:30px;border-radius:11px;display:block}
 
 /*──────── أزرار ────────*/
 button{font:inherit;font-weight:700;cursor:pointer;border:none;background:none;color:inherit}
@@ -834,6 +964,9 @@ ar:{
  confirmAll:'أُنشئت الحسابات الثلاثة. كل واحد منها يحتاج تأكيد بريده قبل أول دخول — أُرسلت رسالة لكل بريد.',
  confirmSteps:'البُرُد التي أُرسلت إليها الرسائل',
  resendMail:'إعادة إرسال رسالة التأكيد', mailSent:'أُرسلت الرسالة',
+ secSkin:'المظهر', skinHint:'اختيارك يخصّك وحدك — لا يتغيّر مظهر زملائك في العيادة.',
+ sk_mint:'النعناع', sk_ember:'الجمرة', sk_indigo:'النيلي',
+ sk_ocean:'المحيط', sk_rose:'الورد', skinSaved:'تغيّر المظهر',
 
 /*──── السيرفر ────*/
  email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
@@ -1079,6 +1212,9 @@ en:{
  confirmAll:'The three accounts were created. Each must confirm its email before the first sign-in — a message was sent to each.',
  confirmSteps:'Emails the messages were sent to',
  resendMail:'Resend the confirmation message', mailSent:'Message sent',
+ secSkin:'Appearance', skinHint:'Your choice is yours alone — your colleagues keep theirs.',
+ sk_mint:'Mint', sk_ember:'Ember', sk_indigo:'Indigo',
+ sk_ocean:'Ocean', sk_rose:'Rose', skinSaved:'Appearance changed',
 
 /*──── server ────*/
  email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
@@ -1670,12 +1806,7 @@ const S = { role:null, user:null, tab:null, patient:null, visit:null, sel:null,
             rxDraft:[], clinic:null, chartOpen:false, clinicName:null };
 
 const UI = {
-  theme(){
-    const n = document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
-    document.documentElement.setAttribute('data-theme', n);
-    localStorage.setItem('d_theme', n);
-    $$('.thL').forEach(x=>x.textContent = n==='dark'?'☀':'☾');
-  },
+  theme(){ Skin.setDark(document.documentElement.getAttribute('data-theme') !== 'dark'); },
   lang(){
     LG = isAr()?'en':'ar';
     localStorage.setItem('d_lang', LG);
@@ -7154,11 +7285,6 @@ const Cfg = {
       <label class="lb">${T('notation')}</label>
       <div class="segs">${['palmer','fdi','universal'].map(m=>
         `<button class="${c.notation===m?'on':''}" onclick="Chart.set('${m}')">${m.toUpperCase()}</button>`).join('')}</div>
-      <div class="mt2"><label class="lb">${T('theme')}</label>
-        <div class="segs">
-          <button class="${!dark?'on':''}" onclick="if(document.documentElement.getAttribute('data-theme')==='dark')UI.theme()">${T('light')}</button>
-          <button class="${dark?'on':''}" onclick="if(document.documentElement.getAttribute('data-theme')!=='dark')UI.theme()">${T('dark')}</button>
-        </div></div>
       <div class="mt2"><label class="lb">${T('language')}</label>
         <div class="segs">
           <button class="${isAr()?'on':''}" onclick="if(!isAr())UI.lang()">عربي</button>
@@ -7283,6 +7409,15 @@ const Cfg = {
       </div>`:''}
       <button class="btn gh w mt2" onclick="Cfg.pingCloud()">${T('testConn')}</button>`;
 
+    /* المظهر: خمسة ثيمات ووضع ليلي — لكل دور اختياره */
+    const skin = `
+      ${Skin.cards()}
+      <div class="segs mt2">
+        <button class="${!dark?'on':''}" onclick="Skin.setDark(false)">${T('light')}</button>
+        <button class="${dark?'on':''}" onclick="Skin.setDark(true)">${T('dark')}</button>
+      </div>
+      <div class="tiny mt">${T('skinHint')}</div>`;
+
     /* الأمان: بريد الحساب وكلمة مروره والقفل التلقائي.
        كلمات المرور صارت على السيرفر لا في الجهاز، فلا معنى
        لقائمة حسابات محلية — بريدك أنت وكلمة مرورك أنت. */
@@ -7316,6 +7451,7 @@ const Cfg = {
       + this.acc('l','🎨', T('secLook'),    look)
       + (Sync.on() ? this.acc('sy','🔄', T('syncSection'), sync) : '')
       + this.acc('cl','☁', T('cloudSection'), cloud)
+      + this.acc('sk','🎨', T('secSkin'), skin)
       + (S.role==='doctor' ? this.acc('s','🛡', T('secSafety'), safety) : '')
       + (S.role==='doctor' ? this.acc('r','🔐', T('secPerm'), perm) : '')
       + (S.role==='doctor' ? this.acc('t','🦷', T('toothStatuses'), statuses) : '')
@@ -7565,6 +7701,7 @@ const IC = {
 
 const App = {
   async start(){
+    Skin.apply();          /* مظهر هذا الدور، لا مظهر من سبقه */
     $('#login').classList.add('hide');
     $('#app').classList.remove('hide');
     S.tab = TABS[S.role][0][0];
@@ -7687,6 +7824,65 @@ const Vault = {
         { name:'AES-GCM', iv:this.bin(box.iv) }, k, this.bin(box.data));
       return new TextDecoder().decode(pt);
     } catch(_){ return null; }   /* كلمة خاطئة أو ملف معبوث به */
+  },
+};
+
+/*═══════════════ المظهر ═══════════════
+  الثيم والوضع الليلي يُحفظان لكل دور على حدة في هذا الجهاز.
+  السبب: الجهاز قد يُتشارك، وتفضيل السكرتير ليس تفضيل الطبيب.
+  ولأنهما تفضيل شخصي لا إعداد عيادة، فلا يُزامَنان ولا يُنقلان
+  إلى جهاز آخر.
+═════════════════════════════════════*/
+const Skin = {
+  LIST:['mint','ember','indigo','ocean','rose'],
+  DEF:'mint',
+
+  key(){ return 'd_skin_' + (S.role || 'guest'); },
+  thKey(){ return 'd_theme_' + (S.role || 'guest'); },
+
+  get(){
+    const v = localStorage.getItem(this.key());
+    return this.LIST.includes(v) ? v : this.DEF;
+  },
+  dark(){
+    const v = localStorage.getItem(this.thKey());
+    if (v === 'dark' || v === 'light') return v === 'dark';
+    /* لا اختيار سابق: يُتبع نظام الجهاز */
+    return matchMedia('(prefers-color-scheme: dark)').matches;
+  },
+
+  set(id){
+    if (!this.LIST.includes(id)) return;
+    try { localStorage.setItem(this.key(), id); } catch(_){}
+    this.apply();
+    toast(T('skinSaved'), 's');
+  },
+  setDark(on){
+    try { localStorage.setItem(this.thKey(), on ? 'dark' : 'light'); } catch(_){}
+    this.apply();
+  },
+
+  apply(){
+    const d = document.documentElement;
+    d.setAttribute('data-skin', this.get());
+    d.setAttribute('data-theme', this.dark() ? 'dark' : 'light');
+    $$('.thL').forEach(x => x.textContent = this.dark() ? '☀' : '☾');
+    const m = document.querySelector('meta[name=theme-color]');
+    if (m) m.content = getComputedStyle(d).getPropertyValue('--br').trim() || '#00695C';
+  },
+
+  /* بطاقات الاختيار — كل واحدة بلونها هي، فيُرى الفرق قبل الضغط */
+  cards(){
+    const cur = this.get();
+    const sw = { mint:['#00A594','#7FD8CB'], ember:['#F2660A','#F7C59F'],
+                 indigo:['#5A5FE8','#B9BEF7'], ocean:['#12A0D6','#9BD9F0'],
+                 rose:['#E0447F','#F5C2D4'] };
+    return `<div class="skgrid">${this.LIST.map(id => `
+      <button class="skcard ${cur===id?'on':''}" onclick="Skin.set('${id}')">
+        <span class="skdot" style="background:linear-gradient(135deg,
+          ${sw[id][0]},${sw[id][1]});box-shadow:0 0 14px -2px ${sw[id][0]}"></span>
+        <span>${T('sk_'+id)}</span>
+      </button>`).join('')}</div>`;
   },
 };
 
@@ -7875,7 +8071,7 @@ const Guard = {
 };
 
 const Auth = { out(){ S.role=null; S.user=null; S.patient=null; S.visit=null;
-  S.chartOpen=false; S.clinicName=null; Nav.reset(); UI.close();
+  S.chartOpen=false; S.clinicName=null; Nav.reset(); UI.close(); Skin.apply();
   /* الخروج المحلي ينهي جلسة السيرفر أيضاً، فلا تبقى تذكرة صالحة
      على جهاز تركه صاحبه. */
   Live.stop();
@@ -8083,9 +8279,7 @@ window.addEventListener('unhandledrejection', e =>
   toast('خطأ: ' + (e.reason?.message || e.reason || ''), 'e'));
 
 (async function boot(){
-  const th = localStorage.getItem('d_theme') || 'light';
-  document.documentElement.setAttribute('data-theme', th);
-  $$('.thL').forEach(x=>x.textContent = th==='dark'?'☀':'☾');
+  Skin.apply();
   document.documentElement.lang = LG;
   document.documentElement.dir  = isAr()?'rtl':'ltr';
 
