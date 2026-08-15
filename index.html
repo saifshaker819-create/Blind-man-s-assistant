@@ -967,6 +967,13 @@ ar:{
  secSkin:'المظهر', skinHint:'اختيارك يخصّك وحدك — لا يتغيّر مظهر زملائك في العيادة.',
  sk_mint:'النعناع', sk_ember:'الجمرة', sk_indigo:'النيلي',
  sk_ocean:'المحيط', sk_rose:'الورد', skinSaved:'تغيّر المظهر',
+ imgUp:'جارٍ الرفع…', imgQueued:'حُفظت — تُرفع عند عودة الاتصال',
+ imgFail:'تعذّر عرض الصورة', imgLossless:'أشعة — بلا فقدان جودة',
+ imgLossy:'صورة سريرية — مضغوطة', imgOrig:'الحجم الأصلي', imgNow:'بعد الضغط',
+ imgLocal:'محفوظة في الجهاز', imgCloud:'مرفوعة',
+ migTitle:'نقل الصور القديمة', migHint:'الصور المحفوظة داخل قاعدة البيانات تُنقل إلى التخزين — أرخص ولا تُفقد جودة.',
+ migGo:'ابدأ النقل', migDone:'صورة نُقلت', migNone:'لا صور تحتاج نقلاً', migBusy:'جارٍ النقل…',
+ pendingUp:'صورة تنتظر الرفع',
 
 /*──── السيرفر ────*/
  email:'البريد الإلكتروني', cloudLogin:'الدخول', cloudBusy:'جارٍ الدخول…',
@@ -1215,6 +1222,13 @@ en:{
  secSkin:'Appearance', skinHint:'Your choice is yours alone — your colleagues keep theirs.',
  sk_mint:'Mint', sk_ember:'Ember', sk_indigo:'Indigo',
  sk_ocean:'Ocean', sk_rose:'Rose', skinSaved:'Appearance changed',
+ imgUp:'Uploading…', imgQueued:'Saved — will upload when back online',
+ imgFail:'Could not load the image', imgLossless:'X-ray — no quality loss',
+ imgLossy:'Clinical photo — compressed', imgOrig:'Original size', imgNow:'After compression',
+ imgLocal:'Saved on device', imgCloud:'Uploaded',
+ migTitle:'Move old images', migHint:'Images stored inside the database move to Storage — cheaper, with no quality loss.',
+ migGo:'Start moving', migDone:'images moved', migNone:'No images need moving', migBusy:'Moving…',
+ pendingUp:'images waiting to upload',
 
 /*──── server ────*/
  email:'Email', cloudLogin:'Sign in', cloudBusy:'Signing in…',
@@ -2117,6 +2131,171 @@ const Live = {
   },
 };
 
+/*═══════════════ الصور ═══════════════
+  الأشعة صورة تشخيصية لا صورة ذكرى. ضغط JPEG الفاقد يولّد تشويشاً
+  حول الحواف عالية التباين — وهذا بالضبط شكل التسوّس المبكر
+  والشعر الشعري في الجذر. فقد يُخفي آفة أو يصنع واحدة وهمية.
+  لذلك تُحفظ الأشعة بـ WebP بلا فقدان: صفر تغيير في البكسل،
+  وأصغر من PNG بنحو الثلث.
+
+  الصور السريرية العادية (وجه، ابتسامة، قبل/بعد) لا يُشخَّص عليها،
+  فتُضغط ضغطاً عالي الجودة.
+
+  ومكان الحفظ صار التخزين لا قاعدة البيانات: القاعدة ٨ جيجا
+  والتخزين ١٠٠ بالسعر نفسه، وbase64 كان يضخّم كل صورة ٣٣٪.
+═════════════════════════════════════*/
+const Img = {
+  BUCKET:'xrays',
+  DIAG:['xray','pano','ceph'],          /* ما لا يجوز المساس ببكسله */
+
+  lossless(kind){ return this.DIAG.includes(kind); },
+
+  /* WebP بلا فقدان مدعوم في كل متصفح حديث — ومع ذلك يُتحقَّق */
+  webpOK(){
+    if (this._w !== undefined) return this._w;
+    const c = document.createElement('canvas'); c.width = c.height = 1;
+    return this._w = c.toDataURL('image/webp').startsWith('data:image/webp');
+  },
+
+  /*──── التحضير قبل الحفظ ────*/
+  async prep(file, kind){
+    const diag = this.lossless(kind);
+    const img  = await new Promise((res, rej) => {
+      const rd = new FileReader();
+      rd.onload = () => { const i = new Image();
+        i.onload = () => res(i); i.onerror = rej; i.src = rd.result; };
+      rd.onerror = rej; rd.readAsDataURL(file);
+    });
+
+    /* الأشعة تبقى بأبعادها الأصلية — التصغير يمحو تفاصيل دقيقة
+       لا تُستردّ. والصور العادية تُصغَّر لأنها للعرض لا للتشخيص. */
+    const MAX = diag ? 4000 : 1600;
+    const sc  = Math.min(1, MAX / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * sc);
+    c.height = Math.round(img.height * sc);
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, 0, 0, c.width, c.height);
+
+    let type, q;
+    if (diag){ type = this.webpOK() ? 'image/webp' : 'image/png'; q = 1; }
+    else     { type = this.webpOK() ? 'image/webp' : 'image/jpeg'; q = 0.88; }
+
+    const blob = await new Promise(r => c.toBlob(r, type, q));
+    return { blob, type, w:c.width, h:c.height,
+             orig:file.size, diag,
+             ext: type === 'image/webp' ? 'webp' : type === 'image/png' ? 'png' : 'jpg' };
+  },
+
+  /*──── الرفع ────*/
+  path(id, ext){ return `${Cloud.me.clinic_id}/${id}.${ext}`; },
+
+  async upload(id, blob, type, ext){
+    if (!Sync.on()) throw new Error('offline');
+    const r = await fetch(
+      `${Cloud.cfg.url}/storage/v1/object/${this.BUCKET}/${this.path(id, ext)}`, {
+      method:'POST',
+      headers:{ apikey:Cloud.cfg.key,
+                Authorization:'Bearer ' + Cloud.session.token,
+                'Content-Type':type, 'x-upsert':'true' },
+      body: blob,
+    });
+    if (!r.ok){
+      const t = await r.text().catch(()=> '');
+      throw new Error(t || ('upload ' + r.status));
+    }
+    return this.path(id, ext);
+  },
+
+  /*──── العرض ────
+    الحاوية خاصّة، فالعرض برابط موقّع قصير العمر لا برابط مكشوف.
+    الروابط تُخزَّن مؤقتاً في الذاكرة فلا يُطلب توقيع لكل فتح. */
+  _url:{},
+  async view(f){
+    if (f.data) return f.data;                    /* صورة قديمة أو محلية */
+    if (!f.path) return null;
+    const hit = this._url[f.path];
+    if (hit && hit.exp > Date.now()) return hit.u;
+    const r = await fetch(
+      `${Cloud.cfg.url}/storage/v1/object/sign/${this.BUCKET}/${f.path}`, {
+      method:'POST',
+      headers:{ apikey:Cloud.cfg.key,
+                Authorization:'Bearer ' + Cloud.session.token,
+                'Content-Type':'application/json' },
+      body: JSON.stringify({ expiresIn: 3600 }),
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    const u = Cloud.cfg.url + '/storage/v1' + d.signedURL;
+    this._url[f.path] = { u, exp: Date.now() + 3300000 };
+    return u;
+  },
+
+  async del(f){
+    if (!f?.path || !Sync.on()) return;
+    try {
+      await fetch(`${Cloud.cfg.url}/storage/v1/object/${this.BUCKET}/${f.path}`, {
+        method:'DELETE',
+        headers:{ apikey:Cloud.cfg.key, Authorization:'Bearer ' + Cloud.session.token },
+      });
+    } catch(_){ /* بقاء ملف يتيم أهون من فشل الحذف */ }
+    delete this._url[f.path];
+  },
+
+  /*──── طابور الرفع ────
+    الصورة تُلتقط بلا إنترنت أحياناً. تُحفظ في الجهاز كما هي،
+    وتُرفع أول ما يعود الاتصال، ثم تُمحى نسختها المحلية. */
+  async flush(){
+    if (!Sync.on() || !navigator.onLine || this._busy) return 0;
+    this._busy = true;
+    let done = 0;
+    try {
+      const pend = (await DB.all('files')).filter(f => f.data && !f.path && f.blobType);
+      for (const f of pend){
+        try {
+          const blob = await (await fetch(f.data)).blob();
+          f.path = await this.upload(f.id, blob, f.blobType, f.ext || 'webp');
+          delete f.data;                 /* الحجم الكبير يغادر القاعدة */
+          await DB.put('files', f);
+          done++;
+        } catch(_){ break; }             /* الشبكة متعثّرة: نكمل لاحقاً */
+      }
+    } finally { this._busy = false; }
+    if (done) Sync.kick();
+    return done;
+  },
+
+  async pending(){
+    try { return (await DB.all('files')).filter(f => f.data && !f.path && f.blobType).length; }
+    catch(_){ return 0; }
+  },
+
+  /*──── نقل الصور القديمة ────
+    ما حُفظ سابقاً داخل القاعدة يُنقل إلى التخزين. البكسل لا يُمسّ:
+    تُقرأ الصورة كما هي وتُرفع كما هي، بلا إعادة ضغط. */
+  async migrate(onStep){
+    if (!Sync.on()) throw new Error(T('syncOff'));
+    const old = (await DB.all('files')).filter(f => f.data && !f.path);
+    let n = 0;
+    for (const f of old){
+      try {
+        const blob = await (await fetch(f.data)).blob();
+        const type = blob.type || 'image/jpeg';
+        const ext  = type.includes('webp') ? 'webp' : type.includes('png') ? 'png' : 'jpg';
+        f.path = await this.upload(f.id, blob, type, ext);
+        f.ext = ext; f.bytes = blob.size;
+        delete f.data;
+        await DB.put('files', f);
+        n++;
+        onStep?.(n, old.length);
+      } catch(_){ break; }
+    }
+    return { moved:n, total:old.length };
+  },
+};
+
 /*═══════════════ المزامنة ═══════════════
   البرنامج يكتب في الجهاز أولاً ودائماً — لا انتظار للشبكة ولا
   توقّف عند انقطاعها. كل تعديل يُقيَّد في صندوق صادر، ويُرفع متى
@@ -2136,7 +2315,7 @@ const ROLE_STORES = {
 };
 
 const Sync = {
-  busy:false, quiet:false, last:0, pending:0, err:null, dirty:false,
+  busy:false, quiet:false, last:0, pending:0, err:null, dirty:false, imgWait:0,
   again:false, fails:0, _kick:null, _retry:null,
 
   /* فرق ساعة هذا الجهاز عن السيرفر — يُقاس من كل ردّ */
@@ -2180,6 +2359,7 @@ const Sync = {
 
   async count(){
     try { this.pending = (await DB.all('outbox')).length; } catch(_){ this.pending = 0; }
+    this.imgWait = await Img.pending();
     return this.pending;
   },
 
@@ -2338,6 +2518,7 @@ const Sync = {
       const down = await this.pull();
       const up   = await this.push();
       const bk   = await this.bookings();
+      await Img.flush();          /* صور التُقطت بلا إنترنت */
       this.last = Date.now();
       this.fails = 0;
       try { localStorage.setItem('d_synced', String(this.last)); } catch(_){}
@@ -2419,12 +2600,13 @@ const Sync = {
     el.classList.remove('hide');
     const st = this.busy ? 'busy'
              : (!navigator.onLine || this.err) ? 'off'
-             : this.pending ? 'wait' : 'ok';
+             : (this.pending || this.imgWait) ? 'wait' : 'ok';
     el.className = 'syncdot ' + st + (Live.up() ? ' live' : '');
     el.title = this.busy ? T('syncing')
              : !navigator.onLine ? T('syncOff')
              : this.err ? this.err
              : this.pending ? `${this.pending} ${T('pendingN')}`
+             : this.imgWait ? `${this.imgWait} ${T('pendingUp')}`
              : `${T('syncClean')} · ${Live.up() ? T('liveOn') : T('liveOff')}`;
   },
 
@@ -4420,8 +4602,8 @@ const Doc = {
         </div>
         ${files.length?`<div class="g4 mt">${files.map(f=>`
           <div style="cursor:pointer" onclick="Doc.viewFile('${f.id}')">
-            <img src="${f.data}" style="width:100%;aspect-ratio:1;object-fit:cover;
-              border-radius:11px;border:2px solid var(--line)">
+            <img data-fid="${f.id}" style="width:100%;aspect-ratio:1;object-fit:cover;
+              border-radius:11px;border:2px solid var(--line);background:var(--glass2)">
             <div class="tiny ctr" style="margin-top:3px">${T(f.kind)}</div>
           </div>`).join('')}</div>`:`<div class="emp mt">—</div>`}
       </div>
@@ -4604,8 +4786,8 @@ const Doc = {
       </div><button class="ib" onclick="Nav.back()">✕</button></div>
       ${files.length ? `<div class="g2">${files.map(f=>`
         <div style="cursor:pointer" onclick="Doc.viewFile('${f.id}')">
-          <img src="${f.data}" style="width:100%;aspect-ratio:1;object-fit:cover;
-            border-radius:13px;border:2px solid var(--line)">
+          <img data-fid="${f.id}" style="width:100%;aspect-ratio:1;object-fit:cover;
+            border-radius:13px;border:2px solid var(--line);background:var(--glass2)">
           <div class="tiny ctr" style="margin-top:4px;font-weight:700">${T(f.kind)}</div>
         </div>`).join('')}</div>`
        : `<div class="al w"><span>ℹ</span><span>${T('noSessionArc')}</span></div>`}
@@ -4937,8 +5119,8 @@ const Doc = {
       ${sec('🗂', T('sessionArc'),
         files.length?`<div class="g4 mt">${files.map(f=>`
           <div style="cursor:pointer" onclick="Doc.viewFile('${f.id}')">
-            <img src="${f.data}" style="width:100%;aspect-ratio:1;object-fit:cover;
-              border-radius:12px;border:1px solid var(--edge)">
+            <img data-fid="${f.id}" style="width:100%;aspect-ratio:1;object-fit:cover;
+              border-radius:12px;border:1px solid var(--edge);background:var(--glass2)">
             <div class="tiny ctr" style="margin-top:4px">${T(f.kind)}</div>
           </div>`).join('')}</div>`
         :`<div class="emp mt">${T('noSessionArc')}</div>`,
@@ -5317,37 +5499,68 @@ const Doc = {
     const f = $('#fi').files[0];
     if (!f) return toast(T('required'), 'e');
     const kind = $('#fk .on')?.dataset.v || 'photo';
-    /* تصغير الصورة قبل الحفظ حتى لا تتضخم قاعدة البيانات */
-    const data = await new Promise(res=>{
-      const rd = new FileReader();
-      rd.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const M = 1400, sc = Math.min(1, M/Math.max(img.width, img.height));
-          const c = document.createElement('canvas');
-          c.width = img.width*sc; c.height = img.height*sc;
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          res(c.toDataURL('image/jpeg', .82));
-        };
-        img.src = rd.result;
-      };
-      rd.readAsDataURL(f);
-    });
-    await DB.put('files', { id:uid(), pid:S.patient.id, vid:S.visit?.id||null,
-                            kind, data, at:Date.now() });
-    toast(T('saved'),'s');
+
+    toast(T('imgUp'));
+    const p = await Img.prep(f, kind);
+    const id = uid();
+    const rec = { id, pid:S.patient.id, vid:S.visit?.id||null, kind,
+                  at:Date.now(), w:p.w, h:p.h, bytes:p.blob.size,
+                  orig:p.orig, ext:p.ext, blobType:p.type, diag:p.diag };
+
+    /* تُرفع فوراً إن أمكن، وإلا تُحفظ في الجهاز وتُرفع عند عودة
+       الاتصال — فلا يقف تصوير الأشعة على وجود إنترنت. */
+    try {
+      rec.path = await Img.upload(id, p.blob, p.type, p.ext);
+      await DB.put('files', rec);
+      toast(T('saved'), 's');
+    } catch(_){
+      rec.data = await new Promise(r => {
+        const rd = new FileReader(); rd.onload = () => r(rd.result);
+        rd.readAsDataURL(p.blob);
+      });
+      await DB.put('files', rec);
+      toast(T('imgQueued'), 'w');
+    }
     Nav.back();
   },
 
   async viewFile(id){
     const f = await DB.get('files', id);
+    const url = await Img.view(f);
+    const kb = n => !n ? '' : n < 1048576 ? Math.round(n/1024)+'K' : (n/1048576).toFixed(1)+'M';
     UI.sheet(`<div class="row"><div class="gr"><div class="h2">${T(f.kind)}</div>
         <div class="tiny mono">${fmtD(f.at)}</div></div>
       <button class="ib" onclick="Nav.back()">×</button></div>
-      <img src="${f.data}" style="width:100%;border-radius:14px;margin-top:14px">
+      ${url ? `<img src="${url}" style="width:100%;border-radius:14px;margin-top:14px">`
+            : `<div class="emp mt2">${T('imgFail')}</div>`}
+      <div class="row wrapv mt" style="gap:6px">
+        <span class="pill ${f.diag===false?'n':'g'}">
+          ${f.diag===false ? T('imgLossy') : T('imgLossless')}</span>
+        ${f.w?`<span class="pill n mono">${f.w}×${f.h}</span>`:''}
+        ${f.bytes?`<span class="pill n mono">${kb(f.bytes)}</span>`:''}
+        <span class="pill ${f.path?'g':'w'}">${f.path?T('imgCloud'):T('imgLocal')}</span>
+      </div>
       <button class="btn w dg mt2" onclick="Doc.delFile('${id}')">${T('del')}</button>`);
   },
-  async delFile(id){ if(!ask())return; await DB.del('files',id); toast(T('deleted')); Nav.back(); },
+
+  /* المصغّرات تُملأ بعد الرسم: الرابط الموقّع يحتاج نداءً للسيرفر،
+     فلا يُنتظر قبل إظهار الشاشة. */
+  async thumbs(){
+    for (const el of $$('img[data-fid]')){
+      if (el.src) continue;
+      const f = await DB.get('files', el.dataset.fid);
+      const u = f && await Img.view(f);
+      if (u) el.src = u;
+    }
+  },
+
+  async delFile(id){
+    if (!ask()) return;
+    const f = await DB.get('files', id);
+    await Img.del(f);              /* الملف يُحذف من التخزين أيضاً */
+    await DB.del('files', id);
+    toast(T('deleted')); Nav.back();
+  },
 
   /*──── الحسابات ────*/
   async report(){ return Money.draw(); },
@@ -5877,7 +6090,10 @@ const Nav = {
       this.raw[path] = obj[f].bind(obj);
       obj[f] = (...a) => {
         if (!this.busy) this.push(path, a);
-        return this.raw[path](...a);
+        const r = this.raw[path](...a);
+        /* أي صفحة قد تحمل مصغّرات — تُملأ بعد رسمها */
+        Promise.resolve(r).then(()=>setTimeout(()=>Doc.thumbs(), 40)).catch(()=>{});
+        return r;
       };
     }
   },
@@ -5903,7 +6119,7 @@ const Nav = {
     if (!top){ UI.close(); App.draw(); Sync.dirty = false; return; }
     this.busy = true;
     try { return this.raw[top.path](...top.a); }
-    finally { this.busy = false; }
+    finally { this.busy = false; setTimeout(()=>Doc.thumbs(), 40); }
   },
 
   home(){ this.reset(); S.chartOpen = false; UI.close(); App.draw(); Sync.dirty = false; },
@@ -7366,6 +7582,14 @@ const Cfg = {
       </div>
       <input type="file" id="imp" accept=".json,.dosbak" class="hide" onchange="Cfg.import(this)">
       <button class="btn w gh mt" onclick="installApp()">${T('install')}</button>
+
+      <div class="card flat mt2" style="padding:12px">
+        <div class="lbl">${T('migTitle')}</div>
+        <div class="tiny mt">${T('migHint')}</div>
+        <div id="mig-st" class="tiny mono mt"></div>
+        <button class="btn w gh mt" id="mig-go" onclick="Cfg.migrate()">${T('migGo')}</button>
+      </div>
+
       <button class="btn w dg mt2" onclick="Setup.reset()">⚠ ${T('del')}</button>`;
 
     /* المزامنة: ما ينتظر الرفع وآخر دورة ناجحة */
@@ -7593,6 +7817,24 @@ const Cfg = {
     const m = Cloud.session?.email || S.user?.id || '';
     UI.close(); Auth.out();
     setTimeout(() => { if (m) $('#cl-email').value = m; Login.reset(); }, 260);
+  },
+
+  /* نقل الصور القديمة من القاعدة إلى التخزين — بلا إعادة ضغط،
+     فالبكسل الذي صُوِّر هو نفسه الذي يُرفع. */
+  async migrate(){
+    if (!Sync.on()) return toast(T('syncOff'), 'e');
+    const b = $('#mig-go'), st = $('#mig-st');
+    b.disabled = true; b.textContent = T('migBusy');
+    try {
+      const r = await Img.migrate((n, tot) => {
+        if (st) st.textContent = `${n} / ${tot}`;
+      });
+      if (!r.total) toast(T('migNone'), 's');
+      else toast(`${r.moved} ${T('migDone')}`, r.moved === r.total ? 's' : 'w');
+      if (st) st.textContent = r.total ? `${r.moved} / ${r.total}` : '';
+      Sync.kick();
+    } catch (e) { toast(String(e.message || e), 'e'); }
+    finally { b.disabled = false; b.textContent = T('migGo'); }
   },
 
   async pingCloud(){
