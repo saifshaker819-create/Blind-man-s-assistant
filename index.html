@@ -961,8 +961,12 @@ ar:{
  resetBad:'الرمز غير صحيح أو انتهت صلاحيته', resetNoMail:'اكتب بريدك أولاً',
  code6:'الرمز ٦ أو ٨ أرقام كما وصلك', spamHint:'إن لم تجد الرسالة، افحص مجلد الرسائل المزعجة',
  myAccount:'حسابي',
- confirmAll:'أُنشئت الحسابات الثلاثة. كل واحد منها يحتاج تأكيد بريده قبل أول دخول — أُرسلت رسالة لكل بريد.',
+ confirmAll:'أُنشئت الحسابات الثلاثة. كل واحد يحتاج تأكيد بريده برمز يصله — ابدأ بحساب الطبيب، ثم كرّرها لكل حساب من شاشة الدخول.',
  confirmSteps:'البُرُد التي أُرسلت إليها الرسائل',
+ confirmTitle:'تأكيد البريد', confirmCode:'رمز التأكيد',
+ confirmHint:'افتح بريدك وانسخ الرمز. إن لم تجد الرسالة، افحص مجلد الرسائل المزعجة.',
+ confirmGo:'تأكيد الحساب', confirmDone:'أُكِّد بريدك — سجّل الدخول',
+ confirmBad:'الرمز غير صحيح أو انتهت صلاحيته', resendCode:'إعادة إرسال الرمز',
  resendMail:'إعادة إرسال رسالة التأكيد', mailSent:'أُرسلت الرسالة',
  secSkin:'المظهر', skinHint:'اختيارك يخصّك وحدك — لا يتغيّر مظهر زملائك في العيادة.',
  sk_mint:'النعناع', sk_ember:'الجمرة', sk_indigo:'النيلي',
@@ -1213,8 +1217,12 @@ en:{
  resetBad:'Wrong or expired code', resetNoMail:'Enter your email first',
  code6:'The code is 6 or 8 digits, as received', spamHint:'If you cannot find it, check your spam folder',
  myAccount:'My account',
- confirmAll:'The three accounts were created. Each must confirm its email before the first sign-in — a message was sent to each.',
+ confirmAll:'The three accounts were created. Each needs to confirm its email with a code — start with the doctor account, then repeat for each from the sign-in screen.',
  confirmSteps:'Emails the messages were sent to',
+ confirmTitle:'Confirm email', confirmCode:'Confirmation code',
+ confirmHint:'Open your email and copy the code. If you cannot find it, check your spam folder.',
+ confirmGo:'Confirm account', confirmDone:'Email confirmed — sign in',
+ confirmBad:'Wrong or expired code', resendCode:'Resend the code',
  resendMail:'Resend the confirmation message', mailSent:'Message sent',
  secSkin:'Appearance', skinHint:'Your choice is yours alone — your colleagues keep theirs.',
  sk_mint:'Mint', sk_ember:'Ember', sk_indigo:'Indigo',
@@ -2750,7 +2758,7 @@ const Cloud = {
   async registerClinic(payload){
     const r = await this.call('/functions/v1/register-clinic', {
       method:'POST', auth:false,
-      body:{ ...payload, redirect_to: backHere() },   /* رسائل التأكيد تعود هنا */
+      body: payload,          /* التأكيد برمز، فلا حاجة لعنوان عودة */
       raw:true,
     });
     if (!r.ok || r.data?.error){
@@ -2833,10 +2841,61 @@ const Login = {
       </div>`);
   },
 
-  /* إعادة إرسال رسالة التأكيد — إلى هذا البرنامج لا إلى غيره */
+  /*──── تأكيد البريد برمز ────
+    الرابط يفتح متصفحاً آخر وقد يضيع، والرمز يُنسخ ويُلصق في
+    الشاشة نفسها — فيصلح لكل جهاز ولكل حالة. */
+  confirmSheet(email){
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">📩</div>
+        <div class="gr"><div class="h2">${T('confirmTitle')}</div>
+          <div class="mono tiny ell">${esc(email)}</div></div>
+        <button class="ib" onclick="UI.close()">✕</button>
+      </div>
+      <div class="card">
+        <label class="lb">${T('confirmCode')}</label>
+        <input id="vc-code" inputmode="numeric" dir="ltr" maxlength="8"
+          autocomplete="one-time-code" placeholder="——————"
+          oninput="this.value=this.value.replace(/\\D/g,'')"
+          style="letter-spacing:.32em;text-align:center;font-size:20px;font-weight:800">
+        <div class="tiny mt">${T('confirmHint')}</div>
+        <div id="vc-err" class="al r mt hide"></div>
+        <button class="btn w mt2" id="vc-go"
+          onclick="Login.confirmGo('${esc(email)}')">${T('confirmGo')}</button>
+        <button class="btn w gh mt" onclick="Login.resend('${esc(email)}')">
+          ${T('resendCode')}</button>
+      </div>`);
+    setTimeout(()=>$('#vc-code')?.focus(), 140);
+  },
+
+  async confirmGo(email){
+    const err = $('#vc-err');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    err.classList.add('hide');
+    const code = ($('#vc-code').value || '').trim();
+    if (!/^\d{6}$|^\d{8}$/.test(code)) return show(T('code6'));
+
+    const b = $('#vc-go'); b.disabled = true; b.textContent = T('cloudBusy');
+    try {
+      const d = await Cloud.call('/auth/v1/verify', { method:'POST', auth:false,
+        body:{ type:'signup', email, token:code } });
+      if (!d?.access_token) return show(T('confirmBad'));
+      /* لا تُبقى الجلسة: يدخل بكلمة مروره كالمعتاد */
+      UI.close();
+      toast(T('confirmDone'), 's');
+      $('#cl-email').value = email;
+      $('#cl-pass').value = '';
+      $('#cl-pass').focus();
+    } catch (e) {
+      const m = String(e.message || e);
+      show(/token|expired|invalid/i.test(m) ? T('confirmBad') : m);
+    } finally { b.disabled = false; b.textContent = T('confirmGo'); }
+  },
+
+  /* إعادة إرسال رمز التأكيد */
   async resend(email){
     try {
-      await Cloud.call('/auth/v1/resend?redirect_to=' + encodeURIComponent(backHere()),
+      await Cloud.call('/auth/v1/resend',
         { method:'POST', auth:false, body:{ type:'signup', email } });
       toast(T('mailSent'), 's');
     } catch (e) { toast(String(e.message || e), 'e'); }
@@ -2952,13 +3011,8 @@ const Login = {
       /* خطأ إعداد لا خطأ مستخدم: لا يُعاقَب عليه بقفل المحاولات،
          ولا يُقال له «كلمة مرورك خاطئة» وهي صحيحة. */
       if (/api key/i.test(m)) show(T('badKey'));
-      else if (/not confirmed/i.test(m)){
-        show(T('needConfirm'));
-        /* زر إعادة الإرسال يظهر عند الحاجة إليه فقط */
-        err.insertAdjacentHTML('beforeend',
-          `<button class="lnk" style="display:block;margin-top:6px"
-             onclick="Login.resend('${email}')">${T('resendMail')}</button>`);
-      }
+      /* البريد غير المؤكّد ليس خطأ دخول — يُوجَّه إلى شاشة الرمز */
+      else if (/not confirmed/i.test(m)) return this.confirmSheet(email);
       else if (/invalid|credential|grant/i.test(m)){ Guard.fail(); show(T('badCloudLogin')); }
       else show(m);
     } finally {
@@ -3041,6 +3095,9 @@ const Login = {
           <div class="h2 mt">${T('regDone')}</div>
         </div>
         <div class="al w"><span>!</span><span>${T('confirmAll')}</span></div>
+        <button class="btn w mt2"
+          onclick="UI.close();Login.confirmSheet('${esc(accounts.doctor.email)}')">
+          ${T('confirmGo')}</button>
         <div class="card">
           <div class="lbl">${T('confirmSteps')}</div>
           <div class="col mt">
