@@ -7,8 +7,8 @@
 <!-- سياسة أمن المحتوى: البرنامج لا يتصل بالإنترنت إطلاقاً.
      الاتصال مسموح لسيرفر العيادة وحده (supabase.co) — أي وجهة
      أخرى مرفوضة، فلا تستطيع شيفرة مدسوسة تسريب بيانات المراجعين.
-     وimg-src المحصورة تمنع التسريب عبر صورة خارجية. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; worker-src 'self'; connect-src https://*.supabase.co wss://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
+     والصور كذلك: من جهازك أو من تخزين عيادتك، لا من أي نطاق آخر. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob: mediastream:; manifest-src blob:; worker-src 'self'; connect-src https://*.supabase.co wss://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>أسناني — My teeth</title>
 <meta name="application-name" content="أسناني">
@@ -2254,6 +2254,29 @@ const Img = {
              ext: type === 'image/webp' ? 'webp' : type === 'image/png' ? 'png' : 'jpg' };
   },
 
+  /*──── مصغّرة العرض ────
+    الأشعة تُحفظ بلا فقدان فتبلغ ملايين البايتات. تحميلها كاملة
+    لشبكة مصغّرات يستهلك عشرات الميغابايتات لفتح شاشة واحدة —
+    ويُحسب من حصّة النقل. فتُحفظ معها صورة صغيرة مضغوطة تُعرض
+    في الشبكة، ولا تُحمَّل الأصلية إلا عند فتحها. */
+  async thumb(blob){
+    try {
+      const url = URL.createObjectURL(blob);
+      const img = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i); i.onerror = rej; i.src = url;
+      });
+      const M = 320, sc = Math.min(1, M / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      const g = c.getContext('2d');
+      g.imageSmoothingQuality = 'medium';
+      g.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      return c.toDataURL(this.webpOK() ? 'image/webp' : 'image/jpeg', 0.72);
+    } catch(_){ return null; }   /* غيابها لا يمنع الحفظ */
+  },
+
   /*──── الرفع ────*/
   path(id, ext){ return `${Cloud.me.clinic_id}/${id}.${ext}`; },
 
@@ -2277,11 +2300,11 @@ const Img = {
   /*──── العرض ────
     الحاوية خاصّة، فالعرض برابط موقّع قصير العمر لا برابط مكشوف.
     الروابط تُخزَّن مؤقتاً في الذاكرة فلا يُطلب توقيع لكل فتح. */
-  _url:{},
+  _url:{}, err:null,
   async view(f){
     if (f.data) return f.data;                    /* صورة قديمة أو محلية */
     if (!f.path) return null;
-    if (!Cloud.session?.token) return null;       /* بلا جلسة لا توقيع */
+    if (!Cloud.session?.token){ this.err = 'no_session'; return null; }
     const hit = this._url[f.path];
     if (hit && hit.exp > Date.now()) return hit.u;
     const r = await fetch(
@@ -2292,9 +2315,15 @@ const Img = {
                 'Content-Type':'application/json' },
       body: JSON.stringify({ expiresIn: 3600 }),
     });
-    if (!r.ok) return f.data || null;            /* التوقيع فشل: النسخة المحلية إن بقيت */
+    if (!r.ok){
+      /* السبب يُحفظ ليُعرض للمستخدم: تخمين سبب فشل الصورة
+         يضيّع وقتاً أطول من إظهاره. */
+      this.err = `${r.status} ${(await r.text().catch(()=>'')).slice(0,120)}`;
+      return f.data || null;
+    }
     const d = await r.json().catch(()=>null);
-    if (!d?.signedURL) return f.data || null;
+    if (!d?.signedURL){ this.err = 'no_signed_url'; return f.data || null; }
+    this.err = null;
     /* الرابط يعود أحياناً كاملاً وأحياناً نسبياً — يُقبل الشكلان */
     const u = /^https?:/.test(d.signedURL) ? d.signedURL
             : Cloud.cfg.url + '/storage/v1' + d.signedURL;
@@ -2326,6 +2355,7 @@ const Img = {
         try {
           const blob = await (await fetch(f.data)).blob();
           f.path = await this.upload(f.id, blob, f.blobType, f.ext || 'webp');
+          if (!f.thumb) f.thumb = await this.thumb(blob);
           delete f.data;                 /* الحجم الكبير يغادر القاعدة */
           await DB.put('files', f);
           done++;
@@ -2355,6 +2385,7 @@ const Img = {
         const ext  = type.includes('webp') ? 'webp' : type.includes('png') ? 'png' : 'jpg';
         f.path = await this.upload(f.id, blob, type, ext);
         f.ext = ext; f.bytes = blob.size;
+        if (!f.thumb) f.thumb = await this.thumb(blob);
         delete f.data;
         await DB.put('files', f);
         n++;
@@ -5753,7 +5784,8 @@ const Doc = {
     const id = uid();
     const rec = { id, pid:S.patient.id, vid:S.visit?.id||null, kind,
                   at:Date.now(), w:p.w, h:p.h, bytes:p.blob.size,
-                  orig:p.orig, ext:p.ext, blobType:p.type, diag:p.diag };
+                  orig:p.orig, ext:p.ext, blobType:p.type, diag:p.diag,
+                  thumb: await Img.thumb(p.blob) };
 
     /* تُرفع فوراً إن أمكن، وإلا تُحفظ في الجهاز وتُرفع عند عودة
        الاتصال — فلا يقف تصوير الأشعة على وجود إنترنت. */
@@ -5798,6 +5830,9 @@ const Doc = {
       if (el.src || el.dataset.done) continue;
       el.dataset.done = '1';
       const f = await DB.get('files', el.dataset.fid);
+      /* المصغّرة المحفوظة تظهر فوراً بلا شبكة — والأصلية تُترك
+         لشاشة العرض الكاملة وحدها. */
+      if (f?.thumb){ el.src = f.thumb; continue; }
       let u = null;
       try { u = f && await Img.view(f); } catch(_){}
       if (u){
@@ -5816,6 +5851,8 @@ const Doc = {
     el.insertAdjacentHTML('afterend',
       `<div class="imgx" onclick="event.stopPropagation();Doc.imgAgain(this)">
          <span>🖼</span><span class="tiny">${T('imgGone')}</span>
+         ${Img.err?`<span class="tiny mono" style="opacity:.75;word-break:break-all">
+           ${esc(String(Img.err))}</span>`:''}
          <span class="tiny" style="text-decoration:underline">${T('imgRetry')}</span>
        </div>`);
   },
