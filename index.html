@@ -8610,14 +8610,21 @@ const Install = {
     const [i192, i512, m512] = await Promise.all([
       ICON.png(192,false), ICON.png(512,false), ICON.png(512,true),
     ]);
+    /* المنيفست يُبنى كـ blob، والعناوين النسبية داخله تُحلّ نسبةً
+       إلى عنوان الـ blob لا إلى عنوان الصفحة. فـ scope:'./' كان
+       يخرج نطاقاً لا يغطّي الصفحة، فيرفض المتصفح فتحها مستقلة
+       ويرجعها إلى تبويب عادي. العناوين المطلقة تحسم ذلك. */
+    const page = location.href.split(/[?#]/)[0];
+    const dir  = page.slice(0, page.lastIndexOf('/') + 1);
     const man = {
-      id: 'asnani-my-teeth',
+      id: page,
       name: `${APP.nameAr} — ${APP.nameEn}`,
       short_name: APP.nameAr,
       description: 'نظام إدارة عيادات الأسنان',
-      start_url: location.href.split('#')[0],
-      scope: './',
+      start_url: page,
+      scope: dir,
       display: 'standalone',
+      display_override: ['standalone','minimal-ui'],
       orientation: 'any',
       background_color: '#E8EFF1',
       theme_color: APP.green,
