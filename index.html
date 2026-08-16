@@ -958,8 +958,9 @@ ar:{
  resetSend:'إرسال الرمز', resetSent:'أُرسل الرمز — افحص بريدك',
  resetCode:'رمز التأكيد', resetNew:'كلمة المرور الجديدة',
  resetGo:'تغيير كلمة المرور', resetDone:'تغيّرت كلمة المرور — سجّل الدخول',
- resetBad:'الرمز غير صحيح أو انتهت صلاحيته', resetNoMail:'اكتب بريدك أولاً',
+ resetBad:'الرمز غير صحيح أو انتهت صلاحيته — اطلب رمزاً جديداً واستعمل آخر رسالة وصلتك', resetNoMail:'اكتب بريدك أولاً',
  code6:'الرمز ٦ أو ٨ أرقام كما وصلك', spamHint:'إن لم تجد الرسالة، افحص مجلد الرسائل المزعجة',
+ lastCodeOnly:'استعمل آخر رسالة وصلتك — أي طلب جديد يُبطل الرمز السابق',
  myAccount:'حسابي',
  confirmAll:'أُنشئت الحسابات الثلاثة. كل واحد يحتاج تأكيد بريده برمز يصله — ابدأ بحساب الطبيب، ثم كرّرها لكل حساب من شاشة الدخول.',
  confirmSteps:'البُرُد التي أُرسلت إليها الرسائل',
@@ -1214,8 +1215,9 @@ en:{
  resetSend:'Send code', resetSent:'Code sent — check your email',
  resetCode:'Confirmation code', resetNew:'New password',
  resetGo:'Change password', resetDone:'Password changed — sign in',
- resetBad:'Wrong or expired code', resetNoMail:'Enter your email first',
+ resetBad:'Wrong or expired code — request a new one and use the latest message', resetNoMail:'Enter your email first',
  code6:'The code is 6 or 8 digits, as received', spamHint:'If you cannot find it, check your spam folder',
+ lastCodeOnly:'Use the latest message — a new request invalidates the previous code',
  myAccount:'My account',
  confirmAll:'The three accounts were created. Each needs to confirm its email with a code — start with the doctor account, then repeat for each from the sign-in screen.',
  confirmSteps:'Emails the messages were sent to',
@@ -2824,7 +2826,8 @@ const Login = {
 
         <div id="rs-step2" class="hide">
           <div class="al g mt2"><span>✓</span><span>${T('resetSent')}<br>
-            <span class="tiny">${T('spamHint')}</span></span></div>
+            <span class="tiny">${T('spamHint')}</span><br>
+            <span class="tiny">${T('lastCodeOnly')}</span></span></div>
           <div class="mt"><label class="lb">${T('resetCode')}</label>
             <input id="rs-code" inputmode="numeric" dir="ltr" maxlength="8"
               autocomplete="one-time-code" placeholder="——————"
@@ -2912,6 +2915,10 @@ const Login = {
     try {
       await Cloud.call('/auth/v1/recover?redirect_to=' + encodeURIComponent(backHere()),
         { method:'POST', auth:false, body:{ email:mail } });
+      /* كل رمز جديد يُبطل ما قبله — تُمحى المحاولة القديمة */
+      this._used = false;
+      const cf = $('#rs-code'); if (cf) cf.value = '';
+      const gb = $('#rs-go');   if (gb) gb.disabled = false;
       $('#rs-step2').classList.remove('hide');
       setTimeout(()=>$('#rs-code')?.focus(), 100);
     } catch (e) { show(String(e.message || e)); }
@@ -2930,12 +2937,16 @@ const Login = {
     if (!/^\d{6}$|^\d{8}$/.test(code)) return show(T('code6'));
     if (pass.length < 8)       return show(T('passShort'));
 
-    const b = $('#rs-go'); b.disabled = true; b.textContent = T('cloudBusy');
+    const b = $('#rs-go');
+    if (b.disabled) return;                 /* ضغطة ثانية تُهمَل */
+    b.disabled = true; b.textContent = T('cloudBusy');
     try {
       /* الرمز يُبادَل بتذكرة مؤقّتة، وبها تُغيَّر كلمة المرور */
       const d = await Cloud.call('/auth/v1/verify', { method:'POST', auth:false,
         body:{ type:'recovery', email:mail, token:code } });
       if (!d?.access_token) return show(T('resetBad'));
+      /* من هنا فصاعداً الرمز مُستهلَك: لا يُعاد استعماله */
+      this._used = true;
       Cloud.saveSess({ token:d.access_token, refresh:d.refresh_token,
                        exp: Date.now() + 3600000, email:mail });
       await Cloud.call('/auth/v1/user', { method:'PUT', body:{ password:pass } });
@@ -2948,7 +2959,11 @@ const Login = {
     } catch (e) {
       const m = String(e.message || e);
       show(/token|expired|invalid/i.test(m) ? T('resetBad') : m);
-    } finally { b.disabled = false; b.textContent = T('resetGo'); }
+    } finally {
+      /* الزر يُفتح فقط إن بقي الرمز صالحاً — وإلا يُطلب رمز جديد */
+      b.disabled = !!this._used;
+      b.textContent = T('resetGo');
+    }
   },
 
   /*──── تنفيذ الدخول بالبريد ────*/
