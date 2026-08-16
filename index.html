@@ -964,6 +964,7 @@ ar:{
  lastCodeOnly:'استعمل آخر رسالة وصلتك — أي طلب جديد يُبطل الرمز السابق',
 
 /*──── قائمة المتابعة ────*/
+ installMenu:'ثبّته من قائمة المتصفح ← تثبيت التطبيق',
  t_recall:'المتابعة', recallTitle:'قائمة المتابعة',
  recallHint:'من يستحق اتصالاً اليوم — مبنية على ما في ملفاتك، لا على قوائم تكتبها بيدك.',
  rcTomorrow:'مواعيد غداً', rcTomorrowH:'اتصل بهم اليوم — التذكير يقلّل الغياب إلى النصف',
@@ -1234,6 +1235,7 @@ en:{
  lastCodeOnly:'Use the latest message — a new request invalidates the previous code',
 
 /*──── recall list ────*/
+ installMenu:'Install it from the browser menu → Install app',
  t_recall:'Recall', recallTitle:'Recall list',
  recallHint:'Who deserves a call today — built from your own records, not a list you keep by hand.',
  rcTomorrow:'Tomorrow appointments', rcTomorrowH:'Call them today — reminders halve no-shows',
@@ -8666,25 +8668,37 @@ const Install = {
     });
     window.addEventListener('appinstalled', () => {
       this.prompt = null; this.ready = false;
-      localStorage.setItem('d_installed','1');
+      /* التثبيت يمحو الإرجاء: لو أُزيل التطبيق لاحقاً عاد الشريط */
+      try { localStorage.removeItem('d_inst_x'); } catch(_){}
       this.hide(); toast(T('installed'), 's');
     });
 
-    /* آيفون لا يطلق الحدث — نعرض الإرشاد بعد لحظة */
-    if (this.isIOS() && !this.standalone() && !localStorage.getItem('d_inst_x'))
-      setTimeout(()=>this.bar(), 1400);
+    /* الشريط يظهر حتى لو لم يطلق المتصفح حدث التثبيت.
+       الحدث لا يُطلق على آيفون أصلاً، ولا يُطلق في كروم إن ظنّ
+       التطبيق مثبَّتاً — فبانتظاره وحده يختفي الشريط بلا سبب
+       ظاهر للمستخدم. */
+    setTimeout(() => this.bar(), this.isIOS() ? 1400 : 2200);
+  },
+
+  /* الإخفاء إرجاء لا إلغاء: من ضغط ✕ اليوم قد يريده الأسبوع
+     القادم، ولا معنى لحرمانه منه إلى الأبد. */
+  SNOOZE:7 * 86400000,
+  snoozed(){
+    const t = Number(localStorage.getItem('d_inst_x') || 0);
+    return t && (Date.now() - t) < this.SNOOZE;
   },
 
   /* بطاقة التثبيت */
   bar(){
-    if (this.standalone() || localStorage.getItem('d_inst_x')) return;
+    if (this.standalone() || this.snoozed()) return;
     if (document.getElementById('instbar')) return;
 
     const box = el(`<div id="instbar"><div class="box">
       <img class="applogo sm" src="${ICON.dataSvg(160,false)}" alt="">
       <div class="gr" style="min-width:0">
         <div class="nm">${APP.nameAr} — ${APP.nameEn}</div>
-        <div class="ds">${this.isIOS() ? T('iosInstall') : T('installHint')}</div>
+        <div class="ds">${this.isIOS() ? T('iosInstall')
+          : this.ready ? T('installHint') : T('installMenu')}</div>
       </div>
       ${this.isIOS() ? '' : `<button class="btn sm" onclick="Install.go()">${T('install')}</button>`}
       <button class="x" onclick="Install.dismiss()">✕</button>
@@ -8693,7 +8707,10 @@ const Install = {
   },
 
   hide(){ document.getElementById('instbar')?.remove(); },
-  dismiss(){ localStorage.setItem('d_inst_x','1'); this.hide(); },
+  dismiss(){
+    try { localStorage.setItem('d_inst_x', String(Date.now())); } catch(_){}
+    this.hide();
+  },
 
   async go(){
     if (this.prompt){
