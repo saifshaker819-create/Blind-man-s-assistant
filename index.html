@@ -8,7 +8,7 @@
      الاتصال مسموح لسيرفر العيادة وحده (supabase.co) — أي وجهة
      أخرى مرفوضة، فلا تستطيع شيفرة مدسوسة تسريب بيانات المراجعين.
      وimg-src المحصورة تمنع التسريب عبر صورة خارجية. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; connect-src https://*.supabase.co wss://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; manifest-src blob:; worker-src 'self'; connect-src https://*.supabase.co wss://*.supabase.co; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>أسناني — My teeth</title>
 <meta name="application-name" content="أسناني">
@@ -342,6 +342,11 @@ a.btn{text-decoration:none}
 .track{height:10px;border-radius:99px;background:var(--glass2);
        border:1px solid var(--edge);overflow:hidden}
 .track>i{display:block;height:100%;border-radius:99px;transition:width .45s cubic-bezier(.3,.9,.3,1)}
+/* بديل الصورة التي تعذّر عرضها — يقول ما جرى ويعرض إعادة المحاولة */
+.imgx{aspect-ratio:1;border-radius:13px;border:1px dashed var(--edge);
+  background:var(--glass2);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;cursor:pointer;color:var(--ink3);font-weight:700}
+.imgx>span:first-child{font-size:22px}
 .rk{width:28px;height:28px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
     font-family:'Zain',sans-serif;font-size:13px;font-weight:800;
     background:var(--glass2);color:var(--ink2);border:1px solid var(--edge)}
@@ -965,7 +970,14 @@ ar:{
 
 /*──── قائمة المتابعة ────*/
  installMenu:'ثبّته من قائمة المتصفح ← تثبيت التطبيق',
+ needPick:'حدّد أي جلسة أُنجزت اليوم قبل إنهاء الزيارة',
+ needPickH:'خطة هذا السن فيها جلسات مرقّمة، ولم تُسجَّل جلسة اليوم. بلا تحديدها لا يُعرف ما نُفِّذ ولا ما بقي للزيارة القادمة.',
  ptCancelled:'ألغى المراجع', bkCancelled:'ألغى المراجع حجزه',
+ imgGone:'الصورة غير متاحة', imgRetry:'إعادة المحاولة',
+ apSearch:'ابحث عن مراجع', apNone:'لا مواعيد مطابقة',
+ apMissed:'لم يحضر', visitOpened:'فُتحت الزيارة', pickSession:'حدّد أي جلسة عملتها اليوم',
+ pickSessionQ:'قبل إنهاء الجلسة لا بدّ من تحديد رقمها في خطة السن — وإلا ضاع تسلسل العلاج.',
+ goPlan:'فتح خطة السن',
  bkRemoved:'سحب المراجع حجزه قبل الموافقة',
  t_recall:'المتابعة', recallTitle:'قائمة المتابعة',
  recallHint:'من يستحق اتصالاً اليوم — مبنية على ما في ملفاتك، لا على قوائم تكتبها بيدك.',
@@ -1238,7 +1250,14 @@ en:{
 
 /*──── recall list ────*/
  installMenu:'Install it from the browser menu → Install app',
+ needPick:'Mark which session was done today before ending the visit',
+ needPickH:'This tooth has a numbered plan and no session was recorded today. Without it, neither what was done nor what remains is known.',
  ptCancelled:'Cancelled by patient', bkCancelled:'The patient cancelled the appointment',
+ imgGone:'Image unavailable', imgRetry:'Retry',
+ apSearch:'Search for a patient', apNone:'No matching appointments',
+ apMissed:'Did not attend', visitOpened:'Visit opened', pickSession:'Mark which session you did today',
+ pickSessionQ:'A session cannot be closed without its number in the tooth plan — otherwise the treatment sequence is lost.',
+ goPlan:'Open the tooth plan',
  bkRemoved:'The patient withdrew the booking before approval',
  t_recall:'Recall', recallTitle:'Recall list',
  recallHint:'Who deserves a call today — built from your own records, not a list you keep by hand.',
@@ -1877,6 +1896,10 @@ const UI = {
     document.body.style.overflow = 'hidden';
     window.scrollTo(0,0);
     const box = $('#sheet .shb'); if (box) box.scrollTop = 0;
+    /* أي شاشة قد تحمل مصغّرات صور — تُملأ روابطها فور رسمها.
+       الاعتماد على تغليف الصفحات وحده كان يفوّت الشاشات التي
+       تُفتح من داخل شاشة أخرى، فتظهر الصور مكسورة. */
+    Promise.resolve().then(() => Doc.thumbs && Doc.thumbs());
     return $('#sheet .sh');
   },
   close(){
@@ -2258,6 +2281,7 @@ const Img = {
   async view(f){
     if (f.data) return f.data;                    /* صورة قديمة أو محلية */
     if (!f.path) return null;
+    if (!Cloud.session?.token) return null;       /* بلا جلسة لا توقيع */
     const hit = this._url[f.path];
     if (hit && hit.exp > Date.now()) return hit.u;
     const r = await fetch(
@@ -2268,9 +2292,12 @@ const Img = {
                 'Content-Type':'application/json' },
       body: JSON.stringify({ expiresIn: 3600 }),
     });
-    if (!r.ok) return null;
-    const d = await r.json();
-    const u = Cloud.cfg.url + '/storage/v1' + d.signedURL;
+    if (!r.ok) return f.data || null;            /* التوقيع فشل: النسخة المحلية إن بقيت */
+    const d = await r.json().catch(()=>null);
+    if (!d?.signedURL) return f.data || null;
+    /* الرابط يعود أحياناً كاملاً وأحياناً نسبياً — يُقبل الشكلان */
+    const u = /^https?:/.test(d.signedURL) ? d.signedURL
+            : Cloud.cfg.url + '/storage/v1' + d.signedURL;
     this._url[f.path] = { u, exp: Date.now() + 3300000 };
     return u;
   },
@@ -4036,9 +4063,49 @@ const Sec = {
       </div>`;}).join('') : `<div class="emp">${T('noQueue')}</div>`;
   },
 
+  /*──── هل يجوز إنهاء هذه الزيارة؟ ────
+    سنّ خطته مرقّمة ولم تُسجَّل له جلسة اليوم يعني أن العمل جرى
+    بلا نسبته إلى جلسة. فيضيع أثره: لا الخطة تتقدّم، ولا يُعرف
+    عند الزيارة القادمة ما بقي. فيُمنع الإنهاء ويُفتح ملف السن. */
+  async needSession(pid, vid){
+    const ws = await DB.by('works','vid',vid);
+    if (ws.some(w => (w.sessionNos||[]).length)) return null;   /* سُجّلت */
+
+    const all = await DB.by('works','pid',pid);
+    for (const t of (await DB.by('tooth','pid',pid))){
+      const cur  = t.course || 1;
+      const plan = (t.plans || {})[cur];
+      if (!plan || !plan.sessions) continue;
+      const done = new Set();
+      all.filter(w => Number(w.fdi) === Number(t.fdi) && (w.course||1) === cur)
+         .forEach(w => (w.sessionNos||[]).forEach(x => done.add(Number(x))));
+      if (done.size < plan.sessions) return Number(t.fdi);      /* ما زالت ناقصة */
+    }
+    return null;
+  },
+
   /* انتقال حالة الدور: بالانتظار ← استدعاء ← على الكرسي ← إنهاء */
   async setQ(vid, st){
     const v = await DB.get('visits', vid);
+
+    if (st === 'done'){
+      const fdi = await this.needSession(v.pid, vid);
+      if (fdi){
+        S.patient = await DB.get('patients', v.pid);
+        S.visit = v;
+        toast(T('needPick'), 'e');
+        Nav.reset();
+        await Doc.tooth(fdi);
+        /* تنبيه ثابت داخل الصفحة لا رسالة عابرة تختفي */
+        const sh = $('#sheet .sh');
+        if (sh) sh.insertAdjacentHTML('afterbegin',
+          `<div class="al r" style="margin:0 0 12px"><span>!</span>
+             <span><b>${T('needPick')}</b><br>
+             <span class="tiny">${T('needPickH')}</span></span></div>`);
+        return;
+      }
+    }
+
     v.qstate = st;
     v._qAt = Sync.now();          /* ختم الحقل نفسه، لا السجل كله */
     if (st === 'done'){ v.st = 'done'; }
@@ -4455,15 +4522,19 @@ const Sec = {
       <button class="btn w gh mt2" onclick="Nav.back()">${T('close')}</button>`);
   },
 
+  /* باركود واحد للمراجع في البرنامجين: ما يراه على هاتفه هو ما
+     يُطبع له هنا. رمز الجلسة يبقى داخلياً للبحث لا للطباعة. */
   async barcode(vid){
     const v = await DB.get('visits', vid);
     const p = await DB.get('patients', v.pid);
+    if (p && !p.bc){ p.bc = await Ops.nextBarcode(); await DB.put('patients', p); }
+    const code = String(p?.bc || v.code);
     UI.sheet(`
       <div class="h2 ctr">${T('barcode')}</div>
       <div class="sub ctr">${esc(nm(p))} — ${T('visit')} ${v.no}</div>
       <div class="card mt2" style="background:#fff;padding:14px">
-        ${C39.svg(v.code, 70)}
-        <div class="mono ctr mt" style="color:#000;font-weight:700;letter-spacing:.14em;font-size:14px">${esc(v.code)}</div>
+        ${C39.svg(code, 74)}
+        <div class="mono ctr mt" style="color:#000;font-weight:800;letter-spacing:.2em;font-size:19px">${esc(code)}</div>
       </div>
       <button class="btn w mt2" onclick="Print.barcode('${vid}')">${T('printBarcode')}</button>
       <button class="btn w gh mt" onclick="Nav.back()">${T('close')}</button>`);
@@ -5143,10 +5214,8 @@ const Doc = {
           </button>`).join('')}</div>`:`<div class="emp mt">${T('noToothWork')}</div>`}
       </div>
 
-      ${Perm.addWork()?`<div class="row mt" style="gap:8px">
-        <button class="btn gh gr" onclick="Doc.statusPicker(${fdi})">${T('setStatus')}</button>
-        ${done.works.length?`<button class="btn wn gr" onclick="Doc.endCourse(${fdi})">
-          ✔ ${T('sealTooth')}</button>`:''}
+      ${Perm.addWork()?`<div class="row mt">
+        <button class="btn gh w" onclick="Doc.statusPicker(${fdi})">${T('setStatus')}</button>
       </div>`:''}
 
       ${arch.length?`<div class="card mt2">
@@ -5624,7 +5693,29 @@ const Doc = {
   },
 
   /* ختم ملف السن من بطاقته */
+  /* الإنهاء يتطلّب أن تكون كل أعمال هذه السلسلة محدّدة الجلسة.
+     عمل بلا رقم جلسة يكسر تسلسل الخطة، فلا يُعرف ما نُفّذ وما بقي. */
+  async needSessionNo(fdi){
+    const cur = await Ops.course(S.patient.id, Number(fdi));
+    const plan = await Ops.plan(S.patient.id, Number(fdi));
+    if (!plan?.sessions) return false;
+    const ws = (await DB.by('works','pid',S.patient.id))
+      .filter(w => Number(w.fdi) === Number(fdi) && (w.course||1) === cur);
+    return ws.some(w => !(w.sessionNos||[]).length);
+  },
+
+  async warnSession(fdi){
+    UI.sheet(`
+      <div class="ctr" style="padding:10px 0">
+        <div style="font-size:42px">🗂</div>
+        <div class="h2 mt">${T('pickSession')}</div>
+      </div>
+      <div class="al w"><span>!</span><span>${T('pickSessionQ')}</span></div>
+      <button class="btn w mt2" onclick="Nav.back()">${T('goPlan')}</button>`);
+  },
+
   async endCourse(fdi){
+    if (await this.needSessionNo(fdi)) return this.warnSession(fdi);
     if (!ask(T('endCourseQ'))) return;
     await Ops.endCourse(S.patient.id, fdi);
     toast(T('sealed_msg'), 's');
@@ -5704,11 +5795,39 @@ const Doc = {
      فلا يُنتظر قبل إظهار الشاشة. */
   async thumbs(){
     for (const el of $$('img[data-fid]')){
-      if (el.src) continue;
+      if (el.src || el.dataset.done) continue;
+      el.dataset.done = '1';
       const f = await DB.get('files', el.dataset.fid);
-      const u = f && await Img.view(f);
-      if (u) el.src = u;
+      let u = null;
+      try { u = f && await Img.view(f); } catch(_){}
+      if (u){
+        /* الصورة قد تفشل بعد إسناد الرابط أيضاً — يُعرض بديل مفهوم
+           بدل أيقونة المتصفح المكسورة التي لا تقول شيئاً. */
+        el.onerror = () => Doc.imgFail(el);
+        el.src = u;
+      } else Doc.imgFail(el);
     }
+  },
+
+  imgFail(el){
+    el.removeAttribute('src');
+    el.style.display = 'none';
+    if (el.nextElementSibling?.classList.contains('imgx')) return;
+    el.insertAdjacentHTML('afterend',
+      `<div class="imgx" onclick="event.stopPropagation();Doc.imgAgain(this)">
+         <span>🖼</span><span class="tiny">${T('imgGone')}</span>
+         <span class="tiny" style="text-decoration:underline">${T('imgRetry')}</span>
+       </div>`);
+  },
+
+  imgAgain(box){
+    const img = box.previousElementSibling;
+    box.remove();
+    if (!img) return;
+    img.style.display = '';
+    delete img.dataset.done;
+    Img._url = {};                  /* روابط قديمة قد تكون انتهت */
+    this.thumbs();
   },
 
   async delFile(id){
@@ -6900,14 +7019,15 @@ const Print = {
   async barcode(vid){
     const v = await DB.get('visits', vid);
     const p = await DB.get('patients', v.pid);
+    const code = String(p?.bc || v.code);
     this.win(`<div style="text-align:center;padding:6px">
       ${CFG.data.logo?`<img src="${CFG.data.logo}" style="width:100%;max-height:70px;object-fit:contain">`
         :`<div style="font-size:15px;font-weight:800">${esc(CFG.data.clinic)}</div>`}
       <div style="font-size:14px;font-weight:700;margin-top:5px">${esc(nm(p))}</div>
       <div style="font-size:11.5px;color:#444">${esc(p.mrn)} · ${p.age||''} ${T('yrs')} · ${fmtD(v.date)}</div>
-      <div style="margin-top:9px">${C39.svg(v.code, 62)}</div>
-      <div style="font-family:monospace;letter-spacing:.16em;font-size:13px;font-weight:700">${esc(v.code)}</div>
-    </div>`, v.code);
+      <div style="margin-top:9px">${C39.svg(code, 62)}</div>
+      <div style="font-family:monospace;letter-spacing:.2em;font-size:15px;font-weight:800">${esc(code)}</div>
+    </div>`, code);
   },
 
   async day(){
@@ -7363,8 +7483,6 @@ const Appt = {
           <div class="mono h3" style="color:var(--ok)">${N(cs.paid)}
             <span class="tiny" style="color:var(--ink3)">/ ${N(cs.total)}</span></div>
         </div>
-        <button class="btn xs wn" onclick="Appt.endTooth('${pid}',${f},'${vid}')">
-          ✔ ${T('endCourse')}</button>
       </div>`);
     }
 
@@ -7465,24 +7583,51 @@ const Appt = {
   },
 
   /* لوحة كل المواعيد القادمة — قسم مستقل للطبيب والسكرتير */
+  bq:'',
   async board(){
-    const v = $('#view'); v.innerHTML = UI.spin();
+    const v = $('#view');
+    if (!$('#ap-q')){
+      v.innerHTML = `
+        <div class="sbar">
+          <button class="btn" onclick="Appt.picker()">＋ ${T('newAppt')}</button>
+          <input id="ap-q" placeholder="${T('apSearch')}" value="${esc(this.bq)}">
+          <span class="pill b" id="ap-n">0</span>
+        </div>
+        <div id="ap-list" class="col mt2">${UI.spin()}</div>`;
+      const i = $('#ap-q'); let tm;
+      i.oninput = () => { clearTimeout(tm); this.bq = i.value;
+                          tm = setTimeout(()=>this.board(), 200); };
+    }
+    const box = $('#ap-list'); if (!box) return;
+
+    const q  = this.bq.trim().toLowerCase();
+    const qd = q.replace(/\D/g,'');
     const all = (await DB.all('appts')).filter(a => a.st==='open')
                  .sort((a,b)=> (a.day+a.time).localeCompare(b.day+b.time));
     const td = today();
     const rows = [];
     for (const a of all){
       const p = await DB.get('patients', a.pid); if (!p) continue;
+      if (q && !( nm(p).toLowerCase().includes(q)
+               || String(p.mrn||'').toLowerCase().includes(q)
+               || String(p.bc||'') === q
+               || (qd && (p.phone||'').replace(/\D/g,'').includes(qd)) )) continue;
       const diff = Math.round((new Date(a.day) - new Date(td)) / 86400000);
       const when = diff < 0 ? T('overdue') : diff === 0 ? T('todayWord')
                  : diff === 1 ? T('tomorrow') : `${T('daysLeft')} ${diff} ${T('dayWord')}`;
       const tone = diff < 0 ? 'r' : diff === 0 ? 'b' : diff <= 2 ? 'w' : 'n';
       const dayName = new Date(a.day+'T00:00:00')
         .toLocaleDateString(isAr()?'ar-IQ':'en-GB',{weekday:'long'});
-      rows.push(`<div class="it" onclick="Sec.file('${p.id}')">
-        <div class="av ${tone==='r'?'r':tone==='b'?'':'w'}">📅</div>
+      /* المتأخّر يومض بالأحمر: مرّ موعده ولم يأتِ، وهذا وحده
+         يستحق نظرة قبل غيره. */
+      const late = diff < 0;
+      rows.push(`<div class="it ${late?'live':''}" onclick="Appt.openFrom('${a.id}','${p.id}')">
+        <div class="av ${tone==='r'?'r':tone==='b'?'':'w'}">${late?'⚠':'📅'}</div>
         <div class="gr">
-          <div class="h3 ell">${esc(nm(p))}</div>
+          <div class="row" style="gap:6px">
+            ${late?'<span class="dotlive"></span>':''}
+            <div class="h3 ell">${esc(nm(p))}</div>
+          </div>
           <div class="mono tiny">${esc(dayName)} · ${fmtD(a.day)} — ${esc(a.time||'')}</div>
           ${a.note?`<div class="tiny" style="margin-top:2px">${esc(a.note)}</div>`:''}
         </div>
@@ -7492,13 +7637,23 @@ const Appt = {
         </div>
       </div>`);
     }
-    v.innerHTML = `
-      <div class="sbar">
-        <button class="btn gr" onclick="Appt.picker()">＋ ${T('newAppt')}</button>
-        <span class="pill b">${rows.length}</span>
-      </div>
-      <div class="lbl mt2">${T('allAppts')}</div>
-      <div class="col mt">${rows.join('') || `<div class="emp">${T('noNext')}</div>`}</div>`;
+    const n = $('#ap-n'); if (n) n.textContent = rows.length;
+    box.innerHTML = rows.join('')
+      || `<div class="emp">${this.bq ? T('apNone') : T('noNext')}</div>`;
+  },
+
+  /* فتح زيارة من الموعد: الموعد أدّى غرضه فيُغلق ويختفي من
+     القائمة — سواء جاء في وقته أو قبله أو بعده. بقاؤه بعد فتح
+     الزيارة يجعل القائمة تكذب. */
+  async openFrom(aid, pid){
+    const a = await DB.get('appts', aid);
+    if (a){ a.st = 'done'; a.doneAt = Date.now(); await DB.put('appts', a); }
+    const p = await DB.get('patients', pid);
+    if (!p) return this.board();
+    S.patient = p;
+    await Ops.openVisit(pid, a?.note || '');
+    toast(`${nm(p)} — ${T('visitOpened')}`, 's');
+    S.tab = 'today'; App.draw();
   },
 
   /* اختيار المراجع قبل تحديد الموعد: بحث في المسجّلين أو تسجيل جديد */
@@ -8710,8 +8865,21 @@ const Install = {
   },
   isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; },
 
+
+  /* عامل الخدمة: شرط عرض زر التثبيت المباشر على سطح المكتب.
+     يُسجَّل بصمت — وإن غاب الملف يبقى البرنامج يعمل كما هو،
+     ويكتفي بإرشاد التثبيت اليدوي. */
+  reg(){
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'https:' &&
+        !['localhost','127.0.0.1'].includes(location.hostname)) return;
+    const dir = location.href.split(/[?#]/)[0].replace(/[^/]*$/, '');
+    navigator.serviceWorker.register(dir + 'sw.js', { scope: dir })
+      .catch(() => { /* الملف غير مرفوع: لا يتعطّل شيء */ });
+  },
   init(){
     this.manifest();
+    this.reg();
 
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
