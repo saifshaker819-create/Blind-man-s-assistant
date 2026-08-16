@@ -954,12 +954,12 @@ ar:{
  noOffline:'لا يمكن الدخول بلا إنترنت قبل أول دخول ناجح على هذا الجهاز',
  offlineOld:'مضت مدة طويلة بلا اتصال — لا بدّ من دخول متصل مرة واحدة',
  forgot:'نسيت كلمة المرور؟', resetTitle:'استعادة كلمة المرور',
- resetStep1:'اكتب بريدك ليصلك رمز تأكيد من ٦ أرقام',
+ resetStep1:'اكتب بريدك ليصلك رمز تأكيد',
  resetSend:'إرسال الرمز', resetSent:'أُرسل الرمز — افحص بريدك',
  resetCode:'رمز التأكيد', resetNew:'كلمة المرور الجديدة',
  resetGo:'تغيير كلمة المرور', resetDone:'تغيّرت كلمة المرور — سجّل الدخول',
  resetBad:'الرمز غير صحيح أو انتهت صلاحيته', resetNoMail:'اكتب بريدك أولاً',
- code6:'الرمز ٦ أرقام', spamHint:'إن لم تجد الرسالة، افحص مجلد الرسائل المزعجة',
+ code6:'الرمز ٦ أو ٨ أرقام كما وصلك', spamHint:'إن لم تجد الرسالة، افحص مجلد الرسائل المزعجة',
  myAccount:'حسابي',
  confirmAll:'أُنشئت الحسابات الثلاثة. كل واحد منها يحتاج تأكيد بريده قبل أول دخول — أُرسلت رسالة لكل بريد.',
  confirmSteps:'البُرُد التي أُرسلت إليها الرسائل',
@@ -995,12 +995,9 @@ ar:{
  newPass:'كلمة المرور الجديدة', newPass2:'إعادة كتابة الجديدة', passShort:'كلمة المرور أقصر من ٨ خانات',
  passWeak:'كلمة مرور سهلة التخمين — اخلط حروفاً وأرقاماً',
  passSame:'الكلمتان غير متطابقتين', passWrong:'كلمة المرور الحالية غير صحيحة', passDone:'تغيّرت كلمة المرور',
- defaultPass:'حساب ما زال يستعمل كلمة المرور الافتراضية ١٢٣٤ — غيّرها الآن',
- defaultPassOne:'كلمة مرورك ما زالت الافتراضية ١٢٣٤', passOf:'كلمة مرور',
  tooMany:'محاولات كثيرة — انتظر', autoLock:'القفل التلقائي عند عدم الاستعمال',
  lockOff:'مطفأ', lockMin:'دقيقة', autoLocked:'أُقفل البرنامج تلقائياً',
  lockNow:'إقفال الآن', doctorOnlyData:'النسخ الاحتياطي والحذف للطبيب وحده',
- noCrypto:'هذا المتصفح لا يدعم تعمية كلمة المرور — تُحفظ كما هي',
  confirmDoc:'أدخل كلمة مرور حساب الطبيب للمتابعة', wrongDoc:'كلمة المرور غير صحيحة',
  wipeWarn:'محو كل بيانات هذا الجهاز: المراجعون والجلسات والحسابات والأرشيف. لا يمكن التراجع.',
  wipeWarn2:'تأكيد أخير — هل صدّرت نسخة احتياطية مشفّرة؟',
@@ -1209,12 +1206,12 @@ en:{
  noOffline:'Offline sign-in needs one successful online sign-in on this device first',
  offlineOld:'Too long without a connection — one online sign-in is required',
  forgot:'Forgot your password?', resetTitle:'Reset password',
- resetStep1:'Enter your email to receive a 6-digit code',
+ resetStep1:'Enter your email to receive a confirmation code',
  resetSend:'Send code', resetSent:'Code sent — check your email',
  resetCode:'Confirmation code', resetNew:'New password',
  resetGo:'Change password', resetDone:'Password changed — sign in',
  resetBad:'Wrong or expired code', resetNoMail:'Enter your email first',
- code6:'The code is 6 digits', spamHint:'If you cannot find it, check your spam folder',
+ code6:'The code is 6 or 8 digits, as received', spamHint:'If you cannot find it, check your spam folder',
  myAccount:'My account',
  confirmAll:'The three accounts were created. Each must confirm its email before the first sign-in — a message was sent to each.',
  confirmSteps:'Emails the messages were sent to',
@@ -1250,12 +1247,9 @@ en:{
  newPass:'New password', newPass2:'Repeat new password', passShort:'Password is shorter than 8 characters',
  passWeak:'Too easy to guess — mix letters and numbers',
  passSame:'The two passwords do not match', passWrong:'Current password is wrong', passDone:'Password changed',
- defaultPass:'An account still uses the default password 1234 — change it now',
- defaultPassOne:'Your password is still the default 1234', passOf:'Password of',
  tooMany:'Too many attempts — wait', autoLock:'Auto-lock when idle',
  lockOff:'Off', lockMin:'min', autoLocked:'The app was locked automatically',
  lockNow:'Lock now', doctorOnlyData:'Backup and deletion are for the doctor only',
- noCrypto:'This browser cannot hash passwords — they are stored as typed',
  confirmDoc:'Enter the doctor account password to continue', wrongDoc:'Wrong password',
  wipeWarn:'Erase all data on this device: patients, sessions, accounts and archive. This cannot be undone.',
  wipeWarn2:'Final confirmation — did you export an encrypted backup?',
@@ -1582,7 +1576,10 @@ const MEM = {
 
 const DB = {
   _db:null, fallback:false,
-  STORES:['patients','visits','works','payments','rx','files','settings','users','bookings','suggest','tooth','appts'],
+  /* users بقي مخزناً لتُمحى بقاياه عند الترقية، وخرج من
+     قائمة التصدير فلا يُنقل شيء ميّت إلى نسخة احتياطية. */
+  STORES:['patients','visits','works','payments','rx','files','settings','bookings','suggest','tooth','appts'],
+  ALL:['patients','visits','works','payments','rx','files','settings','users','bookings','suggest','tooth','appts'],
 
   async open(){
     if (this.fallback) return null;
@@ -1608,11 +1605,13 @@ const DB = {
       setTimeout(() => rej(new Error('تعذّر فتح قاعدة البيانات — أعد تحميل الصفحة')), 8000);
       r.onupgradeneeded = e => {
         const db = e.target.result;
+        /* المخازن تُنشأ من ALL لا STORES — users ما زال يُفتح
+           ليُقرأ ويُمحى، وإن سقط من الإنشاء فشلت المعاملة. */
         /* صندوق الصادر: كل تعديل محلي يُسجَّل هنا حتى يُرفع بنجاح،
            فلا يضيع عمل أُنجز بلا إنترنت. */
         if (!db.objectStoreNames.contains('outbox'))
           db.createObjectStore('outbox', { keyPath:'id' });
-        for (const s of DB.STORES){
+        for (const s of DB.ALL){
           if (!db.objectStoreNames.contains(s)){
             const os = db.createObjectStore(s, { keyPath:'id' });
             if (['visits','works','payments','rx','files','tooth','appts'].includes(s))
@@ -1684,8 +1683,8 @@ const DB = {
   async clearAll(){
     if (this.fallback) return MEM.clearAll();
     const db = await this.open();
-    const tx = db.transaction(DB.STORES,'readwrite');
-    DB.STORES.forEach(s=>tx.objectStore(s).clear());
+    const tx = db.transaction(DB.ALL,'readwrite');
+    DB.ALL.forEach(s=>tx.objectStore(s).clear());
     return new Promise(res=>{ tx.oncomplete=res; });
   },
 };
@@ -2796,7 +2795,7 @@ const Login = {
   },
 
   /*──── استعادة كلمة المرور ────
-    رمز من ٦ أرقام يصل البريد، ثم كلمة مرور جديدة. اختير الرمز
+    رمز يصل البريد، ثم كلمة مرور جديدة. اختير الرمز
     على الرابط لأن الرابط يفتح متصفحاً آخر ويضيع، والرمز يُنسخ
     ويُلصق في نفس الشاشة. */
   reset(){
@@ -2819,8 +2818,10 @@ const Login = {
           <div class="al g mt2"><span>✓</span><span>${T('resetSent')}<br>
             <span class="tiny">${T('spamHint')}</span></span></div>
           <div class="mt"><label class="lb">${T('resetCode')}</label>
-            <input id="rs-code" inputmode="numeric" dir="ltr" maxlength="6"
-              placeholder="123456" style="letter-spacing:.4em;text-align:center;
+            <input id="rs-code" inputmode="numeric" dir="ltr" maxlength="8"
+              autocomplete="one-time-code" placeholder="——————"
+              oninput="this.value=this.value.replace(/\\D/g,'')"
+              style="letter-spacing:.32em;text-align:center;
               font-size:20px;font-weight:800"></div>
           <div class="mt"><label class="lb">${T('resetNew')}</label>
             <input id="rs-pass" type="password" dir="ltr" autocomplete="new-password"></div>
@@ -2865,7 +2866,9 @@ const Login = {
     const mail = ($('#rs-mail').value || '').trim().toLowerCase();
     const code = ($('#rs-code').value || '').trim();
     const pass = $('#rs-pass').value || '';
-    if (!/^\d{6}$/.test(code)) return show(T('code6'));
+    /* طول الرمز يقرّره السيرفر لا نحن: ستّة أو ثمانية حسب
+       إعداد المشروع. فرض طول واحد يرفض رمزاً صحيحاً. */
+    if (!/^\d{6}$|^\d{8}$/.test(code)) return show(T('code6'));
     if (pass.length < 8)       return show(T('passShort'));
 
     const b = $('#rs-go'); b.disabled = true; b.textContent = T('cloudBusy');
@@ -3130,11 +3133,12 @@ const Reg = {
 /*═══════════════ التهيئة الأولى ═══════════════*/
 const Setup = {
   async ensure(){
-    const u = await DB.all('users');
-    if (!u.length){
-      for (const r of ['doctor','secretary','pharmacy'])
-        await DB.put('users', { id:r, pass:'1234', role:r, name:T('r_'+r), def:true });
-    }
+    /* الدخول صار عبر السيرفر، فلا حسابات محلية تُنشأ.
+       وما بقي منها من نسخة قديمة يُمحى: كلمات مرور ميّتة داخل
+       الجهاز لا تحرس شيئاً، وتبقى في النسخة الاحتياطية. */
+    try {
+      for (const u of await DB.all('users')) await DB.del('users', u.id);
+    } catch(_){}
     await CFG.load();
   },
   /* المحو الكامل كان متاحاً من شاشة الدخول بلا أي حاجز —
@@ -8152,26 +8156,6 @@ const Guard = {
     return this.hex(bits);
   },
 
-  /* يقبل الصيغة القديمة (نص صريح) حتى لا يُقفل أحد خارج برنامجه */
-  async verify(usr, pass){
-    if (usr.hash && usr.salt) return (await this.hash(pass, usr.salt)) === usr.hash;
-    return usr.pass === pass;
-  },
-
-  async setPass(usr, pass){
-    const salt = this.salt();
-    const h = await this.hash(pass, salt);
-    if (h){ usr.salt = salt; usr.hash = h; delete usr.pass; }
-    else   { usr.pass = pass; delete usr.salt; delete usr.hash; }
-    usr.def = (pass === '1234');
-    usr.passAt = Date.now();
-    await DB.put('users', usr);
-    return !!h;
-  },
-
-  isDefault(usr){ return usr.def === true || (!usr.hash && usr.pass === '1234'); },
-  async anyDefault(){ return (await DB.all('users')).some(u => this.isDefault(u)); },
-
   /*──── تعطيل التخمين ────*/
   tries(){ try { return JSON.parse(localStorage.getItem('d_try')) || {n:0,until:0}; }
            catch(_){ return {n:0,until:0}; } },
@@ -8250,66 +8234,6 @@ const Guard = {
 
   forget(){ try { localStorage.removeItem('d_off'); } catch(_){} },
 
-  /*──── تأكيد بكلمة مرور الطبيب قبل الإجراءات الخطرة ────*/
-  async confirmDoctor(){
-    const p = prompt(T('confirmDoc'));
-    if (p === null) return false;
-    const doc = (await DB.all('users')).find(u => u.role === 'doctor');
-    if (doc && await this.verify(doc, p)) return true;
-    toast(T('wrongDoc'), 'e'); return false;
-  },
-
-  /*──── نافذة تغيير كلمة المرور ────*/
-  async passSheet(uid){
-    const usr = (await DB.all('users')).find(u => u.id === uid);
-    if (!usr) return;
-    /* الطبيب يغيّر كلمات الآخرين بلا كلمتهم الحالية */
-    const mine = S.user?.id === uid;
-    UI.sheet(`
-      <div class="shhead">
-        <div class="accic" style="width:44px;height:44px;font-size:19px">🔐</div>
-        <div class="gr"><div class="h2">${T('changePass')}</div>
-          <div class="tiny">${T('passOf')} ${esc(T('r_'+usr.role))}</div></div>
-        <button class="ib" onclick="Nav.back()">✕</button>
-      </div>
-      ${this.can()?'':`<div class="al w mt2"><span>!</span><span>${T('noCrypto')}</span></div>`}
-      <div class="card">
-        ${mine?`<div><label class="lb">${T('curPass')}</label>
-          <input id="pw-c" type="password" dir="ltr" autocomplete="current-password"></div>`:''}
-        <div class="mt"><label class="lb">${T('newPass')}</label>
-          <input id="pw-a" type="password" dir="ltr" autocomplete="new-password"></div>
-        <div class="mt"><label class="lb">${T('newPass2')}</label>
-          <input id="pw-b" type="password" dir="ltr" autocomplete="new-password"></div>
-        <div id="pw-err" class="al r mt hide"></div>
-        <div class="row mt2" style="gap:9px">
-          <button class="btn gh gr" onclick="Nav.back()">${T('cancel')}</button>
-          <button class="btn gr" style="flex:2" onclick="Guard.savePass('${uid}',${mine})">
-            ${T('save')}</button>
-        </div>
-      </div>`);
-    setTimeout(()=>$(mine?'#pw-c':'#pw-a')?.focus(), 120);
-  },
-
-  async savePass(uid, mine){
-    const err = $('#pw-err');
-    const show = m => { err.textContent = m; err.classList.remove('hide'); };
-    const usr = (await DB.all('users')).find(u => u.id === uid);
-    if (!usr) return;
-    const a = $('#pw-a').value, b = $('#pw-b').value;
-    if (mine && !(await this.verify(usr, $('#pw-c').value))) return show(T('passWrong'));
-    if (a.length < 8) return show(T('passShort'));
-    if (a !== b)      return show(T('passSame'));
-    /* منع الشائع: أضعف كلمات المرور هي التي تُخمَّن أولاً */
-    const weak = ['12345678','123456789','password','qwertyui','11111111',
-                  'abcd1234','iraq1234','12341234','00000000','clinic12'];
-    if (weak.includes(a.toLowerCase())) return show(T('passWeak'));
-    if (/^(.)\1+$/.test(a))            return show(T('passWeak'));
-    if (/^\d+$/.test(a))               return show(T('passWeak'));
-    await this.setPass(usr, a);
-    if (S.user?.id === uid) S.user = usr;
-    toast(T('passDone'), 's');
-    Nav.back();
-  },
 };
 
 const Auth = { out(){ S.role=null; S.user=null; S.patient=null; S.visit=null;
