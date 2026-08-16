@@ -260,6 +260,7 @@ input.err:focus,select.err:focus{
 
 /*──────── أزرار ────────*/
 button{font:inherit;font-weight:700;cursor:pointer;border:none;background:none;color:inherit}
+a.btn{text-decoration:none}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   padding:13px 20px;border-radius:14px;font-size:14.5px;font-weight:700;
@@ -961,6 +962,19 @@ ar:{
  resetBad:'الرمز غير صحيح أو انتهت صلاحيته — اطلب رمزاً جديداً واستعمل آخر رسالة وصلتك', resetNoMail:'اكتب بريدك أولاً',
  code6:'الرمز ٦ أو ٨ أرقام كما وصلك', spamHint:'إن لم تجد الرسالة، افحص مجلد الرسائل المزعجة',
  lastCodeOnly:'استعمل آخر رسالة وصلتك — أي طلب جديد يُبطل الرمز السابق',
+
+/*──── قائمة المتابعة ────*/
+ t_recall:'المتابعة', recallTitle:'قائمة المتابعة',
+ recallHint:'من يستحق اتصالاً اليوم — مبنية على ما في ملفاتك، لا على قوائم تكتبها بيدك.',
+ rcTomorrow:'مواعيد غداً', rcTomorrowH:'اتصل بهم اليوم — التذكير يقلّل الغياب إلى النصف',
+ rcOpen:'سلاسل لم تكتمل', rcOpenH:'خطة بدأت ولم تُكمل، والسن ما زال مفتوحاً',
+ rcGone:'مراجعون غابوا', rcGoneH:'لم يزوروا منذ ستة أشهر — وقت التنظيف الدوري',
+ rcDue:'أرصدة معلّقة', rcDueH:'عمل أُنجز ولم يُسدَّد كاملاً',
+ rcNothing:'لا شيء هنا — كل شيء على ما يرام',
+ rcCall:'اتصال', rcSince:'منذ', rcDay:'يوم', rcMonth:'شهر',
+ rcOf:'من', rcSessions:'جلسة', rcNoPhone:'بلا رقم هاتف',
+ rcAll:'الكل', rcTotal:'المجموع', rcClean:'لا متابعات معلّقة اليوم',
+ rcGoneDays:'أيام الغياب', rcOpenDays:'أيام التوقّف',
  myAccount:'حسابي',
  confirmAll:'أُنشئت الحسابات الثلاثة. كل واحد يحتاج تأكيد بريده برمز يصله — ابدأ بحساب الطبيب، ثم كرّرها لكل حساب من شاشة الدخول.',
  confirmSteps:'البُرُد التي أُرسلت إليها الرسائل',
@@ -1218,6 +1232,19 @@ en:{
  resetBad:'Wrong or expired code — request a new one and use the latest message', resetNoMail:'Enter your email first',
  code6:'The code is 6 or 8 digits, as received', spamHint:'If you cannot find it, check your spam folder',
  lastCodeOnly:'Use the latest message — a new request invalidates the previous code',
+
+/*──── recall list ────*/
+ t_recall:'Recall', recallTitle:'Recall list',
+ recallHint:'Who deserves a call today — built from your own records, not a list you keep by hand.',
+ rcTomorrow:'Tomorrow appointments', rcTomorrowH:'Call them today — reminders halve no-shows',
+ rcOpen:'Unfinished courses', rcOpenH:'A plan started and never completed; the tooth is still open',
+ rcGone:'Lapsed patients', rcGoneH:'No visit in six months — time for a routine cleaning',
+ rcDue:'Outstanding balances', rcDueH:'Work delivered and not fully paid',
+ rcNothing:'Nothing here — all clear',
+ rcCall:'Call', rcSince:'since', rcDay:'day', rcMonth:'month',
+ rcOf:'of', rcSessions:'sessions', rcNoPhone:'no phone number',
+ rcAll:'All', rcTotal:'Total', rcClean:'No pending follow-ups today',
+ rcGoneDays:'days away', rcOpenDays:'days stalled',
  myAccount:'My account',
  confirmAll:'The three accounts were created. Each needs to confirm its email with a code — start with the doctor account, then repeat for each from the sign-in screen.',
  confirmSteps:'Emails the messages were sent to',
@@ -5642,6 +5669,211 @@ const Doc = {
   async report(){ return Money.draw(); },
 };
 
+/*═══════════════ قائمة المتابعة ═══════════════
+  أكبر تسرّب في عيادة الأسنان ليس في التسعير بل في المتابعة:
+  خطة بدأت ولم تُكمل، مراجع غاب ولم يُذكَّر، رصيد بقي ولم يُطالَب.
+  كلها موجودة في البيانات، لكن لا شاشة تجمعها — فتُنسى.
+
+  هذه الشاشة اشتقاق محض: لا جدول جديد ولا حقل. تقرأ الخطط
+  والزيارات والدفعات وتُخرج سؤالاً واحداً: بمن تتصل اليوم؟
+═══════════════════════════════════════════════*/
+const Recall = {
+  GONE_DAYS:180,     /* ستة أشهر — دورة التنظيف المعتادة */
+  STALL_DAYS:21,     /* سلسلة توقّفت ثلاثة أسابيع تستحق اتصالاً */
+  open:'tom',        /* القسم المفتوح */
+
+  days(ts){ return Math.floor((Date.now() - Number(ts||0)) / 86400000); },
+
+  since(d){
+    if (d >= 60) return `${Math.round(d/30)} ${T('rcMonth')}`;
+    return `${d} ${T('rcDay')}`;
+  },
+
+  /*──── جمع البيانات مرة واحدة ────
+    القراءة الكاملة أرخص من استعلام لكل مراجع: العيادة الواحدة
+    آلاف السجلات لا ملايين، والمرور عليها مرة أسرع بكثير. */
+  async gather(){
+    const cid = CFG.data.cid;
+    const mine = p => !p.cid || p.cid === cid;
+    const [pats, visits, works, pays, teeth, appts] = await Promise.all([
+      DB.all('patients'), DB.all('visits'), DB.all('works'),
+      DB.all('payments'), DB.all('tooth'), DB.all('appts'),
+    ]);
+    const P_ = {};
+    pats.filter(mine).forEach(p => P_[p.id] = p);
+
+    /* آخر زيارة لكل مراجع */
+    const last = {};
+    for (const v of visits){
+      if (!P_[v.pid]) continue;
+      const t = Number(v.at || 0);
+      if (t > (last[v.pid] || 0)) last[v.pid] = t;
+    }
+
+    /* المجاميع المالية */
+    const owed = {}, paid = {};
+    for (const w of works) if (P_[w.pid]) owed[w.pid] = (owed[w.pid]||0) + Number(w.price||0);
+    for (const y of pays)  if (P_[y.pid]) paid[y.pid] = (paid[y.pid]||0) + Number(y.amt||0);
+
+    return { P_, visits, works, teeth, appts, last, owed, paid };
+  },
+
+  /*──── ① مواعيد الغد ────*/
+  tomorrow(d){
+    const t = new Date(); t.setDate(t.getDate() + 1);
+    const tom = dkey(t);
+    return d.appts
+      .filter(a => a.st === 'open' && a.day === tom && d.P_[a.pid])
+      .sort((a,b) => String(a.time||'').localeCompare(String(b.time||'')))
+      .map(a => ({ p:d.P_[a.pid], note:a.time || '', tag:a.note || '' }));
+  },
+
+  /*──── ② سلاسل لم تكتمل ────
+    خطة سنّ فيها جلسات مخطَّطة، نُفِّذ بعضها، والسلسلة ما زالت
+    مفتوحة (لم تُختم)، وتوقّف العمل عليها مدة. */
+  stalled(d){
+    const out = [];
+    for (const t of d.teeth){
+      const p = d.P_[t.pid]; if (!p) continue;
+      const cur  = t.course || 1;
+      const plan = (t.plans || {})[cur];
+      if (!plan?.sessions) continue;
+
+      const ws = d.works.filter(w =>
+        w.pid === t.pid && Number(w.fdi) === Number(t.fdi) && (w.course||1) === cur);
+      const nums = new Set();
+      ws.forEach(w => (w.sessionNos||[]).forEach(n => nums.add(Number(n))));
+      const done = nums.size;
+      if (!done || done >= plan.sessions) continue;   /* لم تبدأ أو اكتملت */
+
+      const lastWork = Math.max(0, ...ws.map(w => Number(w.at||0)));
+      const idle = this.days(lastWork || d.last[t.pid]);
+      if (idle < this.STALL_DAYS) continue;           /* ما زالت جارية */
+
+      out.push({ p, fdi:t.fdi, done, total:plan.sessions,
+                 proc:plan.proc, idle });
+    }
+    return out.sort((a,b) => b.idle - a.idle);
+  },
+
+  /*──── ③ مراجعون غابوا ────*/
+  gone(d){
+    const out = [];
+    for (const id in d.P_){
+      const t = d.last[id];
+      if (!t) continue;                               /* لم يزر قط */
+      const idle = this.days(t);
+      if (idle < this.GONE_DAYS) continue;
+      /* من له سلسلة متوقّفة يظهر هناك، فلا يُكرَّر هنا */
+      out.push({ p:d.P_[id], idle });
+    }
+    return out.sort((a,b) => b.idle - a.idle);
+  },
+
+  /*──── ④ أرصدة معلّقة ────*/
+  due(d){
+    const out = [];
+    for (const id in d.P_){
+      const bal = Math.round((d.owed[id]||0) - (d.paid[id]||0));
+      if (bal <= 0) continue;
+      out.push({ p:d.P_[id], bal, idle:this.days(d.last[id]) });
+    }
+    return out.sort((a,b) => b.bal - a.bal);
+  },
+
+  /*──── العرض ────*/
+  async draw(){
+    const v = $('#view'); v.innerHTML = UI.spin();
+    const d = await this.gather();
+
+    const tom = this.tomorrow(d);
+    const st  = this.stalled(d);
+    /* من ظهر في السلاسل المتوقّفة لا يُكرَّر في الغائبين */
+    const inStall = new Set(st.map(x => x.p.id));
+    const gn  = this.gone(d).filter(x => !inStall.has(x.p.id));
+    const du  = this.due(d);
+    const total = tom.length + st.length + gn.length + du.length;
+
+    if (!total){
+      v.innerHTML = `<div class="card ctr" style="padding:34px 18px">
+        <div style="font-size:40px">✓</div>
+        <div class="h2 mt">${T('rcClean')}</div>
+        <div class="tiny mt">${T('recallHint')}</div>
+      </div>`;
+      return;
+    }
+
+    v.innerHTML = `
+      <div class="card">
+        <div class="row">
+          <div class="gr">
+            <div class="h2">${T('recallTitle')}</div>
+            <div class="tiny mt">${T('recallHint')}</div>
+          </div>
+          <div class="ctr">
+            <div class="mono h1" style="color:var(--br)">${total}</div>
+            <div class="tiny">${T('rcTotal')}</div>
+          </div>
+        </div>
+      </div>
+
+      ${this.sec('tom', '📞', T('rcTomorrow'), T('rcTomorrowH'), tom.length,
+                 tom.map(x => this.row(x.p, `${esc(x.note)} ${esc(x.tag)}`, 'b')).join(''))}
+
+      ${this.sec('st', '🦷', T('rcOpen'), T('rcOpenH'), st.length,
+                 st.map(x => this.row(x.p,
+                   `${T('tooth')} ${Chart.lbl(x.fdi)} · ${x.done} ${T('rcOf')} ${x.total}
+                    ${T('rcSessions')} · ${T('rcSince')} ${this.since(x.idle)}`,
+                   x.idle > 60 ? 'r' : 'w')).join(''))}
+
+      ${this.sec('gn', '🕰', T('rcGone'), T('rcGoneH'), gn.length,
+                 gn.map(x => this.row(x.p,
+                   `${T('rcSince')} ${this.since(x.idle)}`,
+                   x.idle > 365 ? 'r' : 'w')).join(''))}
+
+      ${this.sec('du', '₪', T('rcDue'), T('rcDueH'), du.length,
+                 du.map(x => this.row(x.p,
+                   `${T('rcSince')} ${this.since(x.idle)}`,
+                   'r', `<span class="mono h3" style="color:var(--bd)">${N(x.bal)}</span>`
+                 )).join(''))}
+
+      <div style="height:14px"></div>`;
+  },
+
+  sec(key, ic, title, hint, n, body){
+    return `<details class="acc mt2" ${this.open === key && n ? 'open' : ''}
+              ontoggle="if(this.open)Recall.open='${key}'">
+      <summary>
+        <span class="accic">${ic}</span>
+        <span class="gr">${title}</span>
+        <span class="pill ${n ? 'b' : 'g'}">${n}</span>
+        <span class="ar">${isAr()?'‹':'›'}</span>
+      </summary>
+      <div class="bd">
+        <div class="tiny" style="color:var(--ink3)">${hint}</div>
+        <div class="col mt">${body || `<div class="emp">${T('rcNothing')}</div>`}</div>
+      </div>
+    </details>`;
+  },
+
+  /* كل صف: اسم، سبب المتابعة، وزر اتصال — لا خطوة زائدة بينهما */
+  row(p, note, tone, extra){
+    const tel = String(p.phone || '').replace(/[^\d+]/g,'');
+    return `<div class="it" onclick="Sec.file('${p.id}')">
+      <div class="av ${tone||''}">${esc(nm(p).charAt(0))}</div>
+      <div class="gr">
+        <div class="h3 ell">${esc(nm(p))}</div>
+        <div class="tiny ell">${note}</div>
+      </div>
+      ${extra || ''}
+      ${tel
+        ? `<a class="btn xs gh" href="tel:${esc(tel)}"
+             onclick="event.stopPropagation()">${T('rcCall')}</a>`
+        : `<span class="tiny" style="color:var(--ink3)">${T('rcNoPhone')}</span>`}
+    </div>`;
+  },
+};
+
 /*═══════════════ الحسابات والإحصائيات ═══════════════
   ثلاث شاشات فوق فلتر تاريخ واحد: الحسابات (المبالغ)، الإحصائيات
   (الأعمال)، المراجعون. كل رقم يظهر هو حصيلة الفلتر الظاهر فوقه —
@@ -7997,9 +8229,9 @@ const Cfg = {
 /*═══════════════ الهيكل والتنقّل ═══════════════*/
 const TABS = {
   doctor:    [['today','t_today'],['files','t_files'],['appts','t_appts'],
-              ['rx','t_rx'],['money','t_money'],['set','t_set']],
+              ['recall','t_recall'],['rx','t_rx'],['money','t_money'],['set','t_set']],
   secretary: [['today','t_today'],['book','t_book'],['files','t_files'],
-              ['appts','t_appts'],['money','t_money'],['set','t_set']],
+              ['appts','t_appts'],['recall','t_recall'],['money','t_money'],['set','t_set']],
   pharmacy:  [['rx','t_rx'],['docs','t_docs'],['pacc','t_pacc']],
   patient:   [['my','t_my'],['new','t_new']],
 };
@@ -8010,6 +8242,7 @@ const IC = {
  rx:'<path d="M6 3h5a3 3 0 010 6H6V3zm0 6v12m6-6l6 6m0-6l-6 6" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/>',
  money:'<path d="M4 20V10m6 10V4m6 16v-7" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linecap="round"/>',
  appts:'<path d="M8 2v3m8-3v3M3 9h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/><circle cx="12" cy="15" r="2" fill="currentColor"/>',
+ recall:'<path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8M3 4v4h4M12 7v5l3 2" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
  set:'<path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.9" fill="none"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 15H3a2 2 0 010-4h.1A1.7 1.7 0 004.6 7l-.1-.1a2 2 0 012.8-2.8l.1.1A1.7 1.7 0 0010 4.6V3a2 2 0 014 0v.1a1.7 1.7 0 002.9 1.2l.1-.1a2 2 0 012.8 2.8l-.1.1A1.7 1.7 0 0021 11h.1a2 2 0 010 4H21z" stroke="currentColor" stroke-width="1.6" fill="none"/>',
  docs:'<path d="M12 11a4 4 0 100-8 4 4 0 000 8zM6 21v-2a6 6 0 0112 0v2" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/>',
  pacc:'<path d="M3 6h18M3 12h18M3 18h12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="19" cy="18" r="3" stroke="currentColor" stroke-width="1.7" fill="none"/>',
@@ -8070,6 +8303,7 @@ const App = {
       case 'files': return (S.patient && S.chartOpen && Perm.chart())
                              ? Doc.draw() : Sec.files();
       case 'appts': return Appt.board();
+      case 'recall': return Recall.draw();
       case 'rx':    return S.role==='pharmacy' ? Ph.queue() : Rx.list();
       case 'docs':  return Ph.docs();
       case 'pacc':  return Ph.accounts();
