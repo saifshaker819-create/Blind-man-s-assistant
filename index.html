@@ -965,6 +965,8 @@ ar:{
 
 /*──── قائمة المتابعة ────*/
  installMenu:'ثبّته من قائمة المتصفح ← تثبيت التطبيق',
+ ptCancelled:'ألغى المراجع', bkCancelled:'ألغى المراجع حجزه',
+ bkRemoved:'سحب المراجع حجزه قبل الموافقة',
  t_recall:'المتابعة', recallTitle:'قائمة المتابعة',
  recallHint:'من يستحق اتصالاً اليوم — مبنية على ما في ملفاتك، لا على قوائم تكتبها بيدك.',
  rcTomorrow:'مواعيد غداً', rcTomorrowH:'اتصل بهم اليوم — التذكير يقلّل الغياب إلى النصف',
@@ -1236,6 +1238,8 @@ en:{
 
 /*──── recall list ────*/
  installMenu:'Install it from the browser menu → Install app',
+ ptCancelled:'Cancelled by patient', bkCancelled:'The patient cancelled the appointment',
+ bkRemoved:'The patient withdrew the booking before approval',
  t_recall:'Recall', recallTitle:'Recall list',
  recallHint:'Who deserves a call today — built from your own records, not a list you keep by hand.',
  rcTomorrow:'Tomorrow appointments', rcTomorrowH:'Call them today — reminders halve no-shows',
@@ -2520,12 +2524,19 @@ const Sync = {
       for (const r of rows){
         if (r.updated_at > mark) mark = r.updated_at;
         const doc = r.doc || {};
+        const old = await DB.get('bookings', r.id);
+
+        /* ألغى المراجع حجزه — الأثر يختلف بحسب ما وصل إليه الحجز */
+        if (r.status === 'cancelled'){
+          if (old) await this.cancelBooking(old, doc);
+          continue;
+        }
+
         /* المعرّف من السيرفر هو المرجع، والعيادة المحلية تُثبَّت
            حتى يظهر الحجز في قائمة هذه العيادة */
         const b = { ...doc, id:r.id, cid:CFG.data.cid, srv:true,
                     st: r.status === 'pending' ? 'new'
                       : r.status === 'accepted' ? 'accepted' : 'declined' };
-        const old = await DB.get('bookings', r.id);
         if (old && old.st !== 'new' && b.st === 'new') continue;  /* لا يعود المحسوم */
         if (!old && b.st === 'new') fresh++;
         await DB.put('bookings', b);
@@ -2537,6 +2548,40 @@ const Sync = {
     await Ops.fixBarcodes();
     if (fresh) toast(`${fresh} ${T('newBooking')}`, 's');
     return rows.length;
+  },
+
+  /*──── أثر إلغاء المراجع ────
+    ١) لم يُقبل بعد: يُحذف من قائمة السكرتير كأنه لم يكن.
+    ٢) قُبل وموعده لم يمضِ: جلسته تُعلَّم «ألغى المراجع» بدل زر
+       الاستدعاء — لا تُحذف، لأن السكرتير قد فتح لها ملفاً.
+    ٣) قُبل ومضى موعده: لا يُمسّ شيء. ما جرى في العيادة تاريخ. */
+  async cancelBooking(old, doc){
+    if (old.st === 'new' || !old.st){
+      await DB.del('bookings', old.id);
+      toast(T('bkRemoved'), 'w');
+      return;
+    }
+    if (old.st !== 'accepted') return;
+
+    const day = doc.day || old.day;
+    if (day && day < today()) return;      /* مضى الموعد */
+
+    old.st = 'cancelled';
+    await DB.put('bookings', old);
+
+    /* الجلسة المفتوحة لهذا المراجع تُعلَّم ملغاة */
+    if (old.pid){
+      const vs = (await DB.by('visits','pid',old.pid))
+        .filter(v => v.st !== 'done' && v.date >= today())
+        .sort((a,b) => (b.at||0) - (a.at||0));
+      const v = vs[0];
+      if (v && v.qstate !== 'cancelled'){
+        v.qstate = 'cancelled';
+        v._qAt = this.now();          /* ختم الحقل — لا يُدهس بالمزامنة */
+        await DB.put('visits', v);
+      }
+    }
+    toast(T('bkCancelled'), 'w');
   },
 
   /*──── دورة كاملة ────*/
@@ -3955,7 +4000,8 @@ const Sec = {
       rows.push({ vi, p, tt: await Ops.visitTotals(vi.id) });
     }
 
-    const cls    = { waiting:'n', called:'w', chair:'b', done:'g' };
+    const cls    = { waiting:'n', called:'w', chair:'b', done:'g', cancelled:'r' };
+    /* الملغاة بلا خطوة تالية: لا يُستدعى من ألغى موعده */
     const nextOf = { waiting:'called', called:'chair', chair:'done' };
     const lblOf  = { waiting:T('call'), called:T('seat'), chair:T('finish') };
 
@@ -3963,8 +4009,10 @@ const Sec = {
 
     box.innerHTML = rows.length ? rows.map(({vi,p,tt})=>{
       const live = vi.qstate==='called' || vi.qstate==='chair';
+      const cx   = vi.qstate === 'cancelled';
       return `
-      <div class="it ${live?'live':''}" onclick="Nav.session('${vi.id}')"
+      <div class="it ${live?'live':''}" style="${cx?'opacity:.62':''}"
+        onclick="Nav.session('${vi.id}')"
         ${S.role==='doctor'?`data-hold="delTodayRow" data-hold-arg="${vi.id}|${p.id}"`:''}>
         <div class="av ${vi.qstate==='done'?'g':vi.qstate==='chair'?'':'w'}">${vi._no}</div>
         <div class="gr">
@@ -3977,8 +4025,10 @@ const Sec = {
             · <span style="color:var(--ok);font-weight:700">${T('paid')} ${N(tt.paid)}</span></div>
         </div>
         <div class="col" style="gap:5px;align-items:flex-end">
-          <span class="pill ${cls[vi.qstate]||'n'}">${T(vi.qstate==='chair'?'inChair':vi.qstate||'waiting')}</span>
-          ${nextOf[vi.qstate||'waiting'] && S.role!=='pharmacy'
+          <span class="pill ${cls[vi.qstate]||'n'}">${
+            vi.qstate==='cancelled' ? T('ptCancelled')
+            : T(vi.qstate==='chair'?'inChair':vi.qstate||'waiting')}</span>
+          ${!cx && nextOf[vi.qstate||'waiting'] && S.role!=='pharmacy'
             ? `<button class="btn xs ${vi.qstate==='chair'?'ok':''}"
                  onclick="event.stopPropagation();Sec.setQ('${vi.id}','${nextOf[vi.qstate||'waiting']}')">
                  ${lblOf[vi.qstate||'waiting']}</button>` : ''}
@@ -4430,7 +4480,7 @@ const Sec = {
 
     const nextOf = { waiting:'called', called:'chair', chair:'done' };
     const lblOf  = { waiting:T('call'), called:T('seat'), chair:T('finish') };
-    const cls    = { waiting:'n', called:'w', chair:'b', done:'g' };
+    const cls    = { waiting:'n', called:'w', chair:'b', done:'g', cancelled:'r' };
     const live   = v.qstate==='called' || v.qstate==='chair';
 
     UI.sheet(`
@@ -4439,14 +4489,16 @@ const Sec = {
           <div class="row" style="gap:7px">
             ${live?'<span class="dotlive"></span>':''}
             <div class="h2">${T('session')} ${v.no}</div>
-            <span class="pill ${cls[v.qstate]||'n'}">${T(v.qstate==='chair'?'inChair':v.qstate||'waiting')}</span>
+            <span class="pill ${cls[v.qstate]||'n'}">${
+              v.qstate==='cancelled' ? T('ptCancelled')
+              : T(v.qstate==='chair'?'inChair':v.qstate||'waiting')}</span>
           </div>
           <div class="sub">${esc(nm(p))} · ${fmtD(v.date)}</div>
         </div>
         <button class="ib" onclick="Nav.back()">✕</button>
       </div>
 
-      ${nextOf[v.qstate||'waiting'] ? `
+      ${v.qstate!=='cancelled' && nextOf[v.qstate||'waiting'] ? `
         <button class="btn w ${v.qstate==='chair'?'ok':''}"
           onclick="Sec.setQfromVisit('${vid}','${nextOf[v.qstate||'waiting']}')">
           ${lblOf[v.qstate||'waiting']}</button>` : ''}
