@@ -970,6 +970,7 @@ ar:{
 
 /*──── قائمة المتابعة ────*/
  installMenu:'ثبّته من قائمة المتصفح ← تثبيت التطبيق',
+ regBusy:'محاولات تسجيل كثيرة الآن — انتظر ساعة ثم أعد المحاولة',
  tzLabel:'توقيت العيادة', tzHint:'يوم العمل ينتهي الرابعة فجراً بتوقيت العيادة لا بتوقيت الجهاز. عيادة تعمل حتى منتصف الليل تبقى جلساتها في قائمة اليوم حتى تُغلق فعلاً.',
  tzAuto:'تلقائي (توقيت الجهاز)',
  missedTitle:'مواعيد لم يحضر فيها', missedOne:'لم يحضر',
@@ -1259,6 +1260,7 @@ en:{
 
 /*──── recall list ────*/
  installMenu:'Install it from the browser menu → Install app',
+ regBusy:'Too many registration attempts right now — try again in an hour',
  tzLabel:'Clinic time zone', tzHint:'The working day ends at 4 AM in the clinic time zone, not the device one. A clinic open past midnight keeps its sessions in today list until it truly closes.',
  tzAuto:'Automatic (device time)',
  missedTitle:'Missed appointments', missedOne:'Did not attend',
@@ -2948,6 +2950,8 @@ const Cloud = {
       if (e === 'email_taken')    throw new Error(T('emailTaken'));
       if (e === 'weak_password')  throw new Error(T('pass8'));
       if (e === 'bad_email')      throw new Error(T('email'));
+      /* حدّ التسجيل ليس خطأً في بياناته — يُقال كما هو */
+      if (e === 'rate_limited')   throw new Error(T('regBusy'));
       throw new Error(r.data?.detail || e || T('regFailed'));
     }
     return r.data;
@@ -3412,6 +3416,9 @@ const Setup = {
 
     if (!ask(T('wipeWarn'))) return;
     if (!ask(T('wipeWarn2'))) return;
+    /* الصور خارج القاعدة، فمحوها لا يمحوها */
+    toast(T('cloudBusy'));
+    try { for (const f of await DB.all('files')) await Img.del(f); } catch(_){}
     await DB.clearAll(); localStorage.clear(); location.reload();
   },
 };
@@ -3951,6 +3958,11 @@ const Ops = {
   /* حذف مراجع نهائياً: يمسح كل ما يتعلّق به في كل المخازن،
      فلا تبقى جلسة يتيمة ولا دفعة بلا صاحب. */
   async deletePatient(pid){
+    /* صور الأشعة تعيش في التخزين لا في القاعدة. حذف سجلّها وحده
+       يترك الصورة قائمة: يُدفع ثمنها، والأخطر أنها تبقى قابلة
+       للاسترجاع بعد أن يظنّ الطبيب أنه محا الملف. */
+    for (const f of await DB.by('files','pid',pid)) await Img.del(f);
+
     for (const st of ['visits','works','payments','files','rx','tooth','appts']){
       for (const row of await DB.by(st, 'pid', pid)) await DB.del(st, row.id);
     }
@@ -3963,7 +3975,10 @@ const Ops = {
   async deleteVisit(vid){
     for (const w of await DB.by('works','vid',vid))   await DB.del('works', w.id);
     for (const r of await DB.by('rx','vid',vid))      await DB.del('rx', r.id);
-    for (const f of await DB.by('files','vid',vid))   await DB.del('files', f.id);
+    for (const f of await DB.by('files','vid',vid)){
+      await Img.del(f);                              /* الصورة نفسها لا سجلّها فقط */
+      await DB.del('files', f.id);
+    }
     for (const x of (await DB.all('payments')).filter(p=>p.vid===vid))
       await DB.del('payments', x.id);
     await DB.del('visits', vid);
