@@ -970,7 +970,11 @@ ar:{
 
 /*──── قائمة المتابعة ────*/
  installMenu:'ثبّته من قائمة المتصفح ← تثبيت التطبيق',
- needPick:'حدّد أي جلسة أُنجزت اليوم قبل إنهاء الزيارة',
+ apDetail:'تفاصيل الموعد', apNext:'الجلسة القادمة', apNone:'لا خطة مفتوحة لهذا المراجع',
+ apPaidBefore:'المدفوع في هذه السلسلة', apOpenVisit:'فتح الزيارة',
+ apSess:'جلسة', apDone:'أُنجزت', apLeft:'المتبقّي',
+ resuming:'جارٍ استئناف الجلسة…',
+ needPick:'حدّد أي جلسة أُنجزت اليوم قبل إنهاء الزيارة أو تحديد موعد',
  needPickH:'خطة هذا السن فيها جلسات مرقّمة، ولم تُسجَّل جلسة اليوم. بلا تحديدها لا يُعرف ما نُفِّذ ولا ما بقي للزيارة القادمة.',
  ptCancelled:'ألغى المراجع', bkCancelled:'ألغى المراجع حجزه',
  imgGone:'الصورة غير متاحة', imgRetry:'إعادة المحاولة',
@@ -1250,7 +1254,11 @@ en:{
 
 /*──── recall list ────*/
  installMenu:'Install it from the browser menu → Install app',
- needPick:'Mark which session was done today before ending the visit',
+ apDetail:'Appointment details', apNext:'Next session', apNone:'No open plan for this patient',
+ apPaidBefore:'Paid in this course', apOpenVisit:'Open the visit',
+ apSess:'session', apDone:'done', apLeft:'remaining',
+ resuming:'Resuming your session…',
+ needPick:'Mark which session was done today before ending the visit or setting an appointment',
  needPickH:'This tooth has a numbered plan and no session was recorded today. Without it, neither what was done nor what remains is known.',
  ptCancelled:'Cancelled by patient', bkCancelled:'The patient cancelled the appointment',
  imgGone:'Image unavailable', imgRetry:'Retry',
@@ -7505,6 +7513,26 @@ const Scan = {
 };
 /*═══════════════ المواعيد القادمة ═══════════════*/
 const Appt = {
+  /* تحديد الموعد يقع بعد الإنهاء، لكنه يُطلب أحياناً من داخل
+     الجلسة. فيُحرس بالحارس نفسه: بلا تحديد الجلسة المنفَّذة لا
+     يُعرف ما بقي، فيخرج الموعد القادم على رقم خاطئ. */
+  async guard(pid, vid){
+    if (!vid) return false;
+    const fdi = await Sec.needSession(pid, vid);
+    if (!fdi) return false;
+    S.patient = await DB.get('patients', pid);
+    S.visit   = await DB.get('visits', vid);
+    toast(T('needPick'), 'e');
+    Nav.reset();
+    await Doc.tooth(fdi);
+    const sh = $('#sheet .sh');
+    if (sh) sh.insertAdjacentHTML('afterbegin',
+      `<div class="al r" style="margin:0 0 12px"><span>!</span>
+         <span><b>${T('needPick')}</b><br>
+         <span class="tiny">${T('needPickH')}</span></span></div>`);
+    return true;
+  },
+
   /* بعد إنهاء الجلسة: هل يحتاج المراجع جلسة أخرى؟ */
   async ask(pid, vid){
     /* أسنان عُمل عليها في هذه الجلسة — يمكن إنهاء سلسلة أيٍّ منها هنا */
@@ -7564,13 +7592,16 @@ const Appt = {
 
   /* الطبيب يحيل تحديد الموعد للاستقبال — تظهر عندهم علامة انتظار */
   async defer(pid, vid){
+    if (await this.guard(pid, vid)) return;
     const v = await DB.get('visits', vid);
     v.needAppt = true; await DB.put('visits', v);
     toast(T('deferred'), 's'); Nav.home();
   },
 
   /* تحديد اليوم والتاريخ الكامل */
-  pick(pid, vid, p){
+  async pick(pid, vid, p){
+    /* الموعد بلا معرفة الجلسة المنفَّذة يخرج على رقم خاطئ */
+    if (await this.guard(pid, vid)) return;
     const d = new Date(); d.setDate(d.getDate()+7);
     const iso = d.toISOString().slice(0,10);
     UI.sheet(`
@@ -7658,7 +7689,7 @@ const Appt = {
       /* المتأخّر يومض بالأحمر: مرّ موعده ولم يأتِ، وهذا وحده
          يستحق نظرة قبل غيره. */
       const late = diff < 0;
-      rows.push(`<div class="it ${late?'live':''}" onclick="Appt.openFrom('${a.id}','${p.id}')">
+      rows.push(`<div class="it ${late?'live':''}" onclick="Appt.detail('${a.id}','${p.id}')">
         <div class="av ${tone==='r'?'r':tone==='b'?'':'w'}">${late?'⚠':'📅'}</div>
         <div class="gr">
           <div class="row" style="gap:6px">
@@ -7682,7 +7713,81 @@ const Appt = {
   /* فتح زيارة من الموعد: الموعد أدّى غرضه فيُغلق ويختفي من
      القائمة — سواء جاء في وقته أو قبله أو بعده. بقاؤه بعد فتح
      الزيارة يجعل القائمة تكذب. */
+  /*──── تفاصيل الموعد ────
+    فتح الزيارة مباشرة يجعل الطبيب يبدأ وهو لا يعرف أين توقّف:
+    أي سن، وأي جلسة، وكم دُفع. فتُعرض الصورة أولاً ثم يُفتح.
+    والقرار يبقى بيده — لا يُفتح شيء دون ضغطة. */
+  async detail(aid, pid){
+    const a = await DB.get('appts', aid);
+    const p = await DB.get('patients', pid);
+    if (!p) return this.board();
+
+    const all = await DB.by('works','pid',pid);
+    const rows = [];
+    for (const t of (await DB.by('tooth','pid',pid))){
+      const cur  = t.course || 1;
+      const plan = (t.plans || {})[cur];
+      if (!plan || !plan.sessions) continue;
+
+      const ws = all.filter(w => Number(w.fdi) === Number(t.fdi) && (w.course||1) === cur);
+      const done = new Set();
+      ws.forEach(w => (w.sessionNos||[]).forEach(n => done.add(Number(n))));
+      if (done.size >= plan.sessions) continue;        /* اكتملت */
+
+      /* أول رقم لم يُنفَّذ هو الجلسة القادمة */
+      let next = plan.sessions;
+      for (let i = 1; i <= plan.sessions; i++) if (!done.has(i)){ next = i; break; }
+      const cs = await Ops.courseTotals(pid, Number(t.fdi));
+
+      rows.push(`<div class="card flat" style="margin-top:8px">
+        <div class="row">
+          <div class="av mono">${Chart.lbl(t.fdi)}</div>
+          <div class="gr">
+            <div class="h3">${esc(P(plan.proc).ar || plan.proc || '—')}</div>
+            <div class="tiny">${T('apDone')} ${done.size} ${T('rcOf')} ${plan.sessions}
+              ${T('apSess')}</div>
+          </div>
+          <span class="pill b">${T('apNext')} ${next}</span>
+        </div>
+        <div class="row mt" style="gap:8px">
+          <div class="gr">
+            <div class="tiny">${T('apPaidBefore')}</div>
+            <div class="mono h3" style="color:var(--ok)">${N(cs.paid)}
+              <span class="tiny" style="color:var(--ink3)">/ ${N(cs.total)}</span></div>
+          </div>
+          ${cs.total - cs.paid > 0 ? `<div style="text-align:end">
+            <div class="tiny">${T('apLeft')}</div>
+            <div class="mono h3" style="color:var(--bd)">${N(cs.total - cs.paid)}</div>
+          </div>` : ''}
+        </div>
+      </div>`);
+    }
+
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">📅</div>
+        <div class="gr">
+          <div class="h2 ell">${esc(nm(p))}</div>
+          <div class="mono tiny">${fmtD(a?.day)} — ${esc(a?.time||'')}</div>
+        </div>
+        <button class="ib" onclick="UI.close()">✕</button>
+      </div>
+
+      ${a?.note ? `<div class="card"><div class="lbl">${T('notes')}</div>
+        <div class="mt" style="font-weight:600">${esc(a.note)}</div></div>` : ''}
+
+      <div class="card">
+        <div class="lbl">${T('apDetail')}</div>
+        ${rows.join('') || `<div class="emp">${T('apNone')}</div>`}
+      </div>
+
+      <button class="btn w mt2" onclick="Appt.openFrom('${aid}','${pid}')">
+        ${T('apOpenVisit')}</button>
+      <button class="btn w gh mt" onclick="UI.close()">${T('close')}</button>`);
+  },
+
   async openFrom(aid, pid){
+    UI.close();
     const a = await DB.get('appts', aid);
     if (a){ a.st = 'done'; a.doneAt = Date.now(); await DB.put('appts', a); }
     const p = await DB.get('patients', pid);
@@ -9072,6 +9177,29 @@ window.addEventListener('unhandledrejection', e =>
   try {
     await Setup.ensure();
     Login.drawCloud();
+
+    /* جلسة محفوظة: يُستأنف العمل بلا إعادة كتابة البريد والرمز.
+       الجلسة على هذا الجهاز وحده، والقفل التلقائي يحرسها. */
+    if (Cloud.session && Cloud.ready() && !Reg.needed()){
+      const box = $('#cl-err');
+      if (box){ box.textContent = T('resuming'); box.classList.remove('hide'); }
+      try {
+        if (Cloud.session.exp - Date.now() < 60000) await Cloud.refresh();
+        const me = Cloud.session && await Cloud.whoami();
+        if (me && me.role && me.role !== 'none'){
+          S.role = me.role;
+          S.clinicName = me.clinic_name || null;
+          S.user = { id: Cloud.session.email, role:me.role,
+                     name: me.full_name || Cloud.session.email, cloud:true,
+                     clinic_id: me.clinic_id };
+          Guard.ok();
+          box?.classList.add('hide');
+          return App.start();
+        }
+      } catch(_){ /* التذكرة لم تعد صالحة: تُعرض شاشة الدخول */ }
+      Cloud.saveSess(null);
+      box?.classList.add('hide');
+    }
     /* أول تشغيل قبل أي دخول: تُطلب بيانات العيادة */
     if (Reg.needed()) Reg.draw();
     if (DB.fallback) Storage.warn();
