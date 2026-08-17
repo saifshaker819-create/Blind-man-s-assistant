@@ -970,6 +970,11 @@ ar:{
 
 /*──── قائمة المتابعة ────*/
  installMenu:'ثبّته من قائمة المتصفح ← تثبيت التطبيق',
+ tzLabel:'توقيت العيادة', tzHint:'يوم العمل ينتهي الرابعة فجراً بتوقيت العيادة لا بتوقيت الجهاز. عيادة تعمل حتى منتصف الليل تبقى جلساتها في قائمة اليوم حتى تُغلق فعلاً.',
+ tzAuto:'تلقائي (توقيت الجهاز)',
+ missedTitle:'مواعيد لم يحضر فيها', missedOne:'لم يحضر',
+ missedHint:'مواعيد مضت ولم تُفتح لها زيارة. تُسجَّل هنا وحدها ولا تُحذف.',
+ noMissed:'لا مواعيد فائتة',
  apDetail:'تفاصيل الموعد', apNext:'الجلسة القادمة', apNone:'لا خطة مفتوحة لهذا المراجع',
  apPaidBefore:'المدفوع في هذه السلسلة', apOpenVisit:'فتح الزيارة',
  apSess:'جلسة', apDone:'أُنجزت', apLeft:'المتبقّي',
@@ -1254,6 +1259,11 @@ en:{
 
 /*──── recall list ────*/
  installMenu:'Install it from the browser menu → Install app',
+ tzLabel:'Clinic time zone', tzHint:'The working day ends at 4 AM in the clinic time zone, not the device one. A clinic open past midnight keeps its sessions in today list until it truly closes.',
+ tzAuto:'Automatic (device time)',
+ missedTitle:'Missed appointments', missedOne:'Did not attend',
+ missedHint:'Appointments that passed with no visit opened. Recorded here and never deleted.',
+ noMissed:'No missed appointments',
  apDetail:'Appointment details', apNext:'Next session', apNone:'No open plan for this patient',
  apPaidBefore:'Paid in this course', apOpenVisit:'Open the visit',
  apSess:'session', apDone:'done', apLeft:'remaining',
@@ -1769,7 +1779,36 @@ const N   = n => Number(n||0).toLocaleString('en-US');
    الساعة ١٢ ليلاً في العراق (+3) على اليوم السابق فتختلّ الفلاتر. */
 const dkey  = ts => { const d = new Date(ts);
   return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
-const today = () => dkey(Date.now());
+
+/*──── يوم العمل ────
+  يوم العيادة ليس يوم التقويم: عيادة تُغلق الواحدة بعد منتصف
+  الليل، فمراجع الساعة ١٢:٣٠ من مراجعي «أمس» عملياً. ولو قُطع
+  اليوم منتصف الليل لاختفى نصف الطابور أمام السكرتير.
+
+  فالحدّ الرابعة فجراً — بعد إغلاق أي عيادة وقبل فتح أيّها.
+  والتوقيت توقيت العيادة لا توقيت الجهاز: طبيب يسافر أو حاسبة
+  ضُبطت خطأً لا يُغيّران يوم العمل.
+────────────────────────────────*/
+const DAY_END_H = 4;
+
+const clinicNow = ts => {
+  const t = ts == null ? Date.now() : ts;
+  const tz = CFG?.data?.tz;
+  if (!tz) return new Date(t);
+  try {
+    /* التحويل عبر صيغة قابلة للتحليل — لا مكتبة ولا جدول إزاحات */
+    return new Date(new Date(t).toLocaleString('en-US', { timeZone: tz }));
+  } catch(_){ return new Date(t); }
+};
+
+const today = (ts) => {
+  const d = clinicNow(ts);
+  d.setHours(d.getHours() - DAY_END_H);
+  return dkey(d.getTime());
+};
+
+/* التقويم الحقيقي — للتواريخ التي لا علاقة لها بيوم العمل */
+const calDay = () => dkey(Date.now());
 const fmtD = d => { if(!d) return '—'; const x=new Date(d);
   return x.toLocaleDateString(isAr()?'ar-IQ':'en-GB',{year:'numeric',month:'2-digit',day:'2-digit'}); };
 const fmtT = d => new Date(d).toLocaleTimeString(isAr()?'ar-IQ':'en-GB',{hour:'2-digit',minute:'2-digit'});
@@ -2567,11 +2606,12 @@ const Sync = {
 
   /* قرار العيادة يعود إلى تطبيق المراجع، وإلا بقي حجزه
      «قيد المراجعة» إلى الأبد. */
-  async bookStatus(id, status, code){
+  async bookStatus(id, status, code, ref){
     if (!this.on()) return;
     try {
       const body = { status };
       if (code) body.code = String(code);
+      if (ref)  body.patient_ref = String(ref);
       await Cloud.call('/rest/v1/bookings?id=eq.' + encodeURIComponent(id),
         { method:'PATCH', body });
     } catch(_){ /* يُعاد في الدورة التالية عبر إعادة السحب */ }
@@ -4289,7 +4329,9 @@ const Sec = {
     p = await Ops.savePatient(data, p?.id);
     b.st='accepted'; b.pid=p.id; b.bc=p.bc; await DB.put('bookings', b);
     /* الباركود يصل تطبيق المراجع فيُريه للاستقبال من هاتفه */
-    if (b.srv) Sync.bookStatus(b.id, 'accepted', p.bc);
+    /* معرّف ملفه عندنا يُرسل مع القبول — بلاه لا يستطيع تطبيقه
+       أن يجد مواعيده ولا جلساته. */
+    if (b.srv) Sync.bookStatus(b.id, 'accepted', p.bc, p.id);
     await Ops.openVisit(p.id, b.complaint);
     toast(T('accepted'),'s');
     Nav.home();
@@ -4365,6 +4407,10 @@ const Sec = {
 
     const L  = await Ops.ledger(pid);
     const files = await Ops.toothFiles(pid);
+    /* مواعيد مضت ولم يحضر فيها — تُعرض في ملفه لا في قائمة المواعيد */
+    const missed = (await DB.by('appts','pid',pid))
+      .filter(a => a.st === 'missed')
+      .sort((a,b) => String(b.day).localeCompare(String(a.day)));
     const vs = (await DB.by('visits','pid',pid)).sort((a,b)=>(b.at||0)-(a.at||0));
     const needAppt  = vs.filter(v => v.needAppt);
     const nextAppts = await Appt.forPatient(pid);
@@ -4501,6 +4547,26 @@ const Sec = {
         <div class="bd"><div class="col">
           ${visitRows.join('') || `<div class="emp">${T('noVisits')}</div>`}</div></div>
       </details>
+
+      ${missed.length ? `<details class="acc mt2">
+        <summary>
+          <span class="accic">⚠</span>
+          <span class="gr">${T('missedTitle')}</span>
+          <span class="pill w">${missed.length}</span>
+          <span class="ar">${isAr()?'‹':'›'}</span>
+        </summary>
+        <div class="bd">
+          <div class="tiny" style="color:var(--ink3)">${T('missedHint')}</div>
+          <div class="col mt">${missed.map(a=>`
+            <div class="it" style="cursor:default">
+              <div class="av w">⚠</div>
+              <div class="gr">
+                <div class="h3 mono">${fmtD(a.day)} — ${esc(a.time||'')}</div>
+                <div class="tiny">${esc(a.note||T('missedOne'))}</div>
+              </div>
+            </div>`).join('')}</div>
+        </div>
+      </details>` : ''}
 
       <div class="card">
         <div class="row" style="justify-content:space-between">
@@ -7713,6 +7779,24 @@ const Appt = {
   /* فتح زيارة من الموعد: الموعد أدّى غرضه فيُغلق ويختفي من
      القائمة — سواء جاء في وقته أو قبله أو بعده. بقاؤه بعد فتح
      الزيارة يجعل القائمة تكذب. */
+  /*──── المواعيد الفائتة ────
+    موعد مضى يومه ولم تُفتح له زيارة يعني أن المراجع لم يحضر.
+    يُنقل من قائمة المواعيد إلى سجلّه، فلا يزاحم القادم ولا يضيع
+    أثره — والطبيب يرى من يتخلّف قبل أن يمنحه موعداً آخر. */
+  async sweepMissed(){
+    const td = today();
+    let n = 0;
+    for (const a of await DB.all('appts')){
+      if (a.st !== 'open' || !a.day || a.day >= td) continue;
+      const vs = await DB.by('visits','pid',a.pid);
+      /* زيارة في يوم الموعد أو بعده تعني أنه حضر */
+      if (vs.some(v => v.date >= a.day)) { a.st = 'done'; a.doneAt = Date.now(); }
+      else { a.st = 'missed'; a.missedAt = Date.now(); n++; }
+      await DB.put('appts', a);
+    }
+    return n;
+  },
+
   /*──── تفاصيل الموعد ────
     فتح الزيارة مباشرة يجعل الطبيب يبدأ وهو لا يعرف أين توقّف:
     أي سن، وأي جلسة، وكم دُفع. فتُعرض الصورة أولاً ثم يُفتح.
@@ -8160,6 +8244,16 @@ const Cfg = {
       <label class="lb">${T('notation')}</label>
       <div class="segs">${['palmer','fdi','universal'].map(m=>
         `<button class="${c.notation===m?'on':''}" onclick="Chart.set('${m}')">${m.toUpperCase()}</button>`).join('')}</div>
+      <div class="mt2"><label class="lb">${T('tzLabel')}</label>
+        <select onchange="Cfg.setTz(this.value)">
+          <option value="">${T('tzAuto')}</option>
+          ${['Asia/Baghdad','Asia/Riyadh','Asia/Kuwait','Asia/Dubai','Asia/Amman',
+             'Asia/Beirut','Asia/Damascus','Africa/Cairo','Europe/Istanbul']
+            .map(z=>`<option value="${z}" ${c.tz===z?'selected':''}>${z}</option>`).join('')}
+        </select>
+        <div class="tiny mt">${T('tzHint')}</div>
+      </div>
+
       <div class="mt2"><label class="lb">${T('language')}</label>
         <div class="segs">
           <button class="${isAr()?'on':''}" onclick="if(!isAr())UI.lang()">عربي</button>
@@ -8496,6 +8590,13 @@ const Cfg = {
     finally { b.disabled = false; b.textContent = T('migGo'); }
   },
 
+  async setTz(v){
+    CFG.data.tz = v || null;
+    await CFG.save();
+    toast(T('saved'), 's');
+    App.draw();
+  },
+
   async pingCloud(){
     if (!Cloud.ready()) return toast(T('cloudNotSet'), 'e');
     toast(T('cloudBusy'));
@@ -8612,6 +8713,8 @@ const App = {
     /* أول مزامنة بعد الدخول: يجلب الجهاز ما فاته قبل أن يبدأ العمل */
     /* ملفات سُجّلت قبل إضافة الباركود تأخذ أرقامها عند أول تشغيل */
     Ops.backfillBarcodes().catch(()=>{});
+    /* المواعيد التي مضت تُصنَّف قبل أي عرض */
+    Appt.sweepMissed().catch(()=>{});
     Sync.count().then(()=>{ Sync.paint(); if (Sync.pending) Sync.kick(); });
     if (Sync.on()){ Sync.run(); Live.connect(); }
   },
