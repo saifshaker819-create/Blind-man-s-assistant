@@ -676,6 +676,19 @@ html[dir=ltr] .sw.on .tg::after{transform:translateX(22px)}
        background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;
        font-size:13px;font-weight:700}
 
+/*──────── جرس التنبيهات ────────*/
+#bellbtn{position:relative}
+#bellcnt{position:absolute;top:-4px;inset-inline-end:-4px;min-width:17px;height:17px;
+  padding:0 4px;border-radius:99px;background:var(--bd);color:#fff;font-size:10.5px;
+  font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1}
+#bellbtn.ring{color:var(--bd)}
+#bellbtn.ring svg{animation:bellring 1.8s ease-in-out infinite;transform-origin:50% 15%}
+@keyframes bellring{0%,58%,100%{transform:rotate(0)}64%{transform:rotate(12deg)}
+  74%{transform:rotate(-10deg)}84%{transform:rotate(6deg)}92%{transform:rotate(-4deg)}}
+
+/*──────── سؤال مقفل: «صحتي جيدة» تلغي ما سواها ────────*/
+.chk.mhoff{opacity:.4;filter:saturate(.35)}
+
 /*──────── تقليل الحركة عند الطلب ────────*/
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
@@ -754,6 +767,13 @@ html[dir=ltr] .sw.on .tg::after{transform:translateX(22px)}
           <div class="h3" id="pagetitle"></div>
         </div>
         <button class="syncdot hide" id="syncdot" onclick="Sync.run(true)"></button>
+        <button class="ib hide" id="bellbtn" onclick="Notify.open()" title="">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M13.7 21a2 2 0 01-3.4 0"
+              stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span id="bellcnt" class="hide"></span>
+        </button>
         <button class="ib" id="scanbtn" onclick="Scan.open()" title="">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"
@@ -1071,6 +1091,23 @@ ar:{
  statPatients:'عدد المراجعين', statTeeth:'عدد الأسنان', avgWork:'معدل العمل الواحد',
  noData:'لا توجد بيانات ضمن هذه الفترة', printDay:'طباعة تقرير اليوم',
  times:'مرة', resetF:'إعادة ضبط الفلاتر',
+
+/*──── الاستمارة والتنبيهات والطابعات والمسح ────*/
+ mhGoodAlone:'اخترت «صحتي جيدة» — لا يمكن اختيار حالة أخرى معها',
+ mhGoodPicked:'صحة جيدة — رُفعت بقية الخيارات',
+ bookAlert:'تنبيهات حجز جديد',
+ printers:'الطابعات',
+ prnHint:'الاختيار يُحفظ في هذا الجهاز وحده. إن لم يتعرّف البرنامج على الطابعات تلقائياً فأضف اسم الطابعة كما هو مكتوب في نظام التشغيل.',
+ a5Printer:'طابعة ورقة العلاج A5', bcPrinter:'طابعة الباركود',
+ detectPrn:'تعرّف تلقائي', prnAdd:'إضافة اسم طابعة', prnDefault:'الطابعة الافتراضية للجهاز',
+ noPrn:'لم يتعرّف على أي طابعة — أضف الاسم يدوياً', prnFound:'طابعة',
+ lblSize:'قياس ملصق الباركود (ملم)', lblW:'العرض', lblH:'الارتفاع',
+ testA5:'تجربة A5', testBc:'تجربة الملصق', testPrint:'طباعة تجريبية',
+ sendTo:'أرسلها إلى الطابعة', printBlocked:'المتصفح منع نافذة الطباعة — اسمح بالنوافذ المنبثقة',
+ lastOrder:'آخر طلب', lastRx:'آخر علاج', noLastOrder:'لا يوجد طلب سابق',
+ noLastRx:'لا يوجد علاج سابق لهذا المراجع', bookPending:'حجزه بانتظار الموافقة',
+ scanHere:'ظهر في هذا القسم',
+ planDx:'التشخيص / الفحص', pickDx:'اختر الفحص أو التشخيص',
 },
 en:{
  tag:'Dental clinic management system', user:'Username', pass:'Password',
@@ -1361,6 +1398,23 @@ en:{
  statPatients:'Patients', statTeeth:'Teeth', avgWork:'Average per work',
  noData:'No data inside this period', printDay:'Print day report',
  times:'x', resetF:'Reset filters',
+
+/*──── form, alerts, printers & scanning ────*/
+ mhGoodAlone:'You chose "my health is good" — no other condition can be selected with it',
+ mhGoodPicked:'Good health — other answers were cleared',
+ bookAlert:'New booking alerts',
+ printers:'Printers',
+ prnHint:'Saved on this device only. If printers are not detected automatically, add the printer name exactly as it appears in the operating system.',
+ a5Printer:'A5 treatment sheet printer', bcPrinter:'Barcode printer',
+ detectPrn:'Detect printers', prnAdd:'Add a printer name', prnDefault:'Device default printer',
+ noPrn:'No printer detected — add the name manually', prnFound:'printer(s)',
+ lblSize:'Barcode label size (mm)', lblW:'Width', lblH:'Height',
+ testA5:'Test A5', testBc:'Test label', testPrint:'Test print',
+ sendTo:'Send it to printer', printBlocked:'The browser blocked the print window — allow pop-ups',
+ lastOrder:'Last order', lastRx:'Last prescription', noLastOrder:'No previous order',
+ noLastRx:'No previous prescription for this patient', bookPending:'Booking awaiting approval',
+ scanHere:'Shown in this section',
+ planDx:'Diagnosis / examination', pickDx:'Choose the examination or diagnosis',
 }};
 
 let LG = localStorage.getItem('d_lang') || 'ar';
@@ -2632,6 +2686,9 @@ const Sync = {
       for (const r of rows){
         if (r.updated_at > mark) mark = r.updated_at;
         const doc = r.doc || {};
+        /* إجابات الاستمارة تصل بأشكال مختلفة حسب إصدار تطبيق
+           المراجع — تُوحَّد هنا مرة واحدة فتظهر وتخرج تنبيهاتها. */
+        if (doc.mh) doc.mh = MH.norm(doc.mh);
         const old = await DB.get('bookings', r.id);
 
         /* ألغى المراجع حجزه — الأثر يختلف بحسب ما وصل إليه الحجز */
@@ -2654,7 +2711,10 @@ const Sync = {
     try { localStorage.setItem(this.bkKey(), mark); } catch(_){}
     /* ما وصل من جهاز آخر قد يحمل باركوداً مكرّراً — يُصلَح هنا */
     await Ops.fixBarcodes();
-    if (fresh) toast(`${fresh} ${T('newBooking')}`, 's');
+    /* التنبيه لا ينتظر إعادة رسم الشاشة: الجرس وعدّاد الحجوزات
+       يتحدّثان فوراً، فيرى السكرتير والطبيب الحجز الجديد وهما في
+       أي قسم كان. */
+    try { await Notify.refresh(fresh); } catch(_){}
     return rows.length;
   },
 
@@ -2813,7 +2873,16 @@ const Sync = {
       if (!this.on()) return;
       /* شبكة أمان فقط — الدفع الحقيقي يقع لحظة الكتابة */
       const gap = Live.up() ? 30000 : 12000;
-      if (Date.now() - this.last >= gap) this.run();
+      if (Date.now() - this.last >= gap) return this.run();
+
+      /* الحجوزات في جدول لا يشمله الاشتراك الحيّ، فكان الحجز
+         ينتظر الدورة الكاملة. سؤالها وحدها كل عشرين ثانية طلب
+         واحد خفيف يجعل التنبيه شبه فوري. */
+      if (this.busy || !navigator.onLine) return;
+      if (S.role !== 'doctor' && S.role !== 'secretary') return;
+      if (Date.now() - (this._bkAt || 0) < 20000) return;
+      this._bkAt = Date.now();
+      this.bookings().then(n => { if (n) this.redraw(); }).catch(()=>{});
     }, 5000);
   },
 };
@@ -3427,8 +3496,28 @@ const Setup = {
   مطابقة لاستمارة العيادة الورقية — ٢٢ سؤالاً بأقسامها
 ═══════════════════════════════════════════════════════*/
 const MH = {
+  /* توحيد شكل الإجابات ─ تطبيق المراجع كان يرسل ١ أو نصّ التفصيل
+     مباشرة، والبرنامج هنا يتوقّع {y:true,d:'…'}. فكانت إجابات الحجز
+     تصل ولا تُقرأ، ولا يخرج منها أي تنبيه للسكرتير أو الطبيب.
+     التوحيد في مكان واحد يجعل الشكلين مقروءين بلا كسر أي سجل قديم. */
+  norm(vals){
+    if (!vals || typeof vals !== 'object') return {};
+    const out = {};
+    for (const [k, v] of Object.entries(vals)){
+      if (v === null || v === undefined || v === false || v === 0 || v === '') continue;
+      if (typeof v === 'object'){
+        if (v.y) out[k] = { y:true, d:String(v.d || '').trim() };
+        continue;
+      }
+      const t = String(v).trim();
+      if (!t || t === '0' || t === 'false') continue;
+      out[k] = { y:true, d:(t === '1' || t === 'true') ? '' : t };
+    }
+    return out;
+  },
+
   render(vals, gender, editable){
-    vals = vals || {};
+    vals = this.norm(vals);
     const groups = ['gen','car','alg','med'];
     let html = '';
 
@@ -3456,8 +3545,10 @@ const MH = {
     const dang = q.risk === 2;
     const txt = isAr()? q.ar : q.en;
     const dis = editable === false ? 'style="pointer-events:none;opacity:.85"' : '';
+    /* من قال إن صحته جيدة تُقفل عنه بقية الأسئلة */
+    const off = q.c !== 'health_good' && !!(vals.health_good && vals.health_good.y);
     return `<div>
-      <div class="chk ${on?'on':''} ${dang?'dang':''}" id="mhc-${q.c}" ${dis}
+      <div class="chk ${on?'on':''} ${dang?'dang':''} ${off?'mhoff':''}" id="mhc-${q.c}" ${dis}
            onclick="MH.toggle('${q.c}')">
         <div class="bx">✓</div>
         <div class="gr">${esc(txt)}</div>
@@ -3470,11 +3561,39 @@ const MH = {
     </div>`;
   },
 
+  /* «صحتي جيدة» جواب يلغي ما سواه: من صحته جيدة لا حالة عنده.
+     فاختيارها يرفع البقية ويقفلها، ورفعها يفتحها من جديد. */
+  GOOD:'health_good',
+
   toggle(c){
     const box = $('#mhc-'+c); if (!box) return;
+    const goodOn = !!$('#mhc-'+this.GOOD)?.classList.contains('on');
+
+    /* محاولة اختيار حالة أخرى مع «صحتي جيدة» تُمنع بتنبيه صريح */
+    if (c !== this.GOOD && goodOn && !box.classList.contains('on'))
+      return toast(T('mhGoodAlone'), 'e');
+
     box.classList.toggle('on');
     const d = $('#mhd-'+c);
     if (d) d.classList.toggle('hide', !box.classList.contains('on'));
+
+    if (c === this.GOOD) this.lockOthers(box.classList.contains('on'));
+  },
+
+  lockOthers(on){
+    let cleared = 0;
+    for (const q of MHQ){
+      if (q.c === this.GOOD) continue;
+      const b = $('#mhc-'+q.c); if (!b) continue;
+      if (on && b.classList.contains('on')){
+        b.classList.remove('on');
+        $('#mhd-'+q.c)?.classList.add('hide');
+        const i = $('#mhi-'+q.c); if (i) i.value = '';
+        cleared++;
+      }
+      b.classList.toggle('mhoff', !!on);
+    }
+    if (on) toast(cleared ? T('mhGoodPicked') : T('mhGoodAlone'), cleared ? 's' : 'w');
   },
 
   collect(){
@@ -3490,7 +3609,7 @@ const MH = {
 
   /* التنبيهات الحرجة المستخرجة من الإجابات */
   alerts(vals, forPharmacy){
-    if (!vals) return [];
+    vals = this.norm(vals);
     const out = [];
     for (const q of MHQ){
       const v = vals[q.c];
@@ -3998,6 +4117,27 @@ const Ops = {
       .find(p => String(p.bc) === c && (!p.cid || p.cid === cid)) || null;
   },
 
+  /*──── آخر طلب للمراجع ────
+    ما يحتاجه من يقرأ الباركود: آخر جلسة وما سُجّل فيها، وآخر علاج
+    كتبه الطبيب، وحال حجزه اليوم، وموعده القادم. تُجمع مرة واحدة
+    فتُعرض حيثما وقف القارئ — استقبالاً كان أم طبيباً أم صيدلياً. */
+  async lastOrder(pid){
+    const vs = (await DB.by('visits','pid',pid)).sort((a,b)=>(b.at||0)-(a.at||0));
+    const visit = vs[0] || null;
+    const works = visit ? (await DB.by('works','vid',visit.id)).sort((a,b)=>(b.at||0)-(a.at||0)) : [];
+    const rxs = (await DB.by('rx','pid',pid)).sort((a,b)=>(b.at||0)-(a.at||0));
+    const bks = (await DB.all('bookings')).filter(b => b.pid === pid)
+                  .sort((a,b)=>(b.at||0)-(a.at||0));
+    let appt = null;
+    try {
+      appt = (await DB.by('appts','pid',pid))
+        .filter(a => a.st !== 'cancelled' && a.day && a.day >= today())
+        .sort((a,b)=>String(a.day+(a.time||'')).localeCompare(String(b.day+(b.time||''))))[0] || null;
+    } catch(_){}
+    return { visit, works, rx:rxs[0] || null, booking:bks[0] || null, appt,
+             todayVisit: vs.find(v => v.date === today()) || null };
+  },
+
   /* ترقيم الملفات المسجّلة قبل إضافة الباركود */
   async backfillBarcodes(){
     const cid = CFG.data.cid;
@@ -4239,9 +4379,12 @@ const Sec = {
         </div>
         ${b.complaint?`<div class="mt" style="padding:11px;background:var(--card2);
           border-radius:11px;font-size:13.5px;font-weight:600">${esc(b.complaint)}</div>`:''}
-        ${al.length?`<div class="row mt" style="gap:6px">
-          <span class="pill ${al[0].risk===2?'r':'w'}">${al[0].risk===2?'⚠':'!'} ${al.length}</span>
-        </div>`:''}
+        ${al.length?`<div class="col mt" style="gap:6px">
+          ${al.slice(0,3).map(x=>`<div class="al ${x.risk===2?'r':'w'}">
+            <span>${x.risk===2?'⚠':'!'}</span>
+            <span>${esc(x.txt)}${x.d?` — <b>${esc(x.d)}</b>`:''}</span></div>`).join('')}
+          ${al.length>3?`<span class="pill n">+${al.length-3}</span>`:''}
+        </div>`:`<div class="al g mt"><span>✓</span><span>${T('noAlerts')}</span></div>`}
         <div class="row mt" style="gap:8px">
           <button class="btn gh gr" onclick="Sec.decide('${b.id}',0)">${T('decline')}</button>
           <button class="btn sf gr" onclick="Sec.bookInfo('${b.id}')">${T('bookDetails')}</button>
@@ -4340,7 +4483,8 @@ const Sec = {
     let p = all.find(x => x.phone.replace(/\D/g,'') === (b.phone||'').replace(/\D/g,''));
     const data = { name:nm(b), n1:b.n1,n2:b.n2,n3:b.n3,n4:b.n4, age:b.age, gender:b.gender,
                    phone:b.phone, address:b.address, job:b.job,
-                   complaint:b.complaint, prevDental:b.prevDental, other:b.other, mh:b.mh };
+                   complaint:b.complaint, prevDental:b.prevDental, other:b.other,
+                   mh: MH.norm(b.mh) };
     p = await Ops.savePatient(data, p?.id);
     b.st='accepted'; b.pid=p.id; b.bc=p.bc; await DB.put('bookings', b);
     /* الباركود يصل تطبيق المراجع فيُريه للاستقبال من هاتفه */
@@ -4646,15 +4790,13 @@ const Sec = {
      يُطبع له هنا. رمز الجلسة يبقى داخلياً للبحث لا للطباعة. */
   async barcode(vid){
     const v = await DB.get('visits', vid);
-    const p = await DB.get('patients', v.pid);
-    if (p && !p.bc){ p.bc = await Ops.nextBarcode(); await DB.put('patients', p); }
-    const code = String(p?.bc || v.code);
+    const d = await Print.labelData(vid);
+    /* ما يُعرض على الشاشة هو ما يخرج من الطابعة حرفياً */
     UI.sheet(`
       <div class="h2 ctr">${T('barcode')}</div>
-      <div class="sub ctr">${esc(nm(p))} — ${T('visit')} ${v.no}</div>
-      <div class="card mt2" style="background:#fff;padding:14px">
-        ${C39.svg(code, 74)}
-        <div class="mono ctr mt" style="color:#000;font-weight:800;letter-spacing:.2em;font-size:19px">${esc(code)}</div>
+      <div class="sub ctr">${esc(d.patient)} — ${T('visit')} ${v?.no || ''}</div>
+      <div class="card mt2" style="background:#fff;padding:14px;max-width:330px;margin-inline:auto">
+        ${Print.labelHTML(d)}
       </div>
       <button class="btn w mt2" onclick="Print.barcode('${vid}')">${T('printBarcode')}</button>
       <button class="btn w gh mt" onclick="Nav.back()">${T('close')}</button>`);
@@ -5280,6 +5422,8 @@ const Doc = {
             ${done.nums.length}</div>
           <div class="gr">
             <div class="h3" style="color:${P(plan.proc).col}">${esc(pName(plan.proc))}</div>
+            ${plan.dx?`<div class="tiny" style="font-weight:700">${T('planDx')}: ${
+              esc(PickProc.label(plan.dx))}</div>`:''}
             <div class="tiny">${done.nums.length} ${T('ofN')} ${total} ${T('toothVisits')}
               ${left?` · ${T('remaining')} ${left}`:` · ${T('planDone')}`}</div>
           </div>
@@ -5520,8 +5664,11 @@ const Doc = {
     return `
       <div class="card">
         <div class="h3">${plan?T('editPlan'):T('startPlan')}</div>
+        <div class="mt"><label class="lb">${T('planDx')}</label>
+          ${PickProc.html('pl-dx', plan?.dx || '', '', { only:['g1'], ph:T('pickDx') })}
+        </div>
         <div class="mt"><label class="lb">${T('planProc')} <span class="req">*</span></label>
-          ${PickProc.html('pl-proc', plan?.proc || '', 'pl-price')}
+          ${PickProc.html('pl-proc', plan?.proc || '', 'pl-price', { not:['g1'] })}
         </div>
         <div class="g2 mt">
           <div><label class="lb">${T('planCount')} <span class="req">*</span></label>
@@ -5548,6 +5695,7 @@ const Doc = {
     SG.attach($('#pl-note'), 'plannote');
     /* ما يُكتب يدوياً في حقل نوع العمل يتعلّم ويُقترح لاحقاً */
     SG.attach($('#pl-proc-q'), 'proctext');
+    SG.attach($('#pl-dx-q'), 'proctext');
     const pr = $('#pl-price');
     if (pr && !pr.value) pr.value = Number($('#pl-proc')?.dataset.p || 0) || '';
     this.rebuildChips();
@@ -5573,19 +5721,22 @@ const Doc = {
     const proc = PickProc.read('pl-proc');
     if (!proc){ $('#pl-proc-q')?.classList.add('err'); return toast(T('typeProc'),'e'); }
     if (proc.startsWith('x:')) await SG.learn('proctext', proc.slice(2));
+    /* التشخيص اختياري: خطة قديمة بلا تشخيص تبقى صالحة كما هي */
+    const dx = PickProc.read('pl-dx');
+    if (dx && dx.startsWith('x:')) await SG.learn('proctext', dx.slice(2));
     const count = Math.max(1, Number($('#pl-n').value) || 1);
     const price = Number($('#pl-price').value) || 0;
     const note  = ($('#pl-note').value || '').trim();
     const picked = [...document.querySelectorAll('#pl-chips .on')].map(b=>Number(b.dataset.n));
 
-    await Ops.savePlan(S.patient.id, fdi, { proc, sessions:count, price, note });
+    await Ops.savePlan(S.patient.id, fdi, { dx, proc, sessions:count, price, note });
     await SG.learn('plannote', note);
 
     /* الجلسات المختارة اليوم تُسجَّل كأعمال فوراً */
     if (picked.length && S.visit){
       const c = await Ops.course(S.patient.id, fdi);
       await DB.put('works', {
-        id:uid(), vid:S.visit.id, pid:S.patient.id, proc, fdi,
+        id:uid(), vid:S.visit.id, pid:S.patient.id, proc, dx, fdi,
         course:c, sessionNos:picked, by:S.role,
         price: price * picked.length, note, at:Date.now(),
       });
@@ -6748,18 +6899,29 @@ const PickProc = {
     return c.startsWith('x:') ? c.slice(2) : pName(c);
   },
 
-  html(id, code, priceId){
-    this.st[id] = { grp:null, priceId:priceId||'' };
+  /* opt.only يحصر الحقل بمجموعات بعينها، opt.not يستثنيها.
+     بهما ينفصل حقل التشخيص عن حقل نوع العمل فلا يزاحم أحدهما الآخر. */
+  html(id, code, priceId, opt){
+    const o = opt || {};
+    this.st[id] = { grp:null, priceId:priceId||'', only:o.only||null, not:o.not||null };
     const p = code && !String(code).startsWith('x:') ? P(code) : null;
     return `
       <div class="pp" id="${id}-box">
         <input type="hidden" id="${id}" value="${esc(code||'')}" data-p="${p?p.p:0}">
-        <input id="${id}-q" class="pp-q" autocomplete="off" placeholder="${T('procPick')}"
+        <input id="${id}-q" class="pp-q" autocomplete="off" placeholder="${esc(o.ph || T('procPick'))}"
           value="${esc(this.label(code))}"
           oninput="PickProc.type('${id}')" onfocus="PickProc.open('${id}')">
         <button type="button" class="pp-tg" onclick="PickProc.toggle('${id}')">▾</button>
         <div class="pp-pan hide" id="${id}-pan"></div>
       </div>`;
+  },
+
+  /* الأنواع المسموحة لهذا الحقل وحده */
+  pool(id){
+    const s = this.st[id] || {};
+    return PROCS.filter(x =>
+      (!s.only || s.only.includes(x.cat)) &&
+      (!s.not  || !s.not.includes(x.cat)));
   },
 
   pan(id){ return $('#'+id+'-pan'); },
@@ -6790,9 +6952,9 @@ const PickProc = {
     const q  = ($('#'+id+'-q')?.value || '').trim().toLowerCase();
     const st = this.st[id];
 
-    /* ١ — كتابة: اقتراحات من كل المجموعات */
+    /* ١ — كتابة: اقتراحات من كل المجموعات المسموحة */
     if (q){
-      const hits = PROCS.filter(x =>
+      const hits = this.pool(id).filter(x =>
         (x.ar + ' ' + x.en).toLowerCase().includes(q)).slice(0, 40);
       box.innerHTML = hits.length
         ? hits.map(x => this.row(id, x, true)).join('')
@@ -6809,19 +6971,28 @@ const PickProc = {
           <span>${T('allGroups')}</span>
           <span class="cnt" style="color:${g.col}">${esc(isAr()?g.ar:g.en)}</span>
         </div>
-        ${PROCS.filter(x=>x.cat===st.grp).map(x=>this.row(id,x,false)).join('')}`;
+        ${this.pool(id).filter(x=>x.cat===st.grp).map(x=>this.row(id,x,false)).join('')}`;
       return;
     }
 
-    /* ٣ — الافتراضي: المجموعات */
-    const groups = Object.entries(PGRP).filter(([k]) => PROCS.some(x=>x.cat===k));
-    const other  = PROCS.filter(x => !PGRP[x.cat]);
+    /* ٣ — الافتراضي: المجموعات.
+       وحقلٌ محصور بمجموعة واحدة لا معنى لخطوة اختيار المجموعة فيه —
+       تُعرض أنواعه مباشرة. */
+    const pool   = this.pool(id);
+    const groups = Object.entries(PGRP).filter(([k]) => pool.some(x=>x.cat===k));
+    const other  = pool.filter(x => !PGRP[x.cat]);
+    if (groups.length <= 1){
+      box.innerHTML = pool.length
+        ? pool.map(x=>this.row(id,x,false)).join('')
+        : `<div class="pp-hint">${T('noProcMatch')}</div>`;
+      return;
+    }
     box.innerHTML = `<div class="pp-hint">${T('pickGroup')}</div>` +
       groups.map(([k,g])=>`
         <div class="pp-row" onclick="PickProc.grp('${id}','${k}')">
           <span class="dt" style="background:${g.col}"></span>
           <span>${esc(isAr()?g.ar:g.en)}</span>
-          <span class="cnt">${PROCS.filter(x=>x.cat===k).length} ${isAr()?'›':'‹'}</span>
+          <span class="cnt">${pool.filter(x=>x.cat===k).length} ${isAr()?'›':'‹'}</span>
         </div>`).join('') +
       other.map(x=>this.row(id,x,false)).join('');
   },
@@ -7028,6 +7199,72 @@ const Rx = {
   },
 };
 
+/*═══════════════ الطابعات ═══════════════
+  لا يعطي أي متصفح قائمة الطابعات لصفحة ويب — لا واجهة قياسية لذلك.
+  فالتعرّف التلقائي يجري عبر أي جسر متاح (غلاف سطح مكتب أو أندرويد)،
+  وإن لم يوجد بقي الاسم يُكتب مرة واحدة ويُذكَّر به عند كل طباعة.
+
+  والأسماء تُحفظ في هذا الجهاز وحده ولا تُزامَن: طابعة الاستقبال
+  ليست طابعة غرفة الطبيب، ولو زُومنت لطبع كلٌّ على طابعة غيره.
+═══════════════════════════════════════*/
+const Prn = {
+  K:{ a5:'d_prn_a5', bc:'d_prn_bc', list:'d_prn_list', w:'d_lbl_w', h:'d_lbl_h' },
+
+  get(k, d){ try { return localStorage.getItem(this.K[k]) || (d==null?'':String(d)); }
+             catch(_){ return d==null?'':String(d); } },
+  set(k, v){ try { localStorage.setItem(this.K[k], v==null?'':String(v)); } catch(_){} },
+
+  /* قياس ملصق الباركود — الافتراضي ٥٠×٣٠ ملم، أشيع ملصق حراري */
+  label(){ return { w:Number(this.get('w', 50)) || 50, h:Number(this.get('h', 30)) || 30 }; },
+
+  names(){ try { return JSON.parse(this.get('list','[]')) || []; } catch(_){ return []; } },
+  saveNames(a){
+    const list = [...new Set((a||[]).map(x => String(x||'').trim()).filter(Boolean))].slice(0,30);
+    this.set('list', JSON.stringify(list));
+    return list;
+  },
+
+  /* أي جسر يوفّره الغلاف الذي يعمل البرنامج داخله */
+  bridge(){
+    return window.ClinicPrint || window.AndroidPrint || window.electronPrint
+        || (window.electron && window.electron.printHTML ? window.electron : null) || null;
+  },
+
+  async detect(){
+    const found = [];
+    try {
+      const b = this.bridge();
+      let r = b ? (typeof b.getPrinters === 'function' ? b.getPrinters() : (b.printers || null)) : null;
+      if (r && typeof r.then === 'function') r = await r;
+      if (typeof r === 'string'){ try { r = JSON.parse(r); } catch(_){ r = r.split(/[\n,;]+/); } }
+      if (Array.isArray(r))
+        for (const x of r) found.push(typeof x === 'string' ? x : (x.name || x.displayName || x.printerName || ''));
+    } catch(_){}
+    try {
+      const np = navigator.printing;
+      let r = (np && typeof np.getPrinters === 'function') ? await np.getPrinters() : null;
+      if (Array.isArray(r)) for (const x of r) found.push(x.name || x.printerName || '');
+    } catch(_){}
+    if (Array.isArray(window.__PRINTERS__)) found.push(...window.__PRINTERS__);
+
+    const list = [...new Set(found.map(x => String(x||'').trim()).filter(Boolean))];
+    if (list.length) this.saveNames([...list, ...this.names()]);
+    return list;
+  },
+
+  /* الطباعة الصامتة عبر الجسر إن وُجد، وإلا تُترك للنافذة المعتادة
+     مع تذكير باسم الطابعة المطلوبة حتى لا تُطبع الورقة على الملصق. */
+  async send(kind, html, title){
+    const dev = this.get(kind === 'bc' ? 'bc' : 'a5', '');
+    const b = this.bridge();
+    if (b && typeof b.printHTML === 'function'){
+      try { await b.printHTML(html, dev || '', kind, title || ''); return true; } catch(_){}
+    }
+    if (dev) toast(`${T('sendTo')}: ${dev}`, 's');
+    return false;
+  },
+};
+
 /*═══════════════ الطباعة ═══════════════*/
 const Print = {
   /* الشعار المرفوع في الإعدادات هو رأس الورقة نفسه — يُطبع بعرض
@@ -7044,24 +7281,48 @@ const Print = {
       ${c.doctor?`<div style="font-size:13px">${esc(c.doctor)}${c.title?' — '+esc(c.title):''}</div>`:''}
     </div>`;
   },
-  win(inner, title){
-    const w = window.open('','_blank','width=600,height=820');
-    w.document.write(`<!DOCTYPE html><html lang="${LG}" dir="${isAr()?'rtl':'ltr'}"><head>
+  /* ورقتان مختلفتان تماماً: ورقة العلاج A5 بترويستها وتذييلها،
+     وملصق الباركود بقياس الملصق بلا شيء حوله. لكل واحدة طابعتها
+     المختارة في الإعدادات. */
+  win(inner, title, kind){
+    const isLbl = kind === 'bc';
+    const L = Prn.label();
+    const page = isLbl ? `@page{size:${L.w}mm ${L.h}mm;margin:2mm}`
+                       : `@page{size:A5;margin:9mm}`;
+    const foot = isLbl ? '' : `<div class="ft">${CFG.data.footerImg
+        ? `<img src="${CFG.data.footerImg}" style="width:100%;max-height:70px;object-fit:contain">`
+        : esc(CFG.data.footer||'')}</div>`;
+
+    const html = `<!DOCTYPE html><html lang="${LG}" dir="${isAr()?'rtl':'ltr'}"><head>
       <meta charset="utf-8"><title>${esc(title)}</title>
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet">
-      <style>@page{size:A5;margin:9mm}
-        body{font-family:'IBM Plex Sans Arabic',sans-serif;margin:0;color:#111;font-size:13px}
+      <style>${page}
+        body{font-family:'IBM Plex Sans Arabic',sans-serif;margin:0;color:#111;
+             font-size:${isLbl?'12px':'13px'}}
         table{width:100%;border-collapse:collapse;margin-top:8px}
         td,th{padding:7px 5px;border-bottom:1px solid #ccc;text-align:start}
         th{background:#eef3f3;font-size:11.5px}
         .ft{position:fixed;bottom:0;inset-inline:0;text-align:center;font-size:11px;
             color:#555;border-top:1px solid #ddd;padding-top:5px}
       </style></head><body>${inner}
-      <div class="ft">${CFG.data.footerImg
-        ? `<img src="${CFG.data.footerImg}" style="width:100%;max-height:70px;object-fit:contain">`
-        : esc(CFG.data.footer||'')}</div>
+      ${foot}
       <script>window.onload=()=>setTimeout(()=>window.print(),420)<\/script>
-      </body></html>`);
+      </body></html>`;
+
+    /* نافذة الطباعة تُفتح في اللحظة نفسها التي ضُغط فيها الزر —
+       لو انتظرنا وعداً لحجبها المتصفح بوصفها نافذة منبثقة.
+       فالجسر (إن وُجد) يطبع صامتاً، وإلا فُتحت النافذة فوراً. */
+    const kindKey = isLbl ? 'bc' : 'a5';
+    const br = Prn.bridge();
+    if (br && typeof br.printHTML === 'function'){
+      Prn.send(kindKey, html, title).catch(()=>{});
+      return;
+    }
+    const dev = Prn.get(kindKey, '');
+    if (dev) toast(`${T('sendTo')}: ${dev}`, 's');
+    const w = window.open('','_blank','width=600,height=820');
+    if (!w) return toast(T('printBlocked'), 'e');
+    w.document.write(html);
     w.document.close();
   },
 
@@ -7139,21 +7400,58 @@ const Print = {
         <div style="font-weight:800;font-size:13px;border-top:1px solid #444;
           display:inline-block;padding-top:5px;min-width:190px">${esc(CFG.data.doctor||'')}</div>
         ${CFG.data.title?`<div style="font-size:11px;color:#555">${esc(CFG.data.title)}</div>`:''}
-      </div>`, nm(p));
+      </div>`, nm(p), 'a5');
+  },
+
+  /*──── ملصق الباركود ────
+    ترتيب مقصود: اسم الطبيب فوق ليُعرف مصدر الملصق من نظرة، ثم
+    الباركود في وسط الملصق ليقرأه الماسح بلا بحث، ثم اسم المريض
+    وتاريخ حجزه ووقته أسفله. ورقم الرمز تحت الخطوط لأن الماسح قد
+    يتعطّل فيُكتب الرقم باليد. */
+  labelHTML(o){
+    return `<div style="width:100%;text-align:center;color:#000;
+      font-family:'IBM Plex Sans Arabic',sans-serif;background:#fff">
+      <div style="font-size:12.5px;font-weight:800;line-height:1.25;
+        border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:5px">
+        ${esc(o.doctor||'')}</div>
+      <div style="padding:0 2px">${C39.svg(o.code, 52)}</div>
+      <div style="font-family:monospace;font-size:12.5px;font-weight:800;
+        letter-spacing:.22em;margin-top:1px">${esc(o.code)}</div>
+      <div style="font-size:13px;font-weight:800;margin-top:5px;line-height:1.25">
+        ${esc(o.patient||'')}</div>
+      <div style="font-size:10.5px;margin-top:2px;font-weight:600">${esc(o.when||'')}</div>
+    </div>`;
+  },
+
+  /* بيانات الملصق: الرمز واحد للمراجع في كل زياراته، والوقت وقت
+     حجزه من تطبيقه إن حجز، وإلا وقت فتح جلسته في العيادة. */
+  async labelData(vid){
+    const v = await DB.get('visits', vid);
+    const p = v ? await DB.get('patients', v.pid) : null;
+    if (p && !p.bc){ p.bc = await Ops.nextBarcode(); await DB.put('patients', p); }
+
+    /* وقت هذه الزيارة تحديداً: حجز اليوم نفسه إن وُجد، وإلا حجز
+       قادم، وإلا وقت فتح الجلسة. فلا يُطبع على ملصق اليوم تاريخُ
+       حجز قديم. */
+    let when = `${fmtD(v?.date || today())} · ${fmtT(v?.at || Date.now())}`;
+    try {
+      const day = v?.date || today();
+      const mine = (await DB.all('bookings'))
+        .filter(b => p && b.pid === p.id && b.day && b.st !== 'declined')
+        .sort((a,b) => String((a.day||'')+(a.time||''))
+                       .localeCompare(String((b.day||'')+(b.time||''))));
+      const bk = mine.find(b => b.day === day) || mine.find(b => b.day >= day);
+      if (bk) when = `${fmtD(bk.day)}${bk.time ? ' · ' + bk.time : ''}`;
+    } catch(_){}
+
+    return { code:String(p?.bc || v?.code || ''), patient:p ? nm(p) : '',
+             doctor:(CFG.data.doctor || CFG.data.clinic || ''), when, p, v };
   },
 
   async barcode(vid){
-    const v = await DB.get('visits', vid);
-    const p = await DB.get('patients', v.pid);
-    const code = String(p?.bc || v.code);
-    this.win(`<div style="text-align:center;padding:6px">
-      ${CFG.data.logo?`<img src="${CFG.data.logo}" style="width:100%;max-height:70px;object-fit:contain">`
-        :`<div style="font-size:15px;font-weight:800">${esc(CFG.data.clinic)}</div>`}
-      <div style="font-size:14px;font-weight:700;margin-top:5px">${esc(nm(p))}</div>
-      <div style="font-size:11.5px;color:#444">${esc(p.mrn)} · ${p.age||''} ${T('yrs')} · ${fmtD(v.date)}</div>
-      <div style="margin-top:9px">${C39.svg(code, 62)}</div>
-      <div style="font-family:monospace;letter-spacing:.2em;font-size:15px;font-weight:800">${esc(code)}</div>
-    </div>`, code);
+    const d = await this.labelData(vid);
+    if (!d.code) return toast(T('noResult'), 'e');
+    this.win(this.labelHTML(d), d.code, 'bc');
   },
 
   async day(){
@@ -7543,53 +7841,126 @@ const Scan = {
   async go(code){
     const raw = (code || $('#sc-in')?.value || '').trim().toUpperCase();
     if (!raw) return;
-    /* باركود مراجع: يُبحث عنه في قائمة اليوم — نفس ما يفعله
-       رمز الجلسة، فيرى الموظّف دوره لا ملفه. */
-    const pt = await Ops.findPtByCode(raw);
-    if (pt){
-      this.stop(true); UI.close(); Nav.reset();
-      Sec.qq = pt.bc || pt.mrn || nm(pt);
-      S.patient = null;
-      S.tab = 'today';
-      App.draw();
-      const vs = await DB.by('visits','pid',pt.id);
-      const has = vs.some(v => v.date === today());
-      toast(has ? `${nm(pt)} — ${T('bookedToday')}` : T('notBookedToday'),
-            has ? 's' : 'e');
-      return;
-    }
 
-    const v = await Ops.findByCode(raw);
-    if (!v){
+    /* الرمز قد يكون رقم المراجع أو رمز جلسة — كلاهما يقود إليه */
+    let pt = await Ops.findPtByCode(raw);
+    if (!pt){
+      const v = await Ops.findByCode(raw);
+      if (v) pt = await DB.get('patients', v.pid);
+    }
+    if (!pt){
       toast(T('noResult'), 'e');
       const st = $('#cam-st'); if (st) st.textContent = T('noResult');
       if (this.det && !this.timer && this.stream) this.loop();
       return;
     }
+
     this.stop(true);
     UI.close();
+    Nav.reset();
+    return this.route(pt);
+  },
 
-    /* الصيدلي: الوصفة مباشرة */
+  /*──── ما بعد القراءة ────
+    الماسح لا ينقل الموظّف من مكانه: يبقى في القسم الذي كان يعمل
+    فيه ويظهر المراجع داخله — قرأتَه في «اليوم» ظهر في قائمة اليوم،
+    وفي «الملفات» ظهر في الملفات، وهكذا.
+    والصيدلي وحده يُفتح له آخر علاج كتبه الطبيب مباشرة، لأن هذا
+    كل ما يعنيه من القراءة.
+    ومع كل قراءة تُرفع بطاقة «آخر طلب» فوق القسم. */
+  async route(pt){
+    const info = await Ops.lastOrder(pt.id);
+    const code = String(pt.bc || pt.mrn || nm(pt));
+
     if (S.role === 'pharmacy'){
-      const rs = await DB.by('rx','vid',v.id);
-      if (!rs.length) return toast(T('noRx'), 'e');
-      return Ph.open(rs[rs.length-1].id);
+      if (info.rx){ toast(`${nm(pt)} — ${T('lastRx')}`, 's'); return Ph.open(info.rx.id); }
+      toast(`${nm(pt)} — ${T('noLastRx')}`, 'e');
+      await App.draw();
+      return this.banner(pt, info);
     }
 
-    /* الطبيب والسكرتير: المسح = بحث عن اسمه في قائمة اليوم،
-       فيظهر ضمن الدور بدل فتح ملفه أو جلسته مباشرة. */
-    const p = await DB.get('patients', v.pid);
-    if (!p) return toast(T('noResult'), 'e');
-
-    Nav.reset();
-    Sec.qq = p.mrn || nm(p);
+    const tab = S.tab;
     S.patient = null;
-    S.tab = 'today';
-    App.draw();
+    S.chartOpen = false;
 
-    const isToday = v.date === today();
-    toast(isToday ? `${nm(p)} — ${T('bookedToday')}` : T('notBookedToday'),
-          isToday ? 's' : 'e');
+    if (tab === 'files'){
+      await App.draw();
+      const i = $('#sc-q'); if (i) i.value = code;
+      await Sec.list(code);
+    } else if (tab === 'book'){
+      /* قسم الحجوزات: يُبحث عنه بين الطلبات التي تنتظر القرار */
+      Sec.bq = (pt.phone || nm(pt));
+      await App.draw();
+    } else if (tab === 'rx' && info.rx){
+      await App.draw();
+      this.banner(pt, info);
+      return Rx.view(info.rx.id);
+    } else if (tab === 'money'){
+      await App.draw();
+      this.banner(pt, info);
+      return Money.ptVisits(pt.id);
+    } else if (tab === 'today' || !tab){
+      Sec.qq = code;
+      S.tab = 'today';
+      await App.draw();
+    } else {
+      await App.draw();
+    }
+
+    this.banner(pt, info);
+    const has = !!info.todayVisit;
+    toast(`${nm(pt)} — ${has ? T('bookedToday') : T('notBookedToday')}`, has ? 's' : 'w');
+  },
+
+  /* بطاقة «آخر طلب» فوق القسم — تُطالَع بنظرة وتُغلق بضغطة،
+     ولا تُغطّي الشاشة ولا تُخرج الموظّف من عمله. */
+  banner(pt, info){
+    const box = $('#view'); if (!box) return;
+    $('#scanbar')?.remove();
+
+    const ws = (info.works || []).slice(0,3)
+      .map(x => `${x.fdi ? Chart.lbl(x.fdi) + ' · ' : ''}${pName(x.proc)}`);
+    const drugs = info.rx
+      ? info.rx.items.map(i => i.drug).filter(Boolean).slice(0,4).join(' · ') : '';
+    const st = info.todayVisit
+      ? `<span class="pill g">${T('bookedToday')}</span>`
+      : (info.booking && info.booking.st === 'new')
+        ? `<span class="pill w">${T('bookPending')}</span>`
+        : `<span class="pill n">${T('notBookedToday')}</span>`;
+
+    box.insertAdjacentHTML('afterbegin', `
+      <div class="card" id="scanbar" style="border-color:var(--br)">
+        <div class="row">
+          <div class="av">${esc(nm(pt).charAt(0))}</div>
+          <div class="gr">
+            <div class="row" style="gap:6px">
+              <div class="h3 ell">${esc(nm(pt))}</div>${st}
+            </div>
+            <div class="mono tiny">${T('file')} ${esc(pt.mrn||'—')} ·
+              ▮▮ ${esc(pt.bc||'—')} · ${esc(pt.phone||'')}</div>
+          </div>
+          <button class="ib" onclick="document.getElementById('scanbar').remove()">✕</button>
+        </div>
+
+        <div class="mt" style="padding:11px;background:var(--glass2);border-radius:11px">
+          <div class="lbl">${T('lastOrder')}</div>
+          ${info.visit
+            ? `<div class="tiny mt">${fmtD(info.visit.date)} — ${ws.length ? esc(ws.join(' · ')) : '—'}</div>`
+            : `<div class="tiny mt">${T('noLastOrder')}</div>`}
+          ${drugs ? `<div class="tiny mt" dir="ltr" style="text-align:start">℞ ${esc(drugs)}</div>` : ''}
+          ${info.appt ? `<div class="tiny mt">📅 ${fmtD(info.appt.day)}${
+            info.appt.time ? ' · ' + esc(info.appt.time) : ''}</div>` : ''}
+        </div>
+
+        <div class="row mt" style="gap:8px">
+          ${S.role !== 'pharmacy'
+            ? `<button class="btn sm gh gr" onclick="Sec.file('${pt.id}')">${T('file')}</button>` : ''}
+          ${info.rx ? `<button class="btn sm gh gr" onclick="${S.role==='pharmacy'
+              ? `Ph.open('${info.rx.id}')` : `Rx.view('${info.rx.id}')`}">${T('lastRx')}</button>` : ''}
+          ${(info.visit && S.role !== 'pharmacy') ? `<button class="btn sm gr"
+            onclick="Nav.session('${info.visit.id}')">${T('session')}</button>` : ''}
+        </div>
+      </div>`);
   },
 };
 /*═══════════════ المواعيد القادمة ═══════════════*/
@@ -8253,6 +8624,8 @@ const Cfg = {
         ${c.sign?`<button class="btn w gh mt" onclick="Cfg.rmSign()">${T('removeSign')}</button>`:''}
       </div>
 
+      ${this.printersBox()}
+
       <button class="btn w mt2" onclick="Cfg.save()">${T('save')}</button>`;
 
     const look = `
@@ -8460,6 +8833,98 @@ const Cfg = {
       };
     };
     pick('s-logo','logo'); pick('s-sign','sign');
+
+    /* محاولة تعرّف صامتة على الطابعات عند فتح الإعدادات: إن وُجد
+       جسر يعطي الأسماء ظهرت في القائمتين بلا ضغط زر، وإن لم يوجد
+       لم يتغيّر شيء ولم تظهر رسالة. */
+    Prn.detect().then(l => {
+      if (l.length && !Prn._auto){ Prn._auto = true; Cfg.draw(); }
+    }).catch(()=>{});
+  },
+
+  /*──── الطابعات ────
+    ورقة العلاج A5 وملصق الباركود لا يخرجان من طابعة واحدة عادةً،
+    فلكلٍّ طابعته. والاختيار محلي في هذا الجهاز لا يُزامَن، لأن
+    طابعة الاستقبال ليست طابعة غرفة الطبيب. */
+  printersBox(){
+    const list = Prn.names();
+    const L = Prn.label();
+    const sel = (kind) => {
+      const cur = Prn.get(kind, '');
+      const opts = list.map(n =>
+        `<option value="${esc(n)}" ${cur===n?'selected':''}>${esc(n)}</option>`).join('');
+      const extra = (cur && !list.includes(cur))
+        ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : '';
+      return `<select onchange="Cfg.prnSet('${kind}', this.value)">
+        <option value="">${T('prnDefault')}</option>${opts}${extra}</select>`;
+    };
+
+    return `
+      <div class="card flat mt2" style="padding:12px">
+        <div class="lbl">🖨 ${T('printers')}</div>
+        <div class="tiny mt">${T('prnHint')}</div>
+
+        <div class="mt"><label class="lb">${T('a5Printer')}</label>${sel('a5')}</div>
+        <div class="mt"><label class="lb">${T('bcPrinter')}</label>${sel('bc')}</div>
+
+        <div class="row mt" style="gap:8px">
+          <button class="btn gh gr" onclick="Cfg.prnDetect()">⟳ ${T('detectPrn')}</button>
+          <button class="btn gh gr" onclick="Cfg.prnAdd()">＋ ${T('prnAdd')}</button>
+        </div>
+
+        <div class="lbl mt2">${T('lblSize')}</div>
+        <div class="g2 mt">
+          <div><label class="lb">${T('lblW')}</label>
+            <input id="s-lblw" class="mono" inputmode="numeric" dir="ltr"
+              value="${L.w}" onchange="Cfg.prnSize()"></div>
+          <div><label class="lb">${T('lblH')}</label>
+            <input id="s-lblh" class="mono" inputmode="numeric" dir="ltr"
+              value="${L.h}" onchange="Cfg.prnSize()"></div>
+        </div>
+
+        <div class="row mt2" style="gap:8px">
+          <button class="btn gh gr" onclick="Cfg.prnTest('a5')">${T('testA5')}</button>
+          <button class="btn gh gr" onclick="Cfg.prnTest('bc')">${T('testBc')}</button>
+        </div>
+      </div>`;
+  },
+
+  prnSet(kind, v){ Prn.set(kind, v); toast(T('saved'),'s'); },
+
+  prnSize(){
+    Prn.set('w', Math.max(20, Math.min(210, Number($('#s-lblw')?.value) || 50)));
+    Prn.set('h', Math.max(15, Math.min(297, Number($('#s-lblh')?.value) || 30)));
+    toast(T('saved'),'s');
+  },
+
+  async prnDetect(){
+    const found = await Prn.detect();
+    toast(found.length ? `${found.length} ${T('prnFound')}` : T('noPrn'),
+          found.length ? 's' : 'w');
+    this.draw();
+  },
+
+  prnAdd(){
+    const n = prompt(T('prnAdd'));
+    if (!n || !n.trim()) return;
+    Prn.saveNames([n.trim(), ...Prn.names()]);
+    this.draw();
+  },
+
+  /* تجربة قبل أول مراجع: ورقة أو ملصق، فيُعرف أيّ طابعة تستجيب */
+  prnTest(kind){
+    if (kind === 'bc'){
+      Print.win(Print.labelHTML({
+        doctor: CFG.data.doctor || CFG.data.clinic || '',
+        code:'123456', patient:T('testPrint'),
+        when:`${fmtD(today())} · ${fmtT(Date.now())}`,
+      }), T('testPrint'), 'bc');
+      return;
+    }
+    Print.win(`${Print.head()}
+      <div style="margin-top:16px;font-size:16px;font-weight:800">${T('testPrint')}</div>
+      <div style="margin-top:6px">${esc(CFG.data.clinic||'')} — ${fmtD(today())}</div>`,
+      T('testPrint'), 'a5');
   },
 
   /*──── تحرير أنواع الأعمال ────*/
@@ -8693,9 +9158,70 @@ const Cfg = {
   },
 };
 
+/*═══════════════ جرس التنبيهات ═══════════════
+  الحجز الجديد كان يمرّ في رسالة عابرة تختفي بعد ثوانٍ: من كان في
+  شاشة أخرى لم يعلم به أبداً. الجرس يبقى ظاهراً بعدده حتى تُفتح
+  الحجوزات وتُحسم، ومعه صوت قصير واهتزاز.
+═══════════════════════════════════════════*/
+const Notify = {
+  ac:null,
+
+  /* الحجوزات تخصّ الاستقبال والطبيب — الصيدلي والمراجع لا يعنيهما */
+  sees(){ return S.role === 'doctor' || S.role === 'secretary'; },
+
+  async count(){
+    if (!this.sees()) return 0;
+    try { return (await DB.all('bookings')).filter(b => b.st === 'new').length; }
+    catch(_){ return 0; }
+  },
+
+  async paint(){
+    const btn = $('#bellbtn'); if (!btn) return;
+    btn.classList.toggle('hide', !this.sees());
+    if (!this.sees()) return;
+    const n = await this.count();
+    btn.title = `${n} ${T('t_book')}`;
+    btn.classList.toggle('ring', !!n);
+    const c = $('#bellcnt'); if (!c) return;
+    c.textContent = n > 99 ? '99+' : n;
+    c.classList.toggle('hide', !n);
+  },
+
+  /* نغمة قصيرة مولّدة داخل المتصفح — بلا ملف صوت يُحمَّل */
+  beep(){
+    try {
+      const A = window.AudioContext || window.webkitAudioContext; if (!A) return;
+      this.ac = this.ac || new A();
+      if (this.ac.state === 'suspended') this.ac.resume();
+      const t = this.ac.currentTime;
+      const o = this.ac.createOscillator(), g = this.ac.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(880, t);
+      o.frequency.setValueAtTime(1174, t + .16);
+      g.gain.setValueAtTime(.0001, t);
+      g.gain.exponentialRampToValueAtTime(.18, t + .03);
+      g.gain.exponentialRampToValueAtTime(.0001, t + .42);
+      o.connect(g); g.connect(this.ac.destination);
+      o.start(t); o.stop(t + .44);
+    } catch(_){}
+  },
+
+  async refresh(fresh){
+    await this.paint();
+    try { if (S.role) await App.badges(); } catch(_){}
+    if (!fresh || !this.sees()) return;
+    toast(`${fresh} ${T('newBooking')}`, 's');
+    this.beep();
+    if (navigator.vibrate) try { navigator.vibrate([90,60,90]); } catch(_){}
+    /* شاشة الحجوزات المفتوحة تُحدَّث في مكانها بلا انتظار */
+    if (S.tab === 'book' && !Nav.stack.length) Sec.books();
+  },
+
+  open(){ if (this.sees()) App.setTab('book'); },
+};
+
 /*═══════════════ الهيكل والتنقّل ═══════════════*/
 const TABS = {
-  doctor:    [['today','t_today'],['files','t_files'],['appts','t_appts'],
+  doctor:    [['today','t_today'],['book','t_book'],['files','t_files'],['appts','t_appts'],
               ['recall','t_recall'],['rx','t_rx'],['money','t_money'],['set','t_set']],
   secretary: [['today','t_today'],['book','t_book'],['files','t_files'],
               ['appts','t_appts'],['recall','t_recall'],['money','t_money'],['set','t_set']],
@@ -8762,6 +9288,7 @@ const App = {
         <span class="cnt hide" id="bdg-${k}"></span>
       </button>`).join('');
     this.badges();
+    Notify.paint();
 
     $('#quickbar').innerHTML = (S.role==='patient') ? `
       <button class="btn w gh" onclick="Auth.out()">🏥 ${T('changeClinic')}</button>` : '';
