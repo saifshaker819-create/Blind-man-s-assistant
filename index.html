@@ -1108,6 +1108,27 @@ ar:{
  noLastRx:'لا يوجد علاج سابق لهذا المراجع', bookPending:'حجزه بانتظار الموافقة',
  scanHere:'ظهر في هذا القسم',
  planDx:'التشخيص / الفحص', pickDx:'اختر الفحص أو التشخيص',
+
+/*──── إيميلات العيادة وتحويل الوصفة ────*/
+ secMails:'إيميلات العيادة',
+ mailsHint:'حسابات الطاقم التي تدخل بها إلى برنامج العيادة نفسه. كل حساب يؤكّد بريده برمز يصله، ولا تُحفظ كلمة المرور في البرنامج.',
+ addPharmAcc:'＋ حساب صيدلية', addSecAcc:'＋ حساب سكرتير',
+ newPharmAcc:'حساب صيدلية جديد', newSecAcc:'حساب سكرتير جديد',
+ pharmName:'اسم الصيدلية', secName:'اسم السكرتير',
+ accEmail:'البريد الإلكتروني', accPass:'رمز الدخول', accPass2:'إعادة رمز الدخول',
+ passMatch:'رمزا الدخول غير متطابقين',
+ accAdded:'أُنشئ الحساب — أُرسل رمز التأكيد إلى البريد',
+ accPending:'بانتظار تأكيد البريد', accOk:'مؤكَّد',
+ accConfirm:'تأكيد البريد', accRemove:'حذف من القائمة',
+ accRemoveHint:'الحذف يُخرجها من قائمة التحويل في هذا البرنامج، ولا يلغي الحساب على السيرفر.',
+ noAccounts:'لا حسابات بعد',
+ mailsNote:'الصيدلية ترى الوصفات المحوّلة إليها وحدها.',
+ toPharmacy:'تحويل الوصفة إلى', noPharmSel:'بلا تحويل — لا تُرسل لأي صيدلية',
+ phHint:'إن لم تختر صيدلية بقيت الوصفة عند الطبيب ولم يرها أحد.',
+ sentTo:'حُوِّلت إلى', notSent:'حُفظت بلا تحويل',
+ rxNotYours:'هذه الوصفة محوّلة إلى صيدلية أخرى',
+ dispenseAt:'تُصرف في',
+ needPharmAcc:'أضف حساب صيدلية أولاً من الإعدادات ← إيميلات العيادة',
 },
 en:{
  tag:'Dental clinic management system', user:'Username', pass:'Password',
@@ -1415,6 +1436,27 @@ en:{
  noLastRx:'No previous prescription for this patient', bookPending:'Booking awaiting approval',
  scanHere:'Shown in this section',
  planDx:'Diagnosis / examination', pickDx:'Choose the examination or diagnosis',
+
+/*──── clinic emails & prescription routing ────*/
+ secMails:'Clinic emails',
+ mailsHint:'Staff accounts that sign in to this same program. Each one confirms its email with a code; no password is kept in the program.',
+ addPharmAcc:'＋ Pharmacy account', addSecAcc:'＋ Secretary account',
+ newPharmAcc:'New pharmacy account', newSecAcc:'New secretary account',
+ pharmName:'Pharmacy name', secName:'Secretary name',
+ accEmail:'Email', accPass:'Password', accPass2:'Repeat password',
+ passMatch:'Passwords do not match',
+ accAdded:'Account created — a confirmation code was sent to the email',
+ accPending:'Awaiting email confirmation', accOk:'Confirmed',
+ accConfirm:'Confirm email', accRemove:'Remove from list',
+ accRemoveHint:'Removing takes it out of the routing list in this program; it does not delete the server account.',
+ noAccounts:'No accounts yet',
+ mailsNote:'A pharmacy only sees prescriptions routed to it.',
+ toPharmacy:'Route prescription to', noPharmSel:'No routing — not sent to any pharmacy',
+ phHint:'If you pick no pharmacy the prescription stays with the doctor and nobody sees it.',
+ sentTo:'Routed to', notSent:'Saved without routing',
+ rxNotYours:'This prescription is routed to another pharmacy',
+ dispenseAt:'Dispense at',
+ needPharmAcc:'Add a pharmacy account first: Settings → Clinic emails',
 }};
 
 let LG = localStorage.getItem('d_lang') || 'ar';
@@ -1910,7 +1952,12 @@ const CFG = {
          secChart:false,
          /* عنوان العيادة — يعرّفها للمراجعين ويهيّئ الربط المستقبلي
             بين العيادات حسب البلد والمحافظة. */
-         phone:'', country:'العراق', gov:'', area:'', landmark:'', registered:false },
+         phone:'', country:'العراق', gov:'', area:'', landmark:'', registered:false,
+         /* حسابات الطاقم: صيدليات وسكرتارية. تُزامَن مع أجهزة
+            العيادة لأن كل جهاز يحتاج أن يعرف إلى أين تُحوَّل
+            الوصفة، ومن هي الصيدلية الواقفة أمام الشاشة.
+            بلا كلمات مرور — تلك تبقى عند السيرفر وحده. */
+         accounts:[], phSince:0 },
   async load(){
     const s = await DB.get('settings','cfg');
     if (s) Object.assign(this.data, s.v);
@@ -3026,6 +3073,47 @@ const Cloud = {
     return r.data;
   },
 
+  /*──── إضافة حساب طاقم إلى العيادة نفسها ────
+    الطريق الأول دالة مخصّصة على السيرفر إن وُجدت، فهي وحدها التي
+    تملك منح الدور. وإن لم توجد يُنشأ الحساب بالتسجيل القياسي مع
+    وسم دوره وعيادته في بياناته، ويصله رمز التأكيد على كل حال.
+    وما يعرفه البرنامج من الاثنين واحد: بريد مؤكَّد يُحوَّل إليه. */
+  async addAccount({ role, email, password, name }){
+    const clinic_id = this.me?.clinic_id || S.user?.clinic_id || null;
+    const mail = String(email||'').trim().toLowerCase();
+
+    try {
+      const r = await this.call('/functions/v1/add-account', {
+        method:'POST', raw:true,
+        body:{ role, email:mail, password, name:name||'', clinic_id,
+               clinic_name: S.clinicName || CFG.data.clinic || '' },
+      });
+      const e = r.data?.error;
+      if (e === 'email_taken')   throw new Error(T('emailTaken'));
+      if (e === 'weak_password') throw new Error(T('pass8'));
+      if (r.ok && !e) return { ok:true, via:'fn' };
+    } catch(err){
+      const m = String(err.message || err);
+      if (m === T('emailTaken') || m === T('pass8')) throw err;
+      /* الدالة غير موجودة أو غير مسموحة — يُجرَّب الطريق القياسي */
+    }
+
+    const r = await this.call('/auth/v1/signup', {
+      method:'POST', auth:false, raw:true,
+      body:{ email:mail, password,
+             data:{ role, clinic_id, full_name:name || '',
+                    pharmacy_name: role === 'pharmacy' ? (name||'') : '',
+                    clinic_name: S.clinicName || CFG.data.clinic || '' } },
+    });
+    if (!r.ok){
+      const m = String(r.data?.msg || r.data?.error_description || r.data?.error || '');
+      if (/registered|exists|taken/i.test(m)) throw new Error(T('emailTaken'));
+      if (/password/i.test(m))                throw new Error(T('pass8'));
+      throw new Error(m || T('regFailed'));
+    }
+    return { ok:true, via:'signup' };
+  },
+
   async ping(){
     try { await this.call('/rest/v1/clinics?select=id&limit=1', { auth:false }); return true; }
     catch(_){ return false; }
@@ -4134,7 +4222,7 @@ const Ops = {
         .filter(a => a.st !== 'cancelled' && a.day && a.day >= today())
         .sort((a,b)=>String(a.day+(a.time||'')).localeCompare(String(b.day+(b.time||''))))[0] || null;
     } catch(_){}
-    return { visit, works, rx:rxs[0] || null, booking:bks[0] || null, appt,
+    return { visit, works, rx:rxs[0] || null, all:rxs, booking:bks[0] || null, appt,
              todayVisit: vs.find(v => v.date === today()) || null };
   },
 
@@ -7075,7 +7163,13 @@ const Del = {
 
 /*═══════════════ الوصفات ═══════════════*/
 const Rx = {
-  write(){ S.rxDraft = [{}]; this.sheet(); },
+  /* التحويل يبدأ فارغاً في كل وصفة: الإرسال قرار يُتَّخذ كل مرة،
+     لا إعداد يُنسى فتذهب وصفة إلى صيدلية لم تُقصد. */
+  write(){ S.rxDraft = [{}]; S.rxPh = ''; this.sheet(); },
+
+  /* الصيدليات المسجّلة في «إيميلات العيادة» */
+  pharmacies(){ return (CFG.data.accounts || []).filter(a => a.role === 'pharmacy'); },
+  readPh(){ const n = $('#rx-ph'); return n ? n.value : (S.rxPh || ''); },
 
   sheet(){
     const rows = S.rxDraft.map((it,i)=>`
@@ -7103,6 +7197,16 @@ const Rx = {
           <span>⚠</span><span>${esc(x.txt)}${x.d?` — <b>${esc(x.d)}</b>`:''}</span></div>`).join('')}</div>`:''}
       ${rows}
       <button class="btn w gh mt" onclick="Rx.add()">＋ ${T('addDrug')}</button>
+
+      <div class="card mt2">
+        <label class="lb">${T('toPharmacy')}</label>
+        <select id="rx-ph">
+          <option value="">${T('noPharmSel')}</option>
+          ${this.pharmacies().map(a=>`<option value="${a.id}"
+            ${S.rxPh===a.id?'selected':''}>${esc(a.name || a.email)}</option>`).join('')}
+        </select>
+        <div class="tiny mt">${this.pharmacies().length ? T('phHint') : T('needPharmAcc')}</div>
+      </div>
       <div class="row mt2" style="gap:9px">
         <button class="btn gh gr" onclick="Nav.back()">${T('cancel')}</button>
         <button class="btn sf gr" onclick="Rx.save(false)">💾 ${T('saveOnly')}</button>
@@ -7128,6 +7232,8 @@ const Rx = {
         <div class="gr">
           <div class="h3 ell">${esc(nm(p))}</div>
           <div class="tiny mono">${fmtD(r.at)} · ${r.items.length} ${T('drug')}</div>
+          <div class="tiny ell">${r.phName
+            ? `💊 ${esc(r.phName)}` : `<span style="opacity:.7">${T('notSent')}</span>`}</div>
         </div>
         <span class="pill ${r.st==='done'?'g':'w'}">${r.st==='done'?T('dispensed'):T('pending')}</span>
       </div>`);
@@ -7166,8 +7272,8 @@ const Rx = {
 
   /* إعادة رسم الورقة ليست صفحة جديدة — تُستبدل مكانها */
   redraw(){ Nav.stack.pop(); this.sheet(); },
-  add(){ S.rxDraft=this.read(); S.rxDraft.push({}); this.redraw(); },
-  del(i){ S.rxDraft=this.read(); S.rxDraft.splice(i,1); this.redraw(); },
+  add(){ S.rxDraft=this.read(); S.rxPh=this.readPh(); S.rxDraft.push({}); this.redraw(); },
+  del(i){ S.rxDraft=this.read(); S.rxPh=this.readPh(); S.rxDraft.splice(i,1); this.redraw(); },
 
   async save(alsoPrint){
     const items = this.read().filter(x=>x.drug.length>=2);
@@ -7182,15 +7288,25 @@ const Rx = {
 
     let v = S.visit;
     if (!v) v = await Ops.openVisit(S.patient.id);
+
+    /* التحويل: بريد الصيدلية هو العنوان — الاسم للعرض والمعرّف
+       قد يتبدّل، أما البريد فهو ما تدخل به الصيدلية. ومن لم
+       يُختَر له عنوان لا يصل إلى أحد. */
+    const phId = this.readPh();
+    const ph = this.pharmacies().find(a => a.id === phId) || null;
+
     const rx = { id:uid(), pid:S.patient.id, vid:v.id, items, st:'signed',
                  doctor: CFG.data.doctor || T('r_doctor'),
+                 ph: ph ? ph.id : '', phName: ph ? (ph.name || ph.email) : '',
+                 phEmail: ph ? ph.email : '', route:1,
                  cid: CFG.data.cid, at:Date.now() };
     await DB.put('rx', rx);
     for (const i of items){
       await SG.learn('drug',i.drug); await SG.learn('dose',i.dose);
       await SG.learn('freq',i.freq); await SG.learn('dur',i.dur); await SG.learn('instr',i.instr);
     }
-    toast(T('saved'),'s');
+    toast(ph ? `${T('sentTo')}: ${ph.name || ph.email}` : T('notSent'), ph ? 's' : 'w');
+    S.rxPh = '';
     /* العودة إلى جلسة الوصفة نفسها — لا إلى آخر صفحة في السجل،
        فقد تكون صفحة المرفقات إن فُتحت قبل كتابة العلاج. */
     Nav.reset(); UI.close();
@@ -7358,6 +7474,8 @@ const Print = {
         <span>${esc(p.mrn||'')}</span>
         <span>${fmtD(rx.at)}</span>
       </div>
+      ${rx.phName?`<div style="font-size:12px;font-weight:700;margin-top:6px">
+        ${T('dispenseAt')}: ${esc(rx.phName)}</div>`:''}
       <div style="font-size:16px;font-weight:800;margin:8px 0 2px;color:#00695C">℞</div>
       ${items}
       ${rx.notes?`<div style="margin-top:10px;font-size:12px">${esc(rx.notes)}</div>`:''}
@@ -7475,9 +7593,33 @@ const Print = {
 
 /*═══════════════ الصيدلية ═══════════════*/
 const Ph = {
+  /*──── ما الذي تراه هذه الصيدلية؟ ────
+    الوصفة تُحوَّل إلى بريد صيدلية بعينه، فلا تراها غيرها. وما
+    حُفظ بلا تحويل لا يراه أحد — هذا نصّ ما يريده الطبيب.
+    وحدها الوصفات المكتوبة قبل تسجيل أول صيدلية تبقى ظاهرة، لئلا
+    يفقد الصيدلي سجلّه القديم يوم تُفعّل الميزة.
+    والطبيب والسكرتير خارج هذه القاعدة: يريان كل شيء كما كانا. */
+  myMail(){
+    return String(Cloud.session?.email || S.user?.id || '').trim().toLowerCase();
+  },
+
+  mine(r){
+    if (!r) return false;
+    if (S.role !== 'pharmacy') return true;
+    /* العلامة route تُوضع على كل وصفة تكتبها هذه النسخة، اختير لها
+       تحويل أو لم يُختر. فالحكم يقع من الوصفة نفسها لا من دليل
+       الحسابات — وجهاز الصيدلية لا يستقبل إعدادات العيادة أصلاً
+       (يسحب الوصفات والمراجعين فقط)، فلو عُلّق الحكم على الدليل
+       لرأت كل صيدلية كل شيء. */
+    if (r.phEmail) return String(r.phEmail).toLowerCase() === this.myMail();
+    return !r.route;      /* وصفات كُتبت قبل هذه الميزة تبقى ظاهرة */
+  },
+
+  async mineAll(){ return (await DB.all('rx')).filter(r => this.mine(r)); },
+
   async queue(){
     const v = $('#view'); v.innerHTML = UI.spin();
-    const rs = (await DB.all('rx')).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,60);
+    const rs = (await this.mineAll()).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,60);
     const rows = [];
     for (const r of rs){
       const p = await DB.get('patients', r.pid); if(!p) continue;
@@ -7495,6 +7637,9 @@ const Ph = {
      مع الحساسيات — بلا تشخيص ولا أسعار. */
   async open(id){
     const r = await DB.get('rx', id);
+    if (!r) return toast(T('noResult'), 'e');
+    /* حتى لو وصل الرمز بالمسح أو برابط قديم: ما ليس لها لا يُفتح */
+    if (!this.mine(r)) return toast(T('rxNotYours'), 'e');
     const p = await DB.get('patients', r.pid);
     const alerts = MH.alerts(p.mh, true);
 
@@ -7551,6 +7696,9 @@ const Ph = {
 
   async confirmGive(id){
     const r = await DB.get('rx', id);
+    if (!r) return toast(T('noResult'), 'e');
+    /* حارس أخير: لا تُصرف وصفة محوّلة إلى صيدلية أخرى */
+    if (!this.mine(r)) return toast(T('rxNotYours'), 'e');
     r.st = 'done'; r.doneAt = Date.now();
     r.amount = Number($('#rx-amt')?.value) || 0;   /* صفر = بلا مبلغ */
     r.doneBy = S.user?.id || 'pharmacy';
@@ -7562,7 +7710,7 @@ const Ph = {
   /*──── الأطباء المحوّلون لهذه الصيدلية ────*/
   async docs(){
     const v = $('#view'); v.innerHTML = UI.spin();
-    const rs = await DB.all('rx');
+    const rs = await this.mineAll();
     const map = {};
     for (const r of rs){
       const d = r.doctor || CFG.data.doctor || T('r_doctor');
@@ -7594,7 +7742,7 @@ const Ph = {
   /* مراجعو طبيب معيّن مع حالة الصرف */
   async docPatients(encName){
     const name = decodeURIComponent(encName);
-    const rs = (await DB.all('rx'))
+    const rs = (await this.mineAll())
       .filter(r => (r.doctor || CFG.data.doctor || T('r_doctor')) === name)
       .sort((a,b)=>(b.at||0)-(a.at||0));
 
@@ -7632,7 +7780,7 @@ const Ph = {
 
   async accounts(){
     const v = $('#view');
-    const rs = await DB.all('rx');
+    const rs = await this.mineAll();
     const docs = [...new Set(rs.map(r=>r.doctor || CFG.data.doctor || T('r_doctor')))];
 
     v.innerHTML = `
@@ -7673,7 +7821,7 @@ const Ph = {
   async accBody(){
     const box = $('#pacc-body'); if (!box) return;
     const f = this.flt;
-    let rs = (await DB.all('rx')).filter(r => r.st === 'done');
+    let rs = (await this.mineAll()).filter(r => r.st === 'done');
     if (f.from) rs = rs.filter(r => new Date(r.doneAt||r.at).toISOString().slice(0,10) >= f.from);
     if (f.to)   rs = rs.filter(r => new Date(r.doneAt||r.at).toISOString().slice(0,10) <= f.to);
     if (f.doc)  rs = rs.filter(r => (r.doctor || CFG.data.doctor || T('r_doctor')) === f.doc);
@@ -7873,7 +8021,9 @@ const Scan = {
     const code = String(pt.bc || pt.mrn || nm(pt));
 
     if (S.role === 'pharmacy'){
-      if (info.rx){ toast(`${nm(pt)} — ${T('lastRx')}`, 's'); return Ph.open(info.rx.id); }
+      /* آخر علاج مما هو محوَّل إلى هذه الصيدلية تحديداً */
+      const own = (info.all || []).find(r => Ph.mine(r));
+      if (own){ toast(`${nm(pt)} — ${T('lastRx')}`, 's'); return Ph.open(own.id); }
       toast(`${nm(pt)} — ${T('noLastRx')}`, 'e');
       await App.draw();
       return this.banner(pt, info);
@@ -7920,8 +8070,10 @@ const Scan = {
 
     const ws = (info.works || []).slice(0,3)
       .map(x => `${x.fdi ? Chart.lbl(x.fdi) + ' · ' : ''}${pName(x.proc)}`);
-    const drugs = info.rx
-      ? info.rx.items.map(i => i.drug).filter(Boolean).slice(0,4).join(' · ') : '';
+    /* الصيدلي يرى في البطاقة ما يخصّه فقط */
+    const rx = (S.role === 'pharmacy')
+      ? (info.all || []).find(r => Ph.mine(r)) || null : info.rx;
+    const drugs = rx ? rx.items.map(i => i.drug).filter(Boolean).slice(0,4).join(' · ') : '';
     const st = info.todayVisit
       ? `<span class="pill g">${T('bookedToday')}</span>`
       : (info.booking && info.booking.st === 'new')
@@ -7955,8 +8107,8 @@ const Scan = {
         <div class="row mt" style="gap:8px">
           ${S.role !== 'pharmacy'
             ? `<button class="btn sm gh gr" onclick="Sec.file('${pt.id}')">${T('file')}</button>` : ''}
-          ${info.rx ? `<button class="btn sm gh gr" onclick="${S.role==='pharmacy'
-              ? `Ph.open('${info.rx.id}')` : `Rx.view('${info.rx.id}')`}">${T('lastRx')}</button>` : ''}
+          ${rx ? `<button class="btn sm gh gr" onclick="${S.role==='pharmacy'
+              ? `Ph.open('${rx.id}')` : `Rx.view('${rx.id}')`}">${T('lastRx')}</button>` : ''}
           ${(info.visit && S.role !== 'pharmacy') ? `<button class="btn sm gr"
             onclick="Nav.session('${info.visit.id}')">${T('session')}</button>` : ''}
         </div>
@@ -8817,6 +8969,7 @@ const Cfg = {
       + (Sync.on() ? this.acc('sy','🔄', T('syncSection'), sync) : '')
       + this.acc('cl','☁', T('cloudSection'), cloud)
       + this.acc('sk','🎨', T('secSkin'), skin)
+      + (S.role==='doctor' ? this.acc('em','📧', T('secMails'), this.mailsBox()) : '')
       + (S.role==='doctor' ? this.acc('s','🛡', T('secSafety'), safety) : '')
       + (S.role==='doctor' ? this.acc('r','🔐', T('secPerm'), perm) : '')
       + (S.role==='doctor' ? this.acc('t','🦷', T('toothStatuses'), statuses) : '')
@@ -8840,6 +8993,173 @@ const Cfg = {
     Prn.detect().then(l => {
       if (l.length && !Prn._auto){ Prn._auto = true; Cfg.draw(); }
     }).catch(()=>{});
+  },
+
+  /*──── إيميلات العيادة ────
+    حسابات الطاقم التي تدخل بها إلى البرنامج نفسه: صيدليات
+    وسكرتارية. الصيدليات هنا هي التي تظهر للطبيب عند كتابة العلاج
+    ليختار إلى أيّها يُحوّل. كلمة المرور لا تُحفظ في البرنامج
+    إطلاقاً — تُكتب مرة وتُرسل إلى السيرفر وتُنسى. */
+  mailsBox(){
+    const list = CFG.data.accounts || [];
+    const row = a => `
+      <div class="it" style="cursor:default">
+        <div class="av ${a.ok?'g':'w'}">${a.role==='pharmacy'?'💊':'🗂'}</div>
+        <div class="gr">
+          <div class="h3 ell">${esc(a.name || a.email)}</div>
+          <div class="mono tiny ell">${esc(a.email)}</div>
+        </div>
+        <div style="text-align:end">
+          <span class="pill ${a.ok?'g':'w'}">${a.ok?T('accOk'):T('accPending')}</span>
+          <div class="row mt" style="gap:6px;justify-content:flex-end">
+            ${a.ok?'':`<button class="btn xs gh"
+              onclick="Cfg.accConfirm('${esc(a.email)}')">${T('accConfirm')}</button>`}
+            <button class="btn xs gh" style="color:var(--bd)"
+              onclick="Cfg.accDel('${a.id}')">✕</button>
+          </div>
+        </div>
+      </div>`;
+
+    const group = (role, title, addLbl) => {
+      const rows = list.filter(a => a.role === role);
+      return `
+        <div class="lbl mt2">${title}</div>
+        <div class="col mt">${rows.length ? rows.map(row).join('')
+          : `<div class="emp">${T('noAccounts')}</div>`}</div>
+        <button class="btn w gh mt" onclick="Cfg.accAdd('${role}')">${addLbl}</button>`;
+    };
+
+    return `
+      <div class="tiny">${T('mailsHint')}</div>
+      ${group('pharmacy', '💊 ' + T('r_pharmacy'), T('addPharmAcc'))}
+      <div class="al i mt"><span>ℹ</span><span>${T('mailsNote')}</span></div>
+      ${group('secretary', '🗂 ' + T('r_secretary'), T('addSecAcc'))}
+      <div class="tiny mt2">${T('accRemoveHint')}</div>`;
+  },
+
+  accAdd(role){
+    const isPh = role === 'pharmacy';
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">${isPh?'💊':'🗂'}</div>
+        <div class="gr"><div class="h2">${isPh?T('newPharmAcc'):T('newSecAcc')}</div>
+          <div class="tiny">${T('mailsHint')}</div></div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>
+      <div class="card">
+        <label class="lb">${isPh?T('pharmName'):T('secName')} <span class="req">*</span></label>
+        <input id="ac-name" autocomplete="off">
+        <div class="mt"><label class="lb">${T('accEmail')} <span class="req">*</span></label>
+          <input id="ac-mail" type="email" dir="ltr" spellcheck="false" inputmode="email"></div>
+        <div class="mt"><label class="lb">${T('accPass')} <span class="req">*</span></label>
+          <input id="ac-p1" type="password" dir="ltr"></div>
+        <div class="mt"><label class="lb">${T('accPass2')} <span class="req">*</span></label>
+          <input id="ac-p2" type="password" dir="ltr"></div>
+        <div id="ac-err" class="al r mt hide"></div>
+        <div class="row mt2" style="gap:9px">
+          <button class="btn gh gr" onclick="Nav.back()">${T('cancel')}</button>
+          <button class="btn gr" style="flex:2" id="ac-go"
+            onclick="Cfg.accSave('${role}')">${T('save')}</button>
+        </div>
+      </div>`);
+    setTimeout(()=>$('#ac-name')?.focus(), 140);
+  },
+
+  async accSave(role){
+    const v = id => ($('#'+id)?.value || '').trim();
+    const err = $('#ac-err');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    err.classList.add('hide');
+
+    const name = v('ac-name');
+    const mail = v('ac-mail').toLowerCase();
+    const p1 = $('#ac-p1')?.value || '', p2 = $('#ac-p2')?.value || '';
+
+    if (name.length < 2) return show(T('fillAll'));
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return show(T('email'));
+    if (p1.length < 8) return show(T('pass8'));
+    if (p1 !== p2)     return show(T('passMatch'));
+    if ((CFG.data.accounts||[]).some(a => a.email === mail)) return show(T('emailTaken'));
+
+    const b = $('#ac-go'); b.disabled = true; b.textContent = T('cloudBusy');
+    try {
+      await Cloud.addAccount({ role, email:mail, password:p1, name });
+
+      CFG.data.accounts = CFG.data.accounts || [];
+      CFG.data.accounts.push({ id:uid(), role, name, email:mail, at:Date.now(), ok:false });
+      /* تاريخ تسجيل أول صيدلية — يُحفظ للمرجع لا للحكم */
+      if (role === 'pharmacy' && !CFG.data.phSince) CFG.data.phSince = Date.now();
+      await CFG.save();
+
+      Nav.back();
+      toast(T('accAdded'), 's');
+      this.accConfirm(mail);
+    } catch (e) {
+      show(String(e.message || e));
+    } finally {
+      b.disabled = false; b.textContent = T('save');
+    }
+  },
+
+  /*──── تأكيد بريد الحساب برمز ────
+    الرمز يصل إلى بريد الصيدلية أو السكرتير، ويُكتب هنا من جهاز
+    الطبيب أو من جهازهم — كلاهما يصحّ، فالتأكيد على السيرفر. */
+  accConfirm(email){
+    UI.sheet(`
+      <div class="shhead">
+        <div class="accic" style="width:44px;height:44px;font-size:19px">📩</div>
+        <div class="gr"><div class="h2">${T('accConfirm')}</div>
+          <div class="mono tiny ell">${esc(email)}</div></div>
+        <button class="ib" onclick="Nav.back()">✕</button>
+      </div>
+      <div class="card">
+        <label class="lb">${T('confirmCode')}</label>
+        <input id="ac-code" inputmode="numeric" dir="ltr" maxlength="8"
+          autocomplete="one-time-code" placeholder="——————"
+          oninput="this.value=this.value.replace(/\D/g,'')"
+          style="letter-spacing:.32em;text-align:center;font-size:20px;font-weight:800">
+        <div class="tiny mt">${T('confirmHint')}</div>
+        <div id="ac-cerr" class="al r mt hide"></div>
+        <button class="btn w mt2" id="ac-cgo"
+          onclick="Cfg.accConfirmGo('${esc(email)}')">${T('confirmGo')}</button>
+        <button class="btn w gh mt" onclick="Login.resend('${esc(email)}')">
+          ${T('resendCode')}</button>
+      </div>`);
+    setTimeout(()=>$('#ac-code')?.focus(), 140);
+  },
+
+  async accConfirmGo(email){
+    const err = $('#ac-cerr');
+    const show = m => { err.textContent = m; err.classList.remove('hide'); };
+    err.classList.add('hide');
+    const code = ($('#ac-code')?.value || '').trim();
+    if (!/^\d{6}$|^\d{8}$/.test(code)) return show(T('code6'));
+
+    const b = $('#ac-cgo'); b.disabled = true; b.textContent = T('cloudBusy');
+    try {
+      /* جلسة الحساب الجديد لا تُحفظ: الطبيب يبقى داخلاً بحسابه */
+      const d = await Cloud.call('/auth/v1/verify', { method:'POST', auth:false,
+        body:{ type:'signup', email, token:code } });
+      if (!d?.access_token) return show(T('confirmBad'));
+
+      const a = (CFG.data.accounts || []).find(x => x.email === email);
+      if (a){ a.ok = true; await CFG.save(); }
+      Nav.back();
+      toast(T('confirmDone'), 's');
+      this.draw();
+    } catch (e) {
+      const m = String(e.message || e);
+      show(/token|expired|invalid/i.test(m) ? T('confirmBad') : m);
+    } finally { b.disabled = false; b.textContent = T('confirmGo'); }
+  },
+
+  async accDel(id){
+    const a = (CFG.data.accounts || []).find(x => x.id === id); if (!a) return;
+    if (!ask(`${esc(a.name || a.email)}\n\n${T('accRemoveHint')}\n\n${T('confirm')}?`)) return;
+    CFG.data.accounts = (CFG.data.accounts || []).filter(x => x.id !== id);
+    await CFG.save();
+    toast(T('saved'), 's');
+    this.draw();
   },
 
   /*──── الطابعات ────
